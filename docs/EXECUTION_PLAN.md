@@ -35,7 +35,7 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 - [x] Extra-keys row: ESC, TAB, CTRL, ALT, arrows (adapt from wolfi)
 - [x] Hardware key handling for Ctrl, Alt, arrows, Home, End, PgUp, PgDn (provided by the vendored view)
 
-**Gate:** CI green and artifact produced. A CI emulator smoke captures the screen after `echo hi`, `seq 10000`, and a scroll gesture. This environment has no attached device, so human review of the screenshots for the command output and smooth scrolling is still pending before merge and tag.
+**Gate:** Build CI and artifact passed. The first emulator smoke failed after 17 minutes on `ubuntu-latest`; its logs are currently unavailable from GitHub. The emulator job is pinned to `ubuntu-22.04` with a longer boot timeout for the next attempt. Review its screenshots for `echo hi`, `seq 10000`, and smooth scrolling before merge and tag.
 
 ## Phase 2: Distro runtime (0.3.0)
 

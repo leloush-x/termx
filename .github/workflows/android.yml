@@ -93,7 +93,8 @@ jobs:
     name: Phase 1 terminal emulator smoke
     needs: build
     if: github.ref == 'refs/heads/phase/1-terminal' || github.ref == 'refs/tags/v0.2.0'
-    runs-on: ubuntu-latest
+    # ReactiveCircus emulator launches have been hanging on ubuntu-latest runners.
+    runs-on: ubuntu-22.04
     timeout-minutes: 30
     steps:
       - uses: actions/download-artifact@v4
@@ -103,11 +104,13 @@ jobs:
 
       - name: Install and exercise the terminal
         uses: reactivecircus/android-emulator-runner@v2.38.0
+        timeout-minutes: 20
         with:
           api-level: 35
           target: google_apis
           arch: x86_64
           profile: pixel_2
+          emulator-boot-timeout: 900
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
