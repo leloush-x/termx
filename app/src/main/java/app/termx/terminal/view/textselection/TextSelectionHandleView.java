@@ -15,7 +15,6 @@ import android.view.ViewParent;
 import android.view.WindowManager;
 import android.widget.PopupWindow;
 
-import app.termx.terminal.view.R;
 import app.termx.terminal.view.TerminalView;
 import app.termx.terminal.view.support.PopupWindowCompatGingerbread;
 

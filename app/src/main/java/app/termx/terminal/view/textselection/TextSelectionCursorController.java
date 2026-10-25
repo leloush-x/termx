@@ -17,7 +17,6 @@ import androidx.annotation.Nullable;
 
 import com.termux.terminal.TerminalBuffer;
 import com.termux.terminal.WcWidth;
-import app.termx.terminal.view.R;
 import app.termx.terminal.view.TerminalView;
 
 public class TextSelectionCursorController implements CursorController {

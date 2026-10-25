@@ -16,6 +16,8 @@ Third-party code and components
    License: Apache-2.0, under the module exception in termux-app LICENSE.md.
    Package names and resource references were adapted for app.termx. The terminal
    input type was changed to a normal text field to keep voice input available.
+   Scrolling is kept in the view and SIXEL bitmap rendering was omitted to match
+   the v0.118.3 emulator dependency.
    A copy of the Apache License 2.0 is in licenses/Apache-2.0.txt.
 
 3. ReTerminal (Phase 2 onward: adapted code)
