@@ -106,8 +106,8 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2.38.0
         timeout-minutes: 20
         with:
-          api-level: 35
-          target: aosp_atd
+          api-level: 30
+          target: default
           arch: x86_64
           profile: pixel_2
           emulator-boot-timeout: 900
@@ -115,6 +115,8 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: |
             set -eu
+            mkdir -p screenshots
+            adb exec-out screencap -p > screenshots/emulator-before-app.png
             adb install dist/TermX-0.2.0-direct.apk
             adb shell am start -n app.termx/.MainActivity
             sleep 3
@@ -122,7 +124,6 @@ jobs:
             adb shell input text 'echo%shi'
             adb shell input keyevent 66
             sleep 2
-            mkdir -p screenshots
             adb exec-out screencap -p > screenshots/terminal-echo.png
             adb shell input text 'seq%ssum'
             adb shell input keyevent 66

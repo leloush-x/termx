@@ -35,7 +35,7 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 - [x] Extra-keys row: ESC, TAB, CTRL, ALT, arrows (adapt from wolfi)
 - [x] Hardware key handling for Ctrl, Alt, arrows, Home, End, PgUp, PgDn (provided by the vendored view)
 
-**Gate:** Build CI and artifact passed. The resource-optimized `aosp_atd` image booted in about 7.5 minutes. Its smoke script then failed because `/usr/bin/sh` rejects Bash's `pipefail`; D27 switches it to POSIX `set -eu`. The next run must capture screenshots after `echo hi`, `seq 10000`, and a scroll gesture. Human review for command output and smooth scrolling remains pending before merge and tag.
+**Gate:** Build CI and artifact passed. The `aosp_atd` image booted and the shell commands completed, but its three screenshots were identical black frames. D28 switches to the standard API 30 AOSP image and adds a pre-launch frame to diagnose display capture. Visible `echo hi`, `seq 10000`, and smooth scrolling still need verification before merge and tag.
 
 ## Phase 2: Distro runtime (0.3.0)
 
