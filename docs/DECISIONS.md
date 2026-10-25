@@ -24,3 +24,4 @@ Format: ID · decision · why · status. Add a new row whenever a choice is made
 | D18 | Versioning: Phase 0 is `0.1.0`, and each phase adds one minor version. `1.0.0` ships with Phase 8 | Each phase produces a real release APK on GitHub | Accepted |
 | D19 | Interim fix for wolfi-terminal: make the bind and permission changes in the current app now (ARCHITECTURE §2.6) | Users are hitting the storage errors today | Open: owner decides whether to patch the old app |
 | D20 | Create private repository `leloush-x/termx` and use it as `origin` | Phase 0 needs a remote for CI and releases; the authenticated GitHub account has the required access | Accepted |
+| D21 | Add AndroidX Annotation 1.9.0 as a direct dependency for the vendored terminal view | Matches the annotation dependency used by Termux terminal-view at the pinned source commit | Accepted |
