@@ -114,7 +114,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: |
-            set -euo pipefail
+            set -eu
             adb install dist/TermX-0.2.0-direct.apk
             adb shell am start -n app.termx/.MainActivity
             sleep 3

@@ -35,7 +35,7 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 - [x] Extra-keys row: ESC, TAB, CTRL, ALT, arrows (adapt from wolfi)
 - [x] Hardware key handling for Ctrl, Alt, arrows, Home, End, PgUp, PgDn (provided by the vendored view)
 
-**Gate:** Build CI and artifact passed. Emulator attempts on `ubuntu-latest` and `ubuntu-22.04` both timed out before Android reported `sys.boot_completed`; the second run's logs show KVM unavailable. The next attempt uses the resource-optimized `aosp_atd` image (D26). Review its screenshots for `echo hi`, `seq 10000`, and smooth scrolling before merge and tag.
+**Gate:** Build CI and artifact passed. The resource-optimized `aosp_atd` image booted in about 7.5 minutes. Its smoke script then failed because `/usr/bin/sh` rejects Bash's `pipefail`; D27 switches it to POSIX `set -eu`. The next run must capture screenshots after `echo hi`, `seq 10000`, and a scroll gesture. Human review for command output and smooth scrolling remains pending before merge and tag.
 
 ## Phase 2: Distro runtime (0.3.0)
 
