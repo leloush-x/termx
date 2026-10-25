@@ -80,7 +80,6 @@ class TerminalBackend(private val context: Context) : TerminalViewClient, Termin
 
     override fun onColorsChanged(session: TerminalSession) = Unit
     override fun onTerminalCursorStateChange(state: Boolean) = Unit
-    override fun setTerminalShellPid(session: TerminalSession, pid: Int) = Unit
     override fun getTerminalCursorStyle(): Int = TerminalEmulator.DEFAULT_TERMINAL_CURSOR_STYLE
 
     override fun logError(tag: String, message: String) { Log.e(tag, message) }
