@@ -5,9 +5,9 @@ The AI build prompt (`docs/AI_BUILD_PROMPT.md`) drives this plan. Design details
 
 ## Owner actions (blocking)
 
-- [ ] **Link GitHub** in claude.ai Settings → Connectors, or create the private repo `termx` and grant push access (D16). The planning sandbox could not push: the GitHub account is not linked.
-- [ ] Add the four secrets: `TERMX_KEYSTORE_B64`, `TERMX_KEYSTORE_PASSWORD`, `TERMX_KEY_ALIAS`, `TERMX_KEY_PASSWORD` (README.md). Create the keystore once and back it up. A lost key means existing installs can't be updated.
-- [ ] Decide D1 (name and package) and D11 (copyright holder). Both are placeholders now.
+- [x] **GitHub access:** private repo `leloush-x/termx` created and `main` pushed (D20).
+- [x] Add the four release-signing secrets listed in README.md. A PKCS12 key was generated outside the repo; owner should make an independent backup of `/root/.config/termx-signing/termx-release.keystore` and its password files.
+- [ ] Decide D1 (name and package) and D11 (copyright holder) before the first public distribution. Current values remain placeholders.
 - [ ] Optional: decide whether to apply the storage fix to wolfi-terminal now (D19, ARCHITECTURE §2.6).
 
 ## Release rule
@@ -21,9 +21,9 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 - [x] Gradle skeleton on the wolfi-terminal toolchain (AGP 9.2.1, Kotlin 2.3.20, Gradle 9.4.1, compileSdk 37)
 - [x] Flavors `play` and `direct`. Signing only from secrets. R8 off (D13)
 - [x] CI: unit tests → decode keystore → `assembleDirectRelease` → zipalign `-P 16` → signature report → artifact → tag release with signature and tag checks
-- [ ] Repo created and pushed (blocked: owner action)
-- [ ] `main` CI green
-- [ ] Tag `v0.1.0`, release published with the APK
+- [x] Repo created and pushed
+- [x] `main` CI green (run `40231189150`)
+- [x] Tag `v0.1.0`, signed release published with the APK (tag run `40231477259`)
 
 **Gate:** green run. Artifact `termx-apk` holds `TermX-0.1.0-direct.apk` and `.sha256`. With secrets set, the release exists and `apksigner verify` passes.
 
