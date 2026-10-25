@@ -1,0 +1,126 @@
+name: Android CI
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Test and build direct release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      # Runs before the keystore is decoded, so tests never see the signing config.
+      - name: Unit tests
+        run: ./gradlew testDirectDebugUnitTest --stacktrace
+
+      - name: Decode release keystore
+        env:
+          TERMX_KEYSTORE_B64: ${{ secrets.TERMX_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$TERMX_KEYSTORE_B64" ]; then
+            echo "::warning::TERMX_KEYSTORE_B64 is not set. The APK will be UNSIGNED and the release job will refuse to publish it."
+            exit 0
+          fi
+          KS="$RUNNER_TEMP/termx-release.keystore"
+          printf '%s' "$TERMX_KEYSTORE_B64" | base64 --decode > "$KS"
+          echo "TERMX_KEYSTORE_FILE=$KS" >> "$GITHUB_ENV"
+
+      - name: Build direct release APK
+        env:
+          TERMX_KEYSTORE_PASSWORD: ${{ secrets.TERMX_KEYSTORE_PASSWORD }}
+          TERMX_KEY_ALIAS: ${{ secrets.TERMX_KEY_ALIAS }}
+          TERMX_KEY_PASSWORD: ${{ secrets.TERMX_KEY_PASSWORD }}
+        run: ./gradlew assembleDirectRelease --stacktrace
+
+      - name: Check 16 KB alignment, report signature, stage APK
+        run: |
+          set -euo pipefail
+          APK="$(find app/build/outputs/apk/direct/release -name '*.apk' -print -quit)"
+          test -n "$APK"
+          BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+
+          "$BT/zipalign" -c -P 16 -v 4 "$APK" >/dev/null
+          echo "16 KB page alignment: OK"
+
+          VERSION="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -1)"
+          OUT="TermX-${VERSION}-direct.apk"
+          mkdir -p dist
+          cp "$APK" "dist/$OUT"
+
+          if "$BT/apksigner" verify --print-certs "dist/$OUT" > "$RUNNER_TEMP/signer.txt" 2>&1; then
+            echo "Signature: OK"
+            grep -i 'SHA-256' "$RUNNER_TEMP/signer.txt" || true
+          else
+            echo "Signature: NOT SIGNED (expected only on branches without secrets)"
+          fi
+
+          (cd dist && sha256sum "$OUT" > "$OUT.sha256")
+          cat "dist/$OUT.sha256"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: termx-apk
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: termx-apk
+          path: dist
+
+      - name: Refuse unsigned builds and tag mismatches
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -1)"
+          if [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match versionName v$VERSION in app/build.gradle.kts"
+            exit 1
+          fi
+          BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          if ! "$BT/apksigner" verify dist/*.apk >/dev/null 2>&1; then
+            echo "APK is not signed. Add the TERMX_* secrets (see README.md) and push the tag again."
+            exit 1
+          fi
+          echo "Tag and signature checks passed for $GITHUB_REF_NAME"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "TermX $GITHUB_REF_NAME" --generate-notes

@@ -1,0 +1,17 @@
+.gradle/
+build/
+*/build/
+.idea/
+*.iml
+local.properties
+.DS_Store
+.cxx/
+.externalNativeBuild/
+*.log
+dist/
+
+# Never commit signing material. Release keys live only in GitHub secrets.
+*.keystore
+*.jks
+keystore.properties
+signing.properties

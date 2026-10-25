@@ -1,0 +1,28 @@
+TermX
+Copyright (c) 2026 TermX contributors. Licensed under MIT (see LICENSE).
+
+Third-party code and components
+
+1. Termux terminal-emulator (Phase 0: consumed as a dependency)
+   Source: https://github.com/termux/termux-app (pinned v0.118.3 via JitPack)
+   License: Apache-2.0 for terminal-emulator and terminal-view, per the
+   exception in termux-app LICENSE.md. Originally from jackpal/Android-Terminal-Emulator
+   (Apache-2.0).
+
+2. Termux terminal-view (Phase 1: vendored into app.termx.terminal.view)
+   Source: termux-app terminal-view at the commit recorded in docs/REFERENCES.md
+   License: Apache-2.0. Original license headers are kept on every vendored file.
+
+3. ReTerminal (Phase 2 onward: adapted code)
+   Source: https://github.com/RohitKushvaha01/ReTerminal (pinned in docs/REFERENCES.md)
+   License: MIT, Copyright (c) 2024 Rohit Kushvaha
+
+4. wolfi-terminal (Phase 2 onward: adapted code)
+   Source: https://github.com/leloush-x/wolfi-terminal (pinned in docs/REFERENCES.md)
+   License: MIT, Copyright (c) 2024 Rohit Kushvaha
+
+5. proot (Phase 2 onward: bundled as a separate executable, not linked)
+   License: GNU GPL. The license text and the exact source revision ship with each release.
+   Verify the GPL version against the proot sources before the first public release.
+
+Code is never copied from termux-shared/ (GPLv3) or from ZeroTermux (GPL) into this repository.
