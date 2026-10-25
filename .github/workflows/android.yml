@@ -89,57 +89,6 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-  phase1_emulator_smoke:
-    name: Phase 1 terminal emulator smoke
-    needs: build
-    if: github.ref == 'refs/heads/phase/1-terminal' || github.ref == 'refs/tags/v0.2.0'
-    # ReactiveCircus emulator launches have been hanging on ubuntu-latest runners.
-    runs-on: ubuntu-22.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: termx-apk
-          path: dist
-
-      - name: Install and exercise the terminal
-        uses: reactivecircus/android-emulator-runner@v2.38.0
-        timeout-minutes: 20
-        with:
-          api-level: 30
-          target: default
-          arch: x86_64
-          profile: pixel_2
-          emulator-boot-timeout: 900
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
-          script: |
-            set -eu
-            mkdir -p screenshots
-            adb exec-out screencap -p > screenshots/emulator-before-app.png
-            adb install dist/TermX-0.2.0-direct.apk
-            adb shell am start -n app.termx/.MainActivity
-            sleep 3
-            adb shell input tap 540 420
-            adb shell input text 'echo%shi'
-            adb shell input keyevent 66
-            sleep 2
-            adb exec-out screencap -p > screenshots/terminal-echo.png
-            adb shell input text 'seq%ssum'
-            adb shell input keyevent 66
-            sleep 5
-            adb exec-out screencap -p > screenshots/terminal-seq.png
-            adb shell input swipe 540 700 540 240 500
-            sleep 1
-            adb exec-out screencap -p > screenshots/terminal-scroll.png
-            adb shell pidof app.termx >/dev/null
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: termx-phase1-emulator-screenshots
-          path: screenshots/
-          if-no-files-found: error
-
   release:
     name: Publish GitHub release
     needs: build

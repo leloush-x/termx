@@ -35,7 +35,7 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 - [x] Extra-keys row: ESC, TAB, CTRL, ALT, arrows (adapt from wolfi)
 - [x] Hardware key handling for Ctrl, Alt, arrows, Home, End, PgUp, PgDn (provided by the vendored view)
 
-**Gate:** Build CI and artifact passed. The `aosp_atd` image booted and the shell commands completed, but its three screenshots were identical black frames. D28 switches to the standard API 30 AOSP image and adds a pre-launch frame to diagnose display capture. Visible `echo hi`, `seq 10000`, and smooth scrolling still need verification before merge and tag.
+**Gate:** Build/test CI and signed APK artifact passed. Hosted emulator checks are not reliable here: AOSP ATD produced identical black screenshots, while the standard API 30 image failed APK installation with `Failure calling service package: Broken pipe (32)` (D29). The owner still needs to install the APK on a device and verify that `echo hi` prints `hi` and `seq 10000` scrolls smoothly before merge and tag.
 
 ## Phase 2: Distro runtime (0.3.0)
 
