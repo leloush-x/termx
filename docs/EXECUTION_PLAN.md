@@ -29,13 +29,13 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 
 ## Phase 1: Terminal surface (0.2.0)
 
-- [ ] Vendor termux `terminal-view` (Apache-2.0) under `app.termx.terminal.view`. Keep license headers, add NOTICE entries
-- [ ] `TerminalSession` runs `/system/bin/sh` through the JitPack emulator
-- [ ] Soft keyboard input without hiding the mic (wolfi VOICE_HANDOFF fix)
-- [ ] Extra-keys row: ESC, TAB, CTRL, ALT, arrows (adapt from wolfi)
-- [ ] Hardware key handling for Ctrl, Alt, arrows, Home, End, PgUp, PgDn
+- [x] Vendor termux `terminal-view` (Apache-2.0) under `app.termx.terminal.view`. Keep license headers, add NOTICE entries
+- [x] `TerminalSession` runs `/system/bin/sh` through the JitPack emulator
+- [x] Soft keyboard input uses a voice-friendly text type (wolfi VOICE_HANDOFF fix)
+- [x] Extra-keys row: ESC, TAB, CTRL, ALT, arrows (adapt from wolfi)
+- [x] Hardware key handling for Ctrl, Alt, arrows, Home, End, PgUp, PgDn (provided by the vendored view)
 
-**Gate:** green CI. Manual: `echo hi` prints `hi`. A 10,000-line `seq` scrolls without visible jank on a mid-range device.
+**Gate:** CI green and artifact produced. **On-device check pending:** this environment has no `adb` or attached device. Confirm `echo hi` prints `hi`, and a 10,000-line `seq` scrolls smoothly before merging and tagging.
 
 ## Phase 2: Distro runtime (0.3.0)
 

@@ -25,3 +25,5 @@ Format: ID · decision · why · status. Add a new row whenever a choice is made
 | D19 | Interim fix for wolfi-terminal: make the bind and permission changes in the current app now (ARCHITECTURE §2.6) | Users are hitting the storage errors today | Open: owner decides whether to patch the old app |
 | D20 | Create private repository `leloush-x/termx` and use it as `origin` | Phase 0 needs a remote for CI and releases; the authenticated GitHub account has the required access | Accepted |
 | D21 | Add AndroidX Annotation 1.9.0 as a direct dependency for the vendored terminal view | Matches the annotation dependency used by Termux terminal-view at the pinned source commit | Accepted |
+| D22 | Keep emulator v0.118.3 and adapt the newer pinned terminal view to its API | CI showed the view source uses later SIXEL and emulator-owned scroll APIs. The view now owns scroll state and omits SIXEL rendering | Accepted |
+| D23 | Confirm D16's private repository setup is complete | `leloush-x/termx` exists, `origin` is configured, and `main` was pushed | Accepted; supersedes D16's open status |
