@@ -27,3 +27,4 @@ Format: ID · decision · why · status. Add a new row whenever a choice is made
 | D21 | Add AndroidX Annotation 1.9.0 as a direct dependency for the vendored terminal view | Matches the annotation dependency used by Termux terminal-view at the pinned source commit | Accepted |
 | D22 | Keep emulator v0.118.3 and adapt the newer pinned terminal view to its API | CI showed the view source uses later SIXEL and emulator-owned scroll APIs. The view now owns scroll state and omits SIXEL rendering | Accepted |
 | D23 | Confirm D16's private repository setup is complete | `leloush-x/termx` exists, `origin` is configured, and `main` was pushed | Accepted; supersedes D16's open status |
+| D24 | Add an emulator smoke workflow for the Phase 1 shell interaction | No device is attached to the build environment; GitHub Actions captures the terminal after `echo hi`, `seq 10000`, and a scroll gesture | Accepted; visual scroll quality still needs human review |
