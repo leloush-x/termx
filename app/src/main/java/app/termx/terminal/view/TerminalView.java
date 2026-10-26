@@ -332,6 +332,22 @@ public final class TerminalView extends View {
                 if (TERMINAL_VIEW_KEY_LOGGING_ENABLED) mClient.logInfo(LOG_TAG, "IME: finishComposingText()");
                 super.finishComposingText();
 
+                if (mEmulator == null) return true;
+
+                // If the session already finished, an Enter acknowledgement may arrive here.
+                if (mTermSession != null && !mTermSession.isRunning()) {
+                    Editable pending = getEditable();
+                    boolean hasEnter = false;
+                    for (int i = 0; i < pending.length(); i++) {
+                        if (pending.charAt(i) == '\n' || pending.charAt(i) == '\r') { hasEnter = true; break; }
+                    }
+                    if (hasEnter) {
+                        mClient.onKeyDown(KeyEvent.KEYCODE_ENTER, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER), mTermSession);
+                        getEditable().clear();
+                        return true;
+                    }
+                }
+
                 sendTextToTerminal(getEditable());
                 getEditable().clear();
                 return true;
@@ -345,6 +361,17 @@ public final class TerminalView extends View {
                 super.commitText(text, newCursorPosition);
 
                 if (mEmulator == null) return true;
+
+                // A finished session can no longer accept input. When the IME sends Enter (as "\n"
+                // or "\r"), treat it as an acknowledgement so the "press Enter" prompt actually
+                // exits/closes the session instead of being swallowed.
+                if (mTermSession != null && !mTermSession.isRunning()) {
+                    CharSequence committed = text;
+                    if (committed.length() > 0 && (committed.charAt(0) == '\n' || committed.charAt(0) == '\r')) {
+                        mClient.onKeyDown(KeyEvent.KEYCODE_ENTER, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER), mTermSession);
+                        return true;
+                    }
+                }
 
                 Editable content = getEditable();
                 sendTextToTerminal(content);
