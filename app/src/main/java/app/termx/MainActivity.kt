@@ -237,11 +237,18 @@ class MainActivity : ComponentActivity() {
             val terminalTheme = customTheme ?: if (amoledMode) defaultAmoledTheme() else defaultDarkTheme()
             val terminalBackground = android.graphics.Color.parseColor(terminalTheme.background)
             val terminalSurfaceColor = Color(terminalBackground)
-            val wallpaper = rememberWallpaperBitmap(wallpaperUri, wallpaperBlur)
+            val wallpaper = rememberWallpaperBitmap(wallpaperUri, wallpaperBlur, wallpaperDim)
             // When a wallpaper is active the terminal surface must become translucent so the
             // image can show through the terminal text area instead of being hidden by it.
             val paletteTheme = if (wallpaper != null) terminalTheme.copy(background = "#99000000") else terminalTheme
             val terminalViewBackground = if (wallpaper != null) android.graphics.Color.TRANSPARENT else terminalBackground
+            // Apply the wallpaper as the window's own background drawable: it is then full-screen
+            // and completely immune to IME resize, which is the only reliable way to stop a
+            // background from "moving" when the keyboard opens.
+            LaunchedEffect(wallpaper) {
+                val drawable = wallpaper?.let { android.graphics.drawable.BitmapDrawable(resources, it) }
+                window.setBackgroundDrawable(drawable)
+            }
             val darkTheme = when (customTheme?.mode) {
                 "dark" -> true
                 "light" -> false
@@ -600,7 +607,6 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         Box(Modifier.fillMaxSize().background(if (wallpaper != null) Color.Transparent else terminalSurfaceColor)) {
-                            WallpaperLayer(wallpaper, wallpaperBlur, wallpaperDim)
                             Column(Modifier.fillMaxSize().layerBackdrop(terminalBackdrop)) {
                                 Row(
                                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),

@@ -66,9 +66,7 @@ internal fun DistroSettingsScreen(
     val panel = RoundedCornerShape(24.dp)
     val backdrop = rememberLayerBackdrop()
     val base = if (amoledMode) Color.Black else Color(0xFF0D0F10)
-    val wallpaper = rememberWallpaperBitmap(wallpaperUri, wallpaperBlur)
     Box(Modifier.fillMaxSize().background(base)) {
-        WallpaperLayer(wallpaper, wallpaperBlur, wallpaperDim)
         Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             Canvas(Modifier.fillMaxSize()) {
                 val center = Offset(size.width * 0.82f, size.height * 0.16f)

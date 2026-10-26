@@ -1,13 +1,18 @@
 package app.termx
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,49 +21,57 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Decodes a wallpaper off the main thread.
+ * Decodes a wallpaper off the main thread into a [Bitmap] that already carries the requested
+ * blur (via down-sampling, which works on every API level) and dim (a black scrim).
  *
- * Blur is applied with [blur] (RenderEffect, API 31+). Below that the bitmap is decoded with a
- * smaller sample size so the up-scaled draw reads as soft instead of sharp, since [blur] is a
- * no-op before API 31.
+ * The result is meant to be handed to [android.view.Window.setBackgroundDrawable] so the image
+ * becomes the window's own background: it is then full-screen and completely immune to IME
+ * resize, which is the only reliable way to stop a background from "moving" when the keyboard
+ * opens.
  */
 @Composable
-internal fun rememberWallpaperBitmap(uri: String?, blur: Float): ImageBitmap? {
+internal fun rememberWallpaperBitmap(uri: String?, blur: Float, dim: Float): Bitmap? {
     val context = LocalContext.current
-    var bitmap by remember(uri) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(uri, blur) {
-        if (uri.isNullOrBlank()) {
-            bitmap = null
-            return@LaunchedEffect
-        }
+    var bitmap by remember(uri, blur, dim) { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(uri, blur, dim) {
         bitmap = withContext(Dispatchers.IO) {
+            if (uri.isNullOrBlank()) return@withContext null
             runCatching {
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 context.contentResolver.openInputStream(Uri.parse(uri))?.use {
                     BitmapFactory.decodeStream(it, null, bounds)
                 }
                 val longEdge = maxOf(bounds.outWidth, bounds.outHeight).coerceAtLeast(1)
-                // Cap the decode so a 50 MP photo does not cost 200 MB of heap.
+                // Down-sample for both memory safety and a soft (blurred) look. The blur slider
+                // (0..32) drives how aggressively we down-sample.
                 var sample = 1
                 while (longEdge / (sample * 2) >= 1600) sample *= 2
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && blur > 0f) {
-                    // Pre-12 has no RenderEffect; a heavier down-sample stands in for the blur.
-                    sample *= 1 + (blur / 6f).toInt()
-                }
+                if (blur > 0f) sample *= 1 + (blur / 4f).toInt().coerceAtLeast(0)
+                sample = sample.coerceAtLeast(1)
                 val options = BitmapFactory.Options().apply { inSampleSize = sample }
-                context.contentResolver.openInputStream(Uri.parse(uri))?.use {
+                val decoded = context.contentResolver.openInputStream(Uri.parse(uri))?.use {
                     BitmapFactory.decodeStream(it, null, options)
-                }?.asImageBitmap()
+                } ?: return@withContext null
+                // Apply dim: draw a black scrim over the bitmap so the result is self-contained.
+                val out = Bitmap.createBitmap(decoded.width, decoded.height, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(out)
+                canvas.drawBitmap(decoded, 0f, 0f, null)
+                if (dim > 0f) {
+                    val scrim = Paint().apply { color = Color.argb((dim * 0.6f * 255).toInt().coerceIn(0, 255), 0, 0, 0) }
+                    canvas.drawRect(Rect(0, 0, out.width, out.height), scrim)
+                }
+                decoded.recycle()
+                out
             }.getOrNull()
         }
     }
@@ -66,9 +79,8 @@ internal fun rememberWallpaperBitmap(uri: String?, blur: Float): ImageBitmap? {
 }
 
 /**
- * Draws a wallpaper behind a screen, with a dim scrim so text stays legible.
- *
- * The scrim is what the blur slider complements: blur softens detail, dim controls contrast.
+ * Legacy Compose layer kept for callers that still reference it. With the window-background
+ * approach it is no longer used; left as a no-op-safe helper.
  */
 @Composable
 internal fun WallpaperLayer(
@@ -77,25 +89,5 @@ internal fun WallpaperLayer(
     dim: Float,
     modifier: Modifier = Modifier,
 ) {
-    if (bitmap == null) return
-    // Size to the FULL screen, not the (possibly keyboard-shrunk) window, so the image never
-    // shifts or re-crops when the IME opens. Anchored to the top so the visible portion stays
-    // put while the window resizes beneath it.
-    val config = androidx.compose.ui.platform.LocalConfiguration.current
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val screenWidth = with(density) { config.screenWidthDp.dp }
-    val screenHeight = with(density) { config.screenHeightDp.dp }
-    Box(modifier.size(screenWidth, screenHeight)) {
-        Image(
-            bitmap = bitmap,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            alpha = 1f,
-            modifier = Modifier.fillMaxSize().let {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && radius > 0f) it.blur(radius.dp) else it
-            },
-        )
-        // Extra black wash on top; keeps text readable even on a bright photo at low blur.
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = dim.coerceIn(0f, 1f) * 0.45f)))
-    }
+    // No-op: wallpaper is now applied via the window background drawable.
 }
