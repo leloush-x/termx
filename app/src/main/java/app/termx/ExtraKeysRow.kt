@@ -2,7 +2,8 @@ package app.termx
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,22 +28,33 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.termux.terminal.TerminalSession
+import app.termx.customization.KeyLayoutValidator
 
 /** Extra terminal keys adapted from wolfi-terminal's VirtualKeysListener. */
 @Composable
-fun ExtraKeysRow(session: TerminalSession, backend: TerminalBackend, accent: Color = Color(0xFF83C7FF)) {
+@OptIn(ExperimentalFoundationApi::class)
+fun ExtraKeysRow(
+    session: TerminalSession,
+    backend: TerminalBackend,
+    keyLayoutJson: String? = null,
+    accent: Color = Color(0xFF83C7FF),
+) {
     var ctrlEnabled by remember { mutableStateOf(false) }
     var altEnabled by remember { mutableStateOf(false) }
-    val keys = listOf(
-        "ESC" to "\u001B",
-        "TAB" to "\u0009",
-        "CTRL" to null,
-        "ALT" to null,
-        "↑" to "\u001B[A",
-        "←" to "\u001B[D",
-        "↓" to "\u001B[B",
-        "→" to "\u001B[C",
+    val defaultKeys = listOf(
+        KeyLayoutValidator.KeyButton("ESC", "\u001B", null, emptyList()),
+        KeyLayoutValidator.KeyButton("TAB", "\t", null, emptyList()),
+        KeyLayoutValidator.KeyButton("CTRL", null, "ctrl", emptyList()),
+        KeyLayoutValidator.KeyButton("ALT", null, "alt", emptyList()),
+        KeyLayoutValidator.KeyButton("↑", "\u001B[A", null, emptyList()),
+        KeyLayoutValidator.KeyButton("←", "\u001B[D", null, emptyList()),
+        KeyLayoutValidator.KeyButton("↓", "\u001B[B", null, emptyList()),
+        KeyLayoutValidator.KeyButton("→", "\u001B[C", null, emptyList()),
     )
+    val keys = remember(keyLayoutJson) {
+        keyLayoutJson?.let { runCatching { KeyLayoutValidator.baseKeys(it) }.getOrNull() }?.takeIf { it.isNotEmpty() }
+            ?: defaultKeys
+    }
 
     Row(
         modifier = Modifier
@@ -51,25 +63,26 @@ fun ExtraKeysRow(session: TerminalSession, backend: TerminalBackend, accent: Col
             .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
             .padding(horizontal = 4.dp, vertical = 3.dp),
     ) {
-        keys.forEach { (label, value) ->
-            val active = (label == "CTRL" && ctrlEnabled) || (label == "ALT" && altEnabled)
+        keys.forEach { key ->
+            val label = key.label
+            val active = (key.modifier == "ctrl" && ctrlEnabled) || (key.modifier == "alt" && altEnabled)
             Box(
                 modifier = Modifier.padding(horizontal = 3.dp, vertical = 2.dp)
                     .sizeIn(minWidth = 38.dp, minHeight = 34.dp)
                     .background(if (active) accent.copy(alpha = 0.24f) else Color.White.copy(alpha = 0.075f), CircleShape)
-                    .clickable {
-                        when (label) {
-                            "CTRL" -> {
+                    .combinedClickable(onClick = {
+                        when (key.modifier) {
+                            "ctrl" -> {
                                 ctrlEnabled = !ctrlEnabled
                                 backend.controlPressed = ctrlEnabled
                             }
-                            "ALT" -> {
+                            "alt" -> {
                                 altEnabled = !altEnabled
                                 backend.altPressed = altEnabled
                             }
-                            else -> value?.let(session::write)
+                            else -> key.send?.let(session::write)
                         }
-                    },
+                    }, onLongClick = { key.long.firstOrNull()?.let(session::write) }),
                 contentAlignment = Alignment.Center,
             ) { Text(label, Modifier.padding(horizontal = 9.dp), color = if (active) accent else Color.White.copy(alpha = 0.78f), fontSize = 11.sp) }
         }

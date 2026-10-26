@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +44,15 @@ internal fun DistroSettingsScreen(
     installingDistroId: String?,
     installProgress: Float,
     installStatus: String?,
+    amoledMode: Boolean,
+    onAmoledMode: (Boolean) -> Unit,
+    onImportTheme: () -> Unit,
+    onImportKeyLayout: () -> Unit,
+    onImportKeymap: () -> Unit,
+    onImportSettings: () -> Unit,
+    onExportSettings: () -> Unit,
+    onImportFont: () -> Unit,
+    customizationMessage: String?,
     onBack: () -> Unit,
     onSetDefault: (String) -> Unit,
     onInstall: (RootfsPackage) -> Unit,
@@ -76,6 +86,31 @@ internal fun DistroSettingsScreen(
                 Text("Make your Linux space yours", color = Color.White.copy(alpha = 0.62f),
                     style = MaterialTheme.typography.bodySmall)
             }
+        }
+
+        Column(
+            Modifier.fillMaxWidth().clip(panel)
+                .termxLiquidGlass(backdrop, panel, Color.White.copy(alpha = 0.075f))
+                .padding(18.dp),
+        ) {
+            Text("APPEARANCE & INPUT", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 1.25.sp)
+            Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("AMOLED black", color = Color.White, style = MaterialTheme.typography.titleSmall)
+                    Text("Use a true black app and terminal surface", color = Color.White.copy(alpha = 0.62f),
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(checked = amoledMode, onCheckedChange = onAmoledMode)
+            }
+            SettingsAction("Import theme JSON", onImportTheme)
+            SettingsAction("Import key layout JSON", onImportKeyLayout)
+            SettingsAction("Import app keymap JSON", onImportKeymap)
+            SettingsAction("Import TTF font", onImportFont)
+            SettingsAction("Import settings", onImportSettings)
+            SettingsAction("Export settings", onExportSettings)
+            customizationMessage?.let { Text(it, Modifier.padding(top = 8.dp), color = Color.White.copy(alpha = 0.75f),
+                style = MaterialTheme.typography.bodySmall) }
         }
 
         Column(
@@ -170,6 +205,12 @@ internal fun DistroSettingsScreen(
         }
         }
     }
+}
+
+@Composable
+private fun SettingsAction(label: String, onClick: () -> Unit) {
+    Text(label, Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick)
+        .padding(vertical = 12.dp), color = Color.White, style = MaterialTheme.typography.bodyMedium)
 }
 
 private fun distroAccent(id: String): Color = when (id) {
