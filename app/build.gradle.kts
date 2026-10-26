@@ -17,8 +17,8 @@ android {
         applicationId = "app.termx" // placeholder, see docs/DECISIONS.md D1
         minSdk = 26
         targetSdk = 37
-        versionCode = 11
-        versionName = "0.7.4"
+        versionCode = 12
+        versionName = "0.7.5"
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
