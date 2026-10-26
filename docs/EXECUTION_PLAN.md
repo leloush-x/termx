@@ -50,15 +50,17 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 
 The arm64 install/session check is pending. GitHub's ARM64 runner image does not include the Android SDK, and software-emulating the ARM64 Android image on x86_64 did not boot within 12 minutes (D34). The owner directed progression to Phase 3 with this check unverified (D36). Run the install and `uname -a` check on a physical ARM64 Android device or a supported ARM64-host emulator before claiming the runtime gate passed (D35).
 
-## Phase 3: Storage tiers (0.4.0)
+## Phase 3: Storage tiers (0.4.0) `[~]`
 
-- [ ] `StorageAccess` and `BindTable` by tier: T0 (no permission), T1 (`direct` only, All-files), T2 (SAF workspaces)
-- [ ] Storage Health screen: tier status, fix buttons, the session's exact binds
-- [ ] One-line hint for `EACCES` errors instead of raw output
-- [ ] CI guard: fail on `-b /sdcard` or `-b /storage` outside the T1 path
-- [ ] Unit tests for `BindTable` and `StorageAccess`
+- [x] `StorageAccess` and `BindTable` by tier: T0 (no permission), T1 (`direct` only), T2 (SAF workspaces)
+- [x] Storage Health screen: tier status, access actions, workspace copies, and the session's exact binds
+- [x] One-line hint for permission failures in storage actions
+- [x] CI guard: reject storage binds outside the tier-aware `BindTable`
+- [x] Unit tests for `BindTable` and `StorageAccess`
+- [x] Feed Android's active DNS servers into the guest resolver and keep terminal/install UI inside safe drawing insets
+- [x] Start Wolfi with interactive Bash and an editable colored prompt when the distro has no existing shell startup files
 
-**Gate:** unit tests green. Manual checklist below passes.
+**Gate:** unit tests are green. The manual S1–S10 checks on Android 8 and the newest available Android device remain unverified. The owner directed progression to Phase 4 (D41); this does not establish that the device gate passed.
 
 ### Storage checklist (manual, run on Android 8 and the newest device available)
 
@@ -71,7 +73,7 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 | S5 | `play`: import a file through the system picker | The file lands in the shared folder |
 | S6 | Export to Downloads through MediaStore | The file appears in Downloads with no prompt |
 | S7 | SAF workspace: copy in and out, reboot | Copies work. The persisted grant survives the reboot |
-| S8 | Android 8 device, legacy storage | Works with `WRITE_EXTERNAL_STORAGE` (maxSdk 29) |
+| S8 | Android 8 device, legacy storage | T1 works after `READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE` are granted in the direct flavor (maxSdk 28) |
 | S9 | Newest Android device, all tiers | Works. No deprecated prompts |
 | S10 | Deny the grant twice | No prompt loop. A Settings deep link is offered |
 
@@ -97,7 +99,8 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 
 ## Phase 6: Customization (0.7.0)
 
-- [ ] Theme JSON with 16 ANSI colors and field-named validation errors. Monet on Android 12+. AMOLED toggle
+- [ ] Theme JSON with 16 ANSI colors and field-named validation errors. AMOLED toggle
+- [x] Material 3 Material You dynamic light/dark palette on Android 12+, following system appearance
 - [ ] Fonts: bundled JetBrains Mono (OFL), TTF import, loaded off the main thread
 - [ ] Keymap and extra-key layouts as JSON (ARCHITECTURE §20.4)
 - [ ] DataStore settings. Export and import with secrets excluded. Keystore-backed secrets

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +29,7 @@ import com.termux.terminal.TerminalSession
 
 /** Extra terminal keys adapted from wolfi-terminal's VirtualKeysListener. */
 @Composable
-fun ExtraKeysRow(session: TerminalSession, backend: TerminalBackend) {
+fun ExtraKeysRow(session: TerminalSession, backend: TerminalBackend, onStorageClick: () -> Unit = {}) {
     var ctrlEnabled by remember { mutableStateOf(false) }
     var altEnabled by remember { mutableStateOf(false) }
     val keys = listOf(
@@ -74,6 +75,9 @@ fun ExtraKeysRow(session: TerminalSession, backend: TerminalBackend) {
             ) {
                 Text(label, fontSize = 12.sp)
             }
+        }
+        TextButton(onClick = onStorageClick, modifier = Modifier.height(40.dp)) {
+            Text("STORAGE", fontSize = 11.sp)
         }
     }
 }
