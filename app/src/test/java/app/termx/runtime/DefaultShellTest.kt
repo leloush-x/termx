@@ -18,7 +18,7 @@ class DefaultShellTest {
         File(rootfs, "bin").mkdirs()
         File(rootfs, "bin/bash").writeText("")
 
-        assertEquals(listOf("/bin/bash", "--login", "--interactive"), ProotCommand.defaultShell(rootfs))
+        assertEquals(listOf("/bin/bash", "--login", "-i"), ProotCommand.defaultShell(rootfs))
         assertEquals(listOf("/bin/sh", "-l"), ProotCommand.defaultShell(temporaryFolder.newFolder("minimal")))
     }
 
@@ -34,5 +34,25 @@ class DefaultShellTest {
         bashrc.writeText("# user's own prompt\n")
         ProotCommand.prepareBashDefaults(rootfs)
         assertEquals("# user's own prompt\n", bashrc.readText())
+    }
+
+    @Test
+    fun installsHistoryHooksWithoutReplacingStartupFilesOrDuplicatingSourceLines() {
+        val rootfs = temporaryFolder.newFolder("history-rootfs")
+        val home = File(rootfs, "root").apply { mkdirs() }
+        val bashrc = File(home, ".bashrc").apply { writeText("# existing user setup\n") }
+        val zshrc = File(home, ".zshrc").apply { writeText("# existing zsh setup\n") }
+
+        ProotCommand.installHistoryHooks(rootfs)
+        val bashOnce = bashrc.readText()
+        val zshOnce = zshrc.readText()
+        ProotCommand.installHistoryHooks(rootfs)
+
+        assertTrue(File(home, ".bashrc.d/termx-history.sh").readText().contains("history.tsv"))
+        assertTrue(File(home, ".zshrc.d/termx-history.zsh").readText().contains("precmd_functions"))
+        assertTrue(bashrc.readText().startsWith("# existing user setup"))
+        assertTrue(zshrc.readText().startsWith("# existing zsh setup"))
+        assertEquals(bashOnce, bashrc.readText())
+        assertEquals(zshOnce, zshrc.readText())
     }
 }

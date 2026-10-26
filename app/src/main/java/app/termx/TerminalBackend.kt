@@ -36,6 +36,11 @@ class TerminalBackend(
         terminalView = null
     }
 
+    /** Inserts text into the active terminal without sending Enter. */
+    fun insertText(text: String) {
+        if (text.isNotEmpty()) terminalView?.mEmulator?.paste(text)
+    }
+
     override fun onScale(scale: Float): Float {
         fontSize = (fontSize * scale).toInt().coerceIn(8, 48)
         terminalView?.setTextSize(fontSize)

@@ -41,6 +41,7 @@ class SessionService : Service() {
         fun createSessionFromLastLaunch(): TerminalSession? = latestLaunch()?.let(::createSessionInternal)
         fun activeSession(): TerminalSession? = sessions.values.lastOrNull()?.terminal
         fun sessionBinds(): List<app.termx.runtime.Bind>? = sessions.values.lastOrNull()?.launch?.binds
+        fun activeLaunch(): ProotLaunch? = sessions.values.lastOrNull()?.launch
         fun terminalBackend(): TerminalBackend = terminalBackend
         fun attach(view: app.termx.terminal.view.TerminalView) = terminalBackend.attach(view)
         fun detach() = terminalBackend.detach()
