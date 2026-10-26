@@ -60,7 +60,7 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 - [x] Feed Android's active DNS servers into the guest resolver and keep terminal/install UI inside safe drawing insets
 - [x] Start Wolfi with interactive Bash and an editable colored prompt when the distro has no existing shell startup files
 
-**Gate:** unit tests must be green. The manual S1–S10 checks on Android 8 and the newest available Android device are still pending; do not mark Phase 3 complete until they pass.
+**Gate:** unit tests are green. The manual S1–S10 checks on Android 8 and the newest available Android device remain unverified. The owner directed progression to Phase 4 (D41); this does not establish that the device gate passed.
 
 ### Storage checklist (manual, run on Android 8 and the newest device available)
 
