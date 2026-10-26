@@ -30,6 +30,11 @@ Third-party code and components
    Source: https://github.com/RohitKushvaha01/ReTerminal (pinned in docs/REFERENCES.md)
    License: MIT, Copyright (c) 2024 Rohit Kushvaha
 
+   TerminalSidePanel.kt adapts the session drawer structure from
+   core/main/src/main/java/com/rk/terminal/ui/screens/terminal/TerminalDrawer.kt
+   at commit 839950dec204b69b8d670cdcc7d34d650be248ba. TermX's panel uses its
+   own session service and installed-distro model.
+
 4. wolfi-terminal (Phase 1 onward: adapted code)
    Source: https://github.com/leloush-x/wolfi-terminal (pinned in docs/REFERENCES.md)
    License: MIT, Copyright (c) 2024 Rohit Kushvaha
