@@ -59,6 +59,7 @@ internal fun DistroSettingsScreen(
     onClearWallpaper: () -> Unit,
     onGitHubLogin: () -> Unit,
     onGitHubLogout: () -> Unit,
+    onKillBackgroundJobs: () -> Unit,
     customizationMessage: String?,
     onBack: () -> Unit,
     onSetDefault: (String) -> Unit,
@@ -148,6 +149,19 @@ internal fun DistroSettingsScreen(
             SettingsAction("Import TTF font", onImportFont)
             customizationMessage?.let { Text(it, Modifier.padding(top = 8.dp), color = Color.White.copy(alpha = 0.75f),
                 style = MaterialTheme.typography.bodySmall) }
+        }
+
+        Column(
+            Modifier.fillMaxWidth().clip(panel)
+                .termxLiquidGlass(backdrop, panel, Color.White.copy(alpha = 0.075f))
+                .padding(18.dp),
+        ) {
+            Text("PROCESSES", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 1.25.sp)
+            Spacer(Modifier.height(8.dp))
+            Text("Background jobs tracked by TermX", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(12.dp))
+            SettingsAction("Stop all background jobs", onKillBackgroundJobs)
         }
 
         Column(

@@ -447,6 +447,10 @@ class MainActivity : ComponentActivity() {
                                 terminalSession?.let { it.write("gh auth logout 2>/dev/null; echo 'gh logged out'\n") } ?: run { storageMessage = "Open a terminal first" }
                                 showSettings = false
                             },
+                            onKillBackgroundJobs = {
+                                val killed = ProcessRunner.stopAll()
+                                storageMessage = "Stopped $killed background job(s)"
+                            },
                             customizationMessage = customizationMessage,
                             onBack = { showSettings = false },
                             onSetDefault = { id ->
