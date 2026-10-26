@@ -2,10 +2,16 @@ package app.termx
 
 import android.os.Bundle
 import android.Manifest
+import android.app.ForegroundServiceStartNotAllowedException
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.IBinder
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -37,6 +43,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
@@ -53,6 +60,8 @@ import app.termx.runtime.RootfsPackage
 import app.termx.runtime.ProotCommand
 import app.termx.runtime.AndroidDnsResolver
 import app.termx.runtime.Bind
+import app.termx.runtime.ProotLaunch
+import app.termx.session.SessionService
 import app.termx.storage.StorageAccess
 import app.termx.storage.StorageHealthScreen
 import app.termx.storage.StoragePreferences
@@ -71,12 +80,40 @@ class MainActivity : ComponentActivity() {
     private var storageRevision by mutableIntStateOf(0)
     private var showStorageHealth by mutableStateOf(false)
     private var storageMessage by mutableStateOf<String?>(null)
+    private var sessionBinder: SessionService.LocalBinder? = null
+    private var pendingLaunch: ProotLaunch? = null
+    private var pendingNewSession = false
+    private var serviceBound = false
+    private var notificationPermissionRequester: (() -> Unit)? = null
+
+    private val sessionConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as? SessionService.LocalBinder ?: return
+            sessionBinder = binder
+            backend = binder.terminalBackend()
+            when {
+                pendingLaunch != null -> setActiveSession(binder.createSession(requireNotNull(pendingLaunch)))
+                pendingNewSession -> {
+                    val newSession = binder.createSessionFromLastLaunch()
+                    if (newSession != null) setActiveSession(newSession)
+                    else storageMessage = "Start a distro before creating another session."
+                }
+                else -> binder.activeSession()?.let(::setActiveSession)
+            }
+            pendingLaunch = null
+            pendingNewSession = false
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            sessionBinder = null
+            serviceBound = false
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         configureTerminalSystemBars()
-        backend = TerminalBackend(this)
         installer = RootfsInstaller(this)
         distroPackages = DistroManifest.load(this)
 
@@ -106,6 +143,17 @@ class MainActivity : ComponentActivity() {
                         storageRevision++
                         if (granted.values.any { !it }) {
                             storageMessage = "Storage access was not granted. T0 and SAF workspaces remain available."
+                        }
+                    }
+                    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.RequestPermission(),
+                    ) { granted ->
+                        if (!granted) storageMessage = "Notifications are off; Android may hide the session notification and its controls."
+                        connectSessionService(pendingLaunch, pendingNewSession)
+                    }
+                    SideEffect {
+                        notificationPermissionRequester = {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
                     }
                     val workspaceLauncher = rememberLauncherForActivityResult(
@@ -181,6 +229,9 @@ class MainActivity : ComponentActivity() {
                                     Text("TermX  🐙", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                                     Text("A little Linux world in your pocket", style = MaterialTheme.typography.titleMedium)
                                     Text("Choose a distro to install or continue where you left off.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    if (Build.VERSION.SDK_INT >= 33) {
+                                        Text("Session notifications keep the terminal controls available while you work elsewhere.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
                                 }
                             }
                             Text("Your distros", style = MaterialTheme.typography.titleLarge)
@@ -254,6 +305,7 @@ class MainActivity : ComponentActivity() {
                                 },
                             )
                             ExtraKeysRow(session = session, backend = backend, onStorageClick = {
+                                backend.detach()
                                 storageMessage = null
                                 storageRevision++
                                 showStorageHealth = true
@@ -284,15 +336,57 @@ class MainActivity : ComponentActivity() {
             externalStorageRoot = if (activeTier == StorageTier.T1) Environment.getExternalStorageDirectory() else null,
             dnsResolverFile = AndroidDnsResolver.writeConfig(this, File(cacheDir, "proot/${pkg.distroId}")),
         )
-        sessionBinds = launch.binds
-        terminalSession = TerminalSession(
-            launch.executable.absolutePath,
-            launch.workingDirectory,
-            launch.arguments,
-            launch.environment,
-            null,
-            backend,
-        )
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingLaunch = launch
+            storageMessage = "Allow notifications to show session status and Open, New session, and Stop all controls."
+            notificationPermissionRequester?.invoke() ?: connectSessionService(launch = launch)
+        } else {
+            connectSessionService(launch = launch)
+        }
+    }
+
+    private fun setActiveSession(session: TerminalSession) {
+        terminalSession = session
+        sessionBinds = sessionBinder?.sessionBinds()
+    }
+
+    private fun connectSessionService(launch: ProotLaunch? = null, newSession: Boolean = false) {
+        pendingLaunch = launch
+        pendingNewSession = newSession
+        sessionBinder?.let { binder ->
+            when {
+                launch != null -> setActiveSession(binder.createSession(launch))
+                newSession -> binder.createSessionFromLastLaunch()?.let(::setActiveSession)
+                else -> binder.activeSession()?.let(::setActiveSession)
+            }
+            pendingLaunch = null
+            pendingNewSession = false
+            return
+        }
+        val intent = Intent(this, SessionService::class.java)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
+            if (!serviceBound) serviceBound = bindService(intent, sessionConnection, Context.BIND_AUTO_CREATE)
+            if (!serviceBound) storageMessage = "Could not connect to the terminal session service. Tap Start again."
+        } catch (failure: Exception) {
+            storageMessage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && failure is ForegroundServiceStartNotAllowedException) {
+                "Android blocked the background service start. Open TermX and tap Start again."
+            } else {
+                failure.message ?: "Could not start the terminal session service."
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (intent.getBooleanExtra(EXTRA_NEW_SESSION, false)) {
+            intent.removeExtra(EXTRA_NEW_SESSION)
+            connectSessionService(newSession = true)
+        } else if (SessionService.hasSavedSessions(this) && sessionBinder == null) {
+            connectSessionService()
+        }
     }
 
     private fun sharedDirectory(): File = File(getExternalFilesDir(null) ?: File(filesDir, "external"), "shared")
@@ -326,7 +420,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (::backend.isInitialized) storageRevision++
+        storageRevision++
+        if (terminalSession?.isRunning == false && !SessionService.hasSavedSessions(this)) terminalSession = null
     }
 
     /** Keep immersive terminal mode; Compose applies safe drawing insets around the curved/cutout edges. */
@@ -342,8 +437,17 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        terminalSession?.finishIfRunning()
+        if (::backend.isInitialized) backend.detach()
         terminalSession = null
+        if (serviceBound) {
+            unbindService(sessionConnection)
+            serviceBound = false
+        }
+        sessionBinder = null
         super.onDestroy()
+    }
+
+    companion object {
+        const val EXTRA_NEW_SESSION = "app.termx.extra.NEW_SESSION"
     }
 }

@@ -226,4 +226,8 @@ Third-party code and components
    License: CC0-1.0; license text in licenses/CC0-1.0.txt.
    Used to verify the OpenSSH Ed25519 envelope before parsing the embedded distro manifest.
 
+8. SessionService.kt (adapted)
+   Source: `core/main/src/main/java/com/rk/terminal/service/SessionService.kt` in wolfi-terminal commit d4cc3912d08edbf8557aac446e76fca0bee08ce3.
+   License: MIT, Copyright (c) 2024 Rohit Kushvaha. The service lifecycle and notification structure were adapted; TermX uses its own PRoot launch records, actions, and output-based wake policy.
+
 Code is never copied from termux-shared/ (GPLv3) or from ZeroTermux (GPL) into this repository.

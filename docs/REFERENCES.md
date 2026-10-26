@@ -20,12 +20,14 @@ Every source below was checked during planning (2026-10-26). Pin these commits w
 - Android's `ConnectivityManager` and `LinkProperties` provide the active network's DNS server list; TermX uses it to prepare guest `/etc/resolv.conf` without making a network request. Chainguard documents `https://apk.cgr.dev/chainguard` as its public Wolfi APK repository; an HTTP 200 check succeeded on 2026-10-26, so the reported warning is consistent with a transient device/network failure rather than a bad repository URL.
 - Compose's `WindowInsets.safeDrawing` and display-cutout guidance is used to keep terminal and installer content clear of cutouts and system UI, including edge-to-edge Android 15+ layouts: [Android window insets](https://developer.android.com/develop/ui/compose/system/insets) and [display cutouts](https://developer.android.com/develop/ui/compose/system/cutouts).
 - The installer and storage screens use Material 3 dynamic light/dark color schemes from the system wallpaper on Android 12+, with a palette fallback for older versions, following [Android's Material 3 dynamic color guidance](https://developer.android.com/develop/ui/compose/designsystems/material3).
+- The Phase 4 service lifecycle and notification structure adapts wolfi-terminal's `core/main/src/main/java/com/rk/terminal/service/SessionService.kt` at the pinned MIT commit `d4cc391`; the original wake-lock behavior is not reused.
+- Phase 4's service type, declaration, subtype property, launch restrictions, and exception handling were checked against [Android foreground service types](https://developer.android.com/develop/background-work/services/fgs/service-types), [service launch](https://developer.android.com/develop/background-work/services/fgs/launch), and [background start restrictions](https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start).
 - wolfi-terminal v1.3.1 shrank with R8 and crashed on launch. Keep R8 off until a release smoke test exists.
 
 ## Not verified yet
 
 - Termux RUN_COMMAND intent names and the permission string (the Termux wiki was not reachable during planning). Verify before Phase 7.
-- Android docs on storage and foreground-service types. Verify on device during Phases 3 and 4.
+- Runtime foreground-service behavior, notification actions, and process-death reconnect on Android 8–17 (Phase 4 device gate).
 
 ## Phase 2 rootfs data
 
