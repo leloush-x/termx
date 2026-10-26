@@ -50,6 +50,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.key
@@ -102,6 +103,9 @@ private data class CustomizationSnapshot(
     val keyLayoutJson: String?,
     val fontPath: String?,
     val fontSize: Int,
+    val wallpaperUri: String?,
+    val wallpaperBlur: Float,
+    val wallpaperDim: Float,
 )
 
 class MainActivity : ComponentActivity() {
@@ -131,6 +135,9 @@ class MainActivity : ComponentActivity() {
     private var terminalKeyLayoutJson by mutableStateOf<String?>(null)
     private var terminalTypeface by mutableStateOf<Typeface?>(null)
     private var terminalFontSize by mutableIntStateOf(16)
+    private var wallpaperUri by mutableStateOf<String?>(null)
+    private var wallpaperBlur by mutableFloatStateOf(12f)
+    private var wallpaperDim by mutableFloatStateOf(0.35f)
     private var customizationMessage by mutableStateOf<String?>(null)
     private lateinit var customizationStore: TermXSettingsStore
     private lateinit var fontRepository: FontRepository
@@ -186,7 +193,10 @@ class MainActivity : ComponentActivity() {
                     customizationStore.get("theme_json").takeIf { it.isNotBlank() },
                     customizationStore.get("key_layout_json").takeIf { it.isNotBlank() },
                     customizationStore.get("font_path").takeIf { it.isNotBlank() },
-                    customizationStore.get("text_size", "16").toIntOrNull() ?: 16)
+                    customizationStore.get("text_size", "16").toIntOrNull() ?: 16,
+                    customizationStore.get("wallpaper_uri").takeIf { it.isNotBlank() },
+                    customizationStore.get("wallpaper_blur", "12").toFloatOrNull() ?: 12f,
+                    customizationStore.get("wallpaper_dim", "0.35").toFloatOrNull() ?: 0.35f)
             } }
             runOnUiThread {
                 loaded.onSuccess { snapshot ->
@@ -194,6 +204,9 @@ class MainActivity : ComponentActivity() {
                     terminalThemeJson = snapshot.themeJson
                     terminalKeyLayoutJson = snapshot.keyLayoutJson
                     terminalFontSize = snapshot.fontSize
+                    wallpaperUri = snapshot.wallpaperUri
+                    wallpaperBlur = snapshot.wallpaperBlur.coerceIn(0f, 32f)
+                    wallpaperDim = snapshot.wallpaperDim.coerceIn(0f, 1f)
                     if (snapshot.fontPath != null) fontRepository.loadImported(File(snapshot.fontPath)) { font ->
                         font.onSuccess { typeface -> runOnUiThread { terminalTypeface = typeface } }
                     }
@@ -209,6 +222,7 @@ class MainActivity : ComponentActivity() {
             val terminalTheme = customTheme ?: if (amoledMode) defaultAmoledTheme() else defaultDarkTheme()
             val terminalBackground = android.graphics.Color.parseColor(terminalTheme.background)
             val terminalSurfaceColor = Color(terminalBackground)
+            val wallpaper = rememberWallpaperBitmap(wallpaperUri, wallpaperBlur)
             val darkTheme = when (customTheme?.mode) {
                 "dark" -> true
                 "light" -> false
@@ -323,6 +337,23 @@ class MainActivity : ComponentActivity() {
                             } }.onFailure { runOnUiThread { customizationMessage = it.message } }
                         }
                     }
+                    val wallpaperPickerLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.OpenDocument(),
+                    ) { uri ->
+                        if (uri != null) {
+                            // Persist read access so the wallpaper survives app restarts.
+                            runCatching {
+                                contentResolver.takePersistableUriPermission(
+                                    uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                                )
+                            }
+                            wallpaperUri = uri.toString()
+                            customizationMessage = "Wallpaper applied."
+                            Thread({ runCatching { kotlinx.coroutines.runBlocking {
+                                customizationStore.put("wallpaper_uri", wallpaperUri.orEmpty())
+                            } }.onFailure { runOnUiThread { customizationMessage = it.message } } }, "termx-wallpaper-save").start()
+                        }
+                    }
                     val session = terminalSession
                     val installedDistros = remember(installedRevision) {
                         distroPackages.filter { installer.installedRoot(it.distroId).isDirectory }.map { it.distroId }.toSet()
@@ -358,6 +389,28 @@ class MainActivity : ComponentActivity() {
                                     "termx-appearance-save").start()
                             },
                             onImportFont = { fontImportLauncher.launch(arrayOf("font/ttf", "application/x-font-ttf", "application/octet-stream")) },
+                            wallpaperUri = wallpaperUri,
+                            wallpaperBlur = wallpaperBlur,
+                            wallpaperDim = wallpaperDim,
+                            onPickWallpaper = { wallpaperPickerLauncher.launch(arrayOf("image/*")) },
+                            onWallpaperBlur = { value ->
+                                wallpaperBlur = value.coerceIn(0f, 32f)
+                                Thread({ runCatching { kotlinx.coroutines.runBlocking {
+                                    customizationStore.put("wallpaper_blur", wallpaperBlur.toString())
+                                } } }, "termx-wallpaper-save").start()
+                            },
+                            onWallpaperDim = { value ->
+                                wallpaperDim = value.coerceIn(0f, 1f)
+                                Thread({ runCatching { kotlinx.coroutines.runBlocking {
+                                    customizationStore.put("wallpaper_dim", wallpaperDim.toString())
+                                } } }, "termx-wallpaper-save").start()
+                            },
+                            onClearWallpaper = {
+                                wallpaperUri = null
+                                Thread({ runCatching { kotlinx.coroutines.runBlocking {
+                                    customizationStore.put("wallpaper_uri", "")
+                                } } }, "termx-wallpaper-save").start()
+                            },
                             customizationMessage = customizationMessage,
                             onBack = { showSettings = false },
                             onSetDefault = { id ->
@@ -528,6 +581,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         Box(Modifier.fillMaxSize().background(terminalSurfaceColor)) {
+                            WallpaperLayer(wallpaper, wallpaperBlur, wallpaperDim)
                             Column(Modifier.fillMaxSize().layerBackdrop(terminalBackdrop)) {
                                 Row(
                                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
@@ -697,6 +751,7 @@ class MainActivity : ComponentActivity() {
             dnsResolverFile = AndroidDnsResolver.writeConfig(this, File(cacheDir, "proot/${pkg.distroId}")),
             guestWorkingDirectory = guestWorkingDirectory,
             extraEnvironment = if (profile.distroId == pkg.distroId) profile.environment else emptyMap(),
+            distroName = pkg.distroName,
         )
         if (Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED

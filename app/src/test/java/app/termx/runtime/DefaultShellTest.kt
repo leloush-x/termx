@@ -55,4 +55,53 @@ class DefaultShellTest {
         assertEquals(bashOnce, bashrc.readText())
         assertEquals(zshOnce, zshrc.readText())
     }
+
+    @Test
+    fun givesEveryDistroTheTermxPromptAndNamesTheDistroInsteadOfLocalhost() {
+        val rootfs = temporaryFolder.newFolder("alpine-like")
+        // This distro ships its own prompt, the case that used to skip the TermX banner entirely.
+        val home = File(rootfs, "root").apply { mkdirs() }
+        File(home, ".bashrc").writeText("# stock distro rc\nPS1='\\u@\\h:\\w\\$ '\n")
+
+        ProotCommand.installPromptHooks(rootfs, "Alpine")
+
+        val snippet = File(home, ".termx/prompt.sh").readText()
+        // The host part comes from $TERMX_DISTRO at prompt time, so it names the running distro.
+        assertTrue(snippet.contains("TERMX_DISTRO"))
+        assertTrue(snippet.contains("🐙"))
+        // A user- or distro-defined prompt is left alone.
+        assertTrue(!File(home, ".bashrc").readText().contains(".termx/prompt.sh"))
+    }
+
+    @Test
+    fun installsTheTermxPromptIntoRcFilesThatDefineNoPromptOfTheirOwn() {
+        val rootfs = temporaryFolder.newFolder("bare-rootfs")
+        ProotCommand.installPromptHooks(rootfs, "Wolfi")
+        val home = File(rootfs, "root")
+
+        val bashrc = File(home, ".bashrc").readText()
+        assertTrue(bashrc.contains(".termx/prompt.sh"))
+        assertTrue(File(home, ".profile").readText().contains(".termx/prompt.sh"))
+        assertTrue(File(home, ".zshrc").readText().contains(".termx/prompt.sh"))
+
+        // Idempotent: a second install must not stack duplicate source lines.
+        ProotCommand.installPromptHooks(rootfs, "Wolfi")
+        assertEquals(bashrc, File(home, ".bashrc").readText())
+    }
+
+    @Test
+    fun writesASanitizedGuestHostnameAndLeavesSymlinksAlone() {
+        val rootfs = temporaryFolder.newFolder("hostname-rootfs")
+        ProotCommand.writeGuestHostname(rootfs, "Void Linux")
+        assertEquals("void-linux", File(rootfs, "etc/hostname").readText().trim())
+
+        val symlinkRootfs = temporaryFolder.newFolder("hostname-symlink")
+        File(symlinkRootfs, "etc").mkdirs()
+        java.nio.file.Files.createSymbolicLink(
+            File(symlinkRootfs, "etc/hostname").toPath(),
+            File(symlinkRootfs, "real-hostname").toPath(),
+        )
+        ProotCommand.writeGuestHostname(symlinkRootfs, "Debian")
+        assertTrue(java.nio.file.Files.isSymbolicLink(File(symlinkRootfs, "etc/hostname").toPath()))
+    }
 }

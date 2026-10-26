@@ -50,6 +50,13 @@ internal fun DistroSettingsScreen(
     terminalFontSize: Int,
     onFontSize: (Int) -> Unit,
     onImportFont: () -> Unit,
+    wallpaperUri: String?,
+    wallpaperBlur: Float,
+    wallpaperDim: Float,
+    onPickWallpaper: () -> Unit,
+    onWallpaperBlur: (Float) -> Unit,
+    onWallpaperDim: (Float) -> Unit,
+    onClearWallpaper: () -> Unit,
     customizationMessage: String?,
     onBack: () -> Unit,
     onSetDefault: (String) -> Unit,
@@ -59,7 +66,9 @@ internal fun DistroSettingsScreen(
     val panel = RoundedCornerShape(24.dp)
     val backdrop = rememberLayerBackdrop()
     val base = if (amoledMode) Color.Black else Color(0xFF0D0F10)
+    val wallpaper = rememberWallpaperBitmap(wallpaperUri, wallpaperBlur)
     Box(Modifier.fillMaxSize().background(base)) {
+        WallpaperLayer(wallpaper, wallpaperBlur, wallpaperDim)
         Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             Canvas(Modifier.fillMaxSize()) {
                 val center = Offset(size.width * 0.82f, size.height * 0.16f)
@@ -116,6 +125,26 @@ internal fun DistroSettingsScreen(
                 steps = 15,
                 modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
             )
+            SettingsAction(if (wallpaperUri == null) "Choose background image" else "Change background image", onPickWallpaper)
+            if (wallpaperUri != null) {
+                SettingsAction("Remove background image", onClearWallpaper)
+                Text("Blur · ${wallpaperBlur.toInt()}dp", Modifier.padding(top = 10.dp),
+                    color = Color.White.copy(alpha = 0.62f), style = MaterialTheme.typography.bodySmall)
+                Slider(
+                    value = wallpaperBlur,
+                    onValueChange = onWallpaperBlur,
+                    valueRange = 0f..32f,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text("Dim · ${(wallpaperDim * 100).toInt()}%", Modifier.padding(top = 4.dp),
+                    color = Color.White.copy(alpha = 0.62f), style = MaterialTheme.typography.bodySmall)
+                Slider(
+                    value = wallpaperDim,
+                    onValueChange = onWallpaperDim,
+                    valueRange = 0f..1f,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             SettingsAction("Import TTF font", onImportFont)
             customizationMessage?.let { Text(it, Modifier.padding(top = 8.dp), color = Color.White.copy(alpha = 0.75f),
                 style = MaterialTheme.typography.bodySmall) }

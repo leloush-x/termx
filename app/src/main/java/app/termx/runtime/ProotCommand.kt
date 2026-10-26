@@ -25,6 +25,7 @@ object ProotCommand {
         command: List<String>? = null,
         guestWorkingDirectory: String = "/root",
         extraEnvironment: Map<String, String> = emptyMap(),
+        distroName: String = "linux",
     ): ProotLaunch {
         val proot = File(nativeLibraryDirectory, "libproot.so")
         val loader = File(nativeLibraryDirectory, "libloader.so")
@@ -49,6 +50,8 @@ object ProotCommand {
             if (shellCommand.first() == "/bin/bash") prepareBashDefaults(rootfs)
             installHistoryHooks(rootfs)
         }
+        installPromptHooks(rootfs, distroName)
+        writeGuestHostname(rootfs, distroName)
         temporaryDirectory.mkdirs()
         val binds = BindTable.build(storageTier, sharedDirectory, externalStorageRoot, dnsResolverFile)
         binds.filter { it.guest.startsWith("/root/") }.forEach { bind ->
@@ -92,6 +95,7 @@ object ProotCommand {
             "COLORTERM" to "truecolor",
             "LANG" to "C.UTF-8",
             "HOME" to "/root",
+            "TERMX_DISTRO" to distroName,
             "PATH" to "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
         ).apply { putAll(extraEnvironment) }.map { (key, value) -> "$key=$value" }.toTypedArray()
         return ProotLaunch(proot, rootfs.absolutePath, argv, environment, binds)
@@ -172,6 +176,71 @@ __termx_precmd() {
             zshrc.appendText("\n# TermX command history hook\n[ -r ~/.zshrc.d/termx-history.zsh ] && . ~/.zshrc.d/termx-history.zsh\n")
         }
     }
+
+    /**
+     * Gives every distro the same TermX prompt, with the host part naming the distro that is
+     * actually running (`root@wolfi`, `root@alpine`, ...) instead of a bare `localhost`.
+     *
+     * Wolfi previously got this by accident: it ships no .bashrc, so TermX's defaults were the
+     * only ones present. Distro images that ship their own .bashrc (Alpine, Debian, Void) kept
+     * their stock prompt. The snippet below is sourced from the end of the shell rc files, so it
+     * applies to all of them, and it reads $TERMX_DISTRO at prompt time so it stays correct even
+     * when the same rootfs is reused. Set TERMX_PROMPT=off to keep a stock prompt.
+     */
+    internal fun installPromptHooks(rootfs: File, distroName: String) {
+        val home = File(rootfs, "root").apply { mkdirs() }
+        val snippet = File(home, ".termx/prompt.sh").apply {
+            parentFile?.mkdirs()
+            if (!exists()) writeText(
+                """# TermX prompt: names the running distro instead of "localhost".
+# Add TERMX_PROMPT=off to your session environment to keep a stock prompt.
+if [ "${'$'}{TERMX_PROMPT:-on}" = "off" ]; then
+    return 0 2>/dev/null || exit 0
+fi
+__termx_host="${'$'}{TERMX_DISTRO:-localhost}"
+if [ -n "${'$'}ZSH_VERSION" ]; then
+    PROMPT='%F{213}🐙 %F{81}%n@'"${'$'}__termx_host"'%f:%F{114}%~%f%F{244}$%f '
+else
+    PS1='\[\e[38;5;213m\]🐙 \[\e[38;5;81m\]\u@'"${'$'}__termx_host"'\[\e[38;5;244m\]:\[\e[38;5;114m\]\w\[\e[38;5;244m\]\$ \[\e[0m\]'
+fi
+unset __termx_host
+""".trimStart() + "\n",
+            )
+        }
+        val sourceLine = "[ -r ~/.termx/prompt.sh ] && . ~/.termx/prompt.sh"
+        val marker = "# TermX prompt"
+        // Only adopt an rc file that does not already define a prompt, so a user who wrote their
+        // own PS1/PROMPT keeps it; the TermX prompt then covers every distro's stock default.
+        fun ensureSourced(rc: File, promptVar: String) {
+            if (!rc.exists()) {
+                rc.parentFile?.mkdirs()
+                rc.writeText("# TermX defaults.\n$marker\n$sourceLine\n")
+            } else {
+                val text = rc.readText()
+                val definesPrompt = Regex("(^|\\n)\\s*(export\\s+)?(PS1|PROMPT)\\s*=").containsMatchIn(text)
+                if (!definesPrompt && !text.contains(".termx/prompt.sh")) {
+                    rc.appendText("\n$marker\n$sourceLine\n")
+                }
+            }
+        }
+        // Bash: append so the TermX prompt wins over the distro's own PS1 without deleting it.
+        ensureSourced(File(home, ".bashrc"), "PS1")
+        // Alpine and other busybox images default to /bin/sh, which reads ~/.profile.
+        ensureSourced(File(home, ".profile"), "PS1")
+        // zsh reads ~/.zshrc; the snippet picks PROMPT itself when $ZSH_VERSION is set.
+        ensureSourced(File(home, ".zshrc"), "PROMPT")
+    }
+
+    /** Keeps the guest's /etc/hostname in step so `hostname` and `\h` name the distro too. */
+    internal fun writeGuestHostname(rootfs: File, distroName: String) {
+        val safe = distroName.lowercase().replace(Regex("[^a-z0-9-]"), "-").take(64).ifBlank { "localhost" }
+        val hostname = File(rootfs, "etc/hostname")
+        if (java.nio.file.Files.isSymbolicLink(hostname.toPath())) return
+        hostname.parentFile?.mkdirs()
+        if (hostname.readTextOrNull()?.trim() != safe) hostname.writeText("$safe\n")
+    }
+
+    private fun File.readTextOrNull(): String? = runCatching { readText() }.getOrNull()
 }
 
 /** The only place where host storage paths become PRoot binds. */
