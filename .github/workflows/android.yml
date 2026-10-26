@@ -191,7 +191,8 @@ jobs:
           set -euo pipefail
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            "emulator" "system-images;android-35;google_apis;arm64-v8a"
+            "platform-tools" "emulator" "system-images;android-35;google_apis;arm64-v8a"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
           "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
             --name TermXArm64 --package "system-images;android-35;google_apis;arm64-v8a" \
             --device pixel_2 --force
