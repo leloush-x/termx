@@ -223,6 +223,10 @@ class MainActivity : ComponentActivity() {
             val terminalBackground = android.graphics.Color.parseColor(terminalTheme.background)
             val terminalSurfaceColor = Color(terminalBackground)
             val wallpaper = rememberWallpaperBitmap(wallpaperUri, wallpaperBlur)
+            // When a wallpaper is active the terminal surface must become translucent so the
+            // image can show through the terminal text area instead of being hidden by it.
+            val paletteTheme = if (wallpaper != null) terminalTheme.copy(background = "#99000000") else terminalTheme
+            val terminalViewBackground = if (wallpaper != null) android.graphics.Color.TRANSPARENT else terminalBackground
             val darkTheme = when (customTheme?.mode) {
                 "dark" -> true
                 "light" -> false
@@ -580,7 +584,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                 )
                             }
-                        Box(Modifier.fillMaxSize().background(terminalSurfaceColor)) {
+                        Box(Modifier.fillMaxSize().background(if (wallpaper != null) Color.Transparent else terminalSurfaceColor)) {
                             WallpaperLayer(wallpaper, wallpaperBlur, wallpaperDim)
                             Column(Modifier.fillMaxSize().layerBackdrop(terminalBackdrop)) {
                                 Row(
@@ -608,9 +612,9 @@ class MainActivity : ComponentActivity() {
                                         factory = { viewContext ->
                                             TerminalView(viewContext, null).apply {
                                                 setTextSize(terminalFontSize)
-                                                setBackgroundColor(terminalBackground)
+                                                setBackgroundColor(terminalViewBackground)
                                                 terminalTypeface?.let(::setTypeface)
-                                                backend.theme = terminalTheme
+                                                backend.theme = paletteTheme
                                                 backend.attach(this)
                                                 attachSession(session)
                                                 isFocusableInTouchMode = true
@@ -620,9 +624,9 @@ class MainActivity : ComponentActivity() {
                                         update = { view ->
                                             view.setTextSize(terminalFontSize)
                                             terminalTypeface?.let(view::setTypeface)
-                                            backend.theme = terminalTheme
-                                            TerminalTheme.apply(view.mEmulator, terminalTheme)
-                                            view.setBackgroundColor(terminalBackground)
+                                            backend.theme = paletteTheme
+                                            TerminalTheme.apply(view.mEmulator, paletteTheme)
+                                            view.setBackgroundColor(terminalViewBackground)
                                             view.invalidate()
                                         },
                                     )
