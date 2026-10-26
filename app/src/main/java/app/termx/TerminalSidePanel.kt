@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,7 +69,7 @@ internal fun BoxScope.TerminalSidePanel(
     Box(
         Modifier.fillMaxWidth().fillMaxHeight()
             .background(Color.Black.copy(alpha = 0.55f))
-            .clickable(onClick = onClose),
+            .clickable(role = Role.Button, onClick = onClose),
     )
 
     Column(
@@ -83,7 +84,7 @@ internal fun BoxScope.TerminalSidePanel(
             Spacer(Modifier.weight(1f))
             Text(
                 "Close",
-                Modifier.clip(RoundedCornerShape(9.dp)).clickable(onClick = onClose)
+                Modifier.clip(RoundedCornerShape(9.dp)).clickable(role = Role.Button, onClick = onClose)
                     .defaultMinSize(minWidth = 52.dp, minHeight = 44.dp)
                     .padding(horizontal = 8.dp, vertical = 12.dp),
                 color = Color(0xFFAAA9A4), style = MaterialTheme.typography.labelMedium,
@@ -96,7 +97,7 @@ internal fun BoxScope.TerminalSidePanel(
             Modifier.fillMaxWidth().defaultMinSize(minHeight = 54.dp)
                 .clip(RoundedCornerShape(11.dp))
                 .background(Color.White.copy(alpha = 0.045f))
-                .clickable(onClick = onTerminal)
+                .clickable(role = Role.Button, onClick = onTerminal)
                 .padding(horizontal = 11.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -113,7 +114,7 @@ internal fun BoxScope.TerminalSidePanel(
         Row(
             Modifier.fillMaxWidth().defaultMinSize(minHeight = 52.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .clickable(enabled = installedDistros.isNotEmpty()) {
+                .clickable(role = Role.Button, enabled = installedDistros.isNotEmpty()) {
                     if (installedDistros.size == 1) onNewTerminal(installedDistros.single())
                     else showingDistroChoices = !showingDistroChoices
                 }
@@ -152,7 +153,7 @@ internal fun BoxScope.TerminalSidePanel(
                     Row(
                         Modifier.fillMaxWidth().defaultMinSize(minHeight = 46.dp)
                             .clip(RoundedCornerShape(9.dp))
-                            .clickable { onNewTerminal(distro) }
+                            .clickable(role = Role.Button) { onNewTerminal(distro) }
                             .padding(horizontal = 10.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -171,7 +172,7 @@ internal fun BoxScope.TerminalSidePanel(
         Spacer(Modifier.height(12.dp))
         Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.10f)))
         Row(
-            Modifier.fillMaxWidth().defaultMinSize(minHeight = 50.dp).clickable(onClick = onSettings)
+            Modifier.fillMaxWidth().defaultMinSize(minHeight = 50.dp).clickable(role = Role.Button, onClick = onSettings)
                 .padding(horizontal = 10.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

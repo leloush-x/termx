@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -91,7 +93,7 @@ fun DistroLandingScreen(
                 Spacer(Modifier.weight(1f))
                 Text(
                     "Settings",
-                    Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onSettings)
+                    Modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button, onClick = onSettings)
                         .defaultMinSize(minWidth = 64.dp, minHeight = 44.dp)
                         .padding(horizontal = 10.dp, vertical = 11.dp),
                     color = Color.White.copy(alpha = 0.72f),
@@ -147,7 +149,7 @@ fun DistroLandingScreen(
                     Modifier.fillMaxWidth().defaultMinSize(minHeight = 52.dp)
                         .clip(RoundedCornerShape(13.dp))
                         .background(accent)
-                        .clickable(enabled = !downloading && (!anotherDownload || installed)) {
+                        .clickable(role = Role.Button, enabled = !downloading && (!anotherDownload || installed)) {
                             if (installed) onStart(selected) else onInstall(selected)
                         }
                         .padding(horizontal = 18.dp, vertical = 14.dp),
@@ -222,7 +224,7 @@ private fun DistroRail(
                     Modifier.widthIn(min = 88.dp).defaultMinSize(minHeight = 54.dp)
                         .clip(RoundedCornerShape(11.dp))
                         .background(if (selected) Color.White.copy(alpha = 0.055f) else Color.Transparent)
-                        .clickable { onSelect(distro.distroId) }
+                        .selectable(selected = selected, role = Role.RadioButton) { onSelect(distro.distroId) }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.Start,
                     verticalArrangement = Arrangement.Center,
@@ -246,7 +248,7 @@ private fun DistroRail(
 private fun LandingLink(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Text(
         label,
-        modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick)
+        modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button, onClick = onClick)
             .defaultMinSize(minWidth = 48.dp, minHeight = 44.dp)
             .padding(horizontal = 4.dp, vertical = 12.dp)
             .semantics { contentDescription = label },
