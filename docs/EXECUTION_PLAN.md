@@ -109,7 +109,7 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 - [x] DataStore settings. Export and import with secrets excluded. Keystore-backed secrets
 - [x] Backup rules, then enable `allowBackup` (D12)
 
-**Gate:** invalid theme and layout tests pass. A settings export has no secrets.
+**Gate:** invalid theme and layout tests pass. A settings export has no secrets. CI run `40282479314` is green and produced the direct APK artifact. The phase remains an untagged candidate because the device lab below has not been run in this environment.
 
 ## Phase 7: Termux options (0.8.0)
 
@@ -132,11 +132,17 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 
 ## Device lab checklist (any phase that touches input or background)
 
-- Keyboards: Gboard, Samsung Keyboard, the Xiaomi keyboard. Commit, compose, delete, voice dictation without Enter
-- Hardware keyboard and mouse wheel
-- OEM battery settings: HyperOS, ColorOS, One UI, Funtouch, Pixel. Open the battery screen from the guidance card (`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`)
-- Process death during a session, then reconnect
-- Android 8 (API 26) and the newest Android (API 37) emulators, x86_64 and arm64 where available
+The checklist is intentionally recorded with evidence instead of being marked passed without a connected device. This workspace has no Android SDK, `adb`, emulator, or physical device.
+
+| Check | Status | Evidence needed |
+|---|---|---|
+| Gboard, Samsung Keyboard, Xiaomi keyboard: commit, compose, delete, voice dictation without Enter | Not run | One recording or test note per keyboard |
+| Hardware keyboard and mouse wheel | Not run | Hardware test note |
+| HyperOS, ColorOS, One UI, Funtouch, Pixel battery guidance; open `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS` | Not run | OEM/API test notes and screenshot of the opened settings page |
+| Process death during a session, then reconnect | Not run | `adb` force-stop/relaunch log with the restored cwd/environment |
+| Android 8 (API 26), newest Android (API 37), x86_64 and arm64 where available | Not run | Device/emulator identifiers and smoke-test logs |
+
+Phase 7 and Phase 8 are intentionally not started, per the owner's instruction. No Phase 7/8 code, release tag, or release claim is being made.
 
 ## Unverified claims (check before relying on them)
 
