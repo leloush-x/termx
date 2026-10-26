@@ -10,6 +10,7 @@ val releaseKeystore: String? = System.getenv("TERMX_KEYSTORE_FILE")?.takeIf { it
 android {
     namespace = "app.termx"
     compileSdk = 37
+    ndkVersion = "29.0.13846066"
 
     defaultConfig {
         applicationId = "app.termx" // placeholder, see docs/DECISIONS.md D1
@@ -17,6 +18,9 @@ android {
         targetSdk = 37
         versionCode = 2
         versionName = "0.2.0"
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     // Keep dependency metadata out of the APK (F-Droid friendly, smaller).
@@ -84,6 +88,13 @@ android {
             useLegacyPackaging = true
         }
     }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
 }
 
 dependencies {
@@ -96,6 +107,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     // Termux terminal engine (Apache-2.0 modules, see NOTICE).
     implementation(libs.termux.emulator)
+    // API 26 lacks the platform Ed25519 Signature provider. This strict-verification fork
+    // avoids the signature-malleability issue in the older net.i2p.crypto:eddsa:0.3.0.
+    implementation(libs.eddsa)
 
     testImplementation(libs.junit)
 }

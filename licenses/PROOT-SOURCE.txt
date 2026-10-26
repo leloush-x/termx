@@ -1,0 +1,9 @@
+TermX bundles PRoot from the wolfi-terminal source at commit:
+d4cc3912d08edbf8557aac446e76fca0bee08ce3
+
+Source tree:
+https://github.com/leloush-x/wolfi-terminal/tree/d4cc3912d08edbf8557aac446e76fca0bee08ce3/core/proot/src/main/cpp
+
+The PRoot source is GPL-2.0-or-later. The embedded talloc subtree is
+LGPL-3.0-or-later. The corresponding license texts are distributed alongside
+this file and in the app's assets/licenses directory.

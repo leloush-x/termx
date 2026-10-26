@@ -9,6 +9,7 @@ annotation = "1.9.0"
 composeBom = "2025.11.01"
 termuxEmulator = "v0.118.3"
 junit = "4.13.2"
+eddsa = "0.3.1"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -24,3 +25,4 @@ androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 termux-emulator = { module = "com.github.termux.termux-app:terminal-emulator", version.ref = "termuxEmulator" }
 junit = { module = "junit:junit", version.ref = "junit" }
+eddsa = { module = "com.bloxbean.cardano:net-i2p-crypto-eddsa", version.ref = "eddsa" }
