@@ -48,7 +48,7 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 
 **Gate:** CI builds both ABIs. The 16 KB ELF check passes. On arm64, Wolfi installs and `uname -a` works in a session.
 
-The arm64 install/session check is pending. GitHub's ARM64 runner image does not include the Android SDK, and software-emulating the ARM64 Android image on x86_64 did not boot within 12 minutes (D34). Run the install and `uname -a` check on a physical ARM64 Android device or a supported ARM64-host emulator before closing this gate (D35).
+The arm64 install/session check is pending. GitHub's ARM64 runner image does not include the Android SDK, and software-emulating the ARM64 Android image on x86_64 did not boot within 12 minutes (D34). The owner directed progression to Phase 3 with this check unverified (D36). Run the install and `uname -a` check on a physical ARM64 Android device or a supported ARM64-host emulator before claiming the runtime gate passed (D35).
 
 ## Phase 3: Storage tiers (0.4.0)
 
