@@ -7,6 +7,7 @@ The AI build prompt (`docs/AI_BUILD_PROMPT.md`) drives this plan. Design details
 
 - [x] **GitHub access:** private repo `leloush-x/termx` created and `main` pushed (D20).
 - [x] Add the four release-signing secrets listed in README.md. A PKCS12 key was generated outside the repo; owner should make an independent backup of `/root/.config/termx-signing/termx-release.keystore` and its password files.
+- [ ] Make an owner-controlled backup of `/root/.config/termx-manifest/manifest_ed25519`; future signed manifest updates require it (`docs/MANIFEST_SIGNING.md`).
 - [ ] Decide D1 (name and package) and D11 (copyright holder) before the first public distribution. Current values remain placeholders.
 - [ ] Optional: decide whether to apply the storage fix to wolfi-terminal now (D19, ARCHITECTURE §2.6).
 
@@ -37,15 +38,17 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 
 **Gate:** Build/test CI and signed APK artifact passed. Hosted emulator checks were not reliable here: AOSP ATD produced identical black screenshots, while the standard API 30 image failed APK installation with `Failure calling service package: Broken pipe (32)` (D29). On 2026-10-26, the owner directed progression with the device check unverified (D30); this authorization permits merging and tagging the candidate, but it does not establish that `echo hi` or smooth `seq 10000` scrolling passed on a device.
 
-## Phase 2: Distro runtime (0.3.0)
+## Phase 2: Distro runtime (0.3.0) `[~]`
 
-- [ ] `core/proot` native build from wolfi (NDK `29.0.13846066`), `arm64-v8a` and `x86_64`
-- [ ] Rootfs install adapted from wolfi `rootfs/Rootfs.kt` and ReTerminal. Java extraction, SHA-256 while streaming, Range resume, atomic switch and rollback copy
-- [ ] `ProotCommand` and `BindTable` (T0 binds only)
-- [ ] Wolfi default. Alpine, Debian and Void from a signed manifest (Ed25519 check before parsing)
-- [ ] proot license and source link shipped in the release and NOTICE
+- [x] `core/proot` native build from wolfi (NDK `29.0.13846066`), `arm64-v8a` and `x86_64` (CI run `40256209637`; all four ELF files pass 16 KB alignment)
+- [~] Rootfs install adapted from wolfi `rootfs/RootfsExtractor.kt`. Java extraction, header and payload validation, SHA-256 while streaming, Range resume, staged switch and rollback copy
+- [~] `ProotCommand` and `BindTable` (T0 binds only)
+- [~] Wolfi default. Alpine, Debian and Void from a signed manifest (Ed25519 check before parsing)
+- [~] PRoot licenses, source link and copied-source NOTICE records prepared for release packaging
 
 **Gate:** CI builds both ABIs. The 16 KB ELF check passes. On arm64, Wolfi installs and `uname -a` works in a session.
+
+The arm64 install/session check is pending. GitHub's ARM64 runner image does not include the Android SDK, and software-emulating the ARM64 Android image on x86_64 did not boot within 12 minutes (D34). The owner directed progression to Phase 3 with this check unverified (D36). Run the install and `uname -a` check on a physical ARM64 Android device or a supported ARM64-host emulator before claiming the runtime gate passed (D35).
 
 ## Phase 3: Storage tiers (0.4.0)
 
@@ -132,7 +135,6 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 ## Unverified claims (check before relying on them)
 
 - Termux RUN_COMMAND names and the foreground behavior of its service (Phase 7)
-- proot GPL version at the pinned commit (Phase 2)
 - Storage behavior on Android 17 (Phase 3, device test)
 - `specialUse` is not subject to the 6-hour limit of `dataSync` (Phase 4 check)
 - OEM kill behavior (Phase 4 and the device lab)

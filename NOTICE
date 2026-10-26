@@ -36,8 +36,192 @@ Third-party code and components
    core/main/src/main/java/com/rk/terminal/ui/screens/terminal/virtualkeys/VirtualKeysListener.kt
    at commit d4cc3912d08edbf8557aac446e76fca0bee08ce3.
 
-5. proot (Phase 2 onward: bundled as a separate executable, not linked)
-   License: GNU GPL. The license text and the exact source revision ship with each release.
-   Verify the GPL version against the proot sources before the first public release.
+5. proot (Phase 2 onward: bundled as a separate executable)
+   PRoot sources are GPL-2.0-or-later; vendored talloc sources are
+   LGPL-3.0-or-later. Full license texts and source links ship in the release.
+
+   Adapted native files (source: wolfi-terminal commit d4cc3912d08edbf8557aac446e76fca0bee08ce3):
+   | TermX path | Original source path | License |
+   |---|---|---|
+   | `app/src/main/cpp/CMakeLists.txt` | `core/proot/src/main/cpp/CMakeLists.txt` | GPL-2.0-or-later |
+   | `app/src/main/cpp/arch.h` | `core/proot/src/main/cpp/arch.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/attribute.h` | `core/proot/src/main/cpp/attribute.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/cli/cli.c` | `core/proot/src/main/cpp/cli/cli.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/cli/cli.h` | `core/proot/src/main/cpp/cli/cli.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/cli/note.c` | `core/proot/src/main/cpp/cli/note.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/cli/note.h` | `core/proot/src/main/cpp/cli/note.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/cli/proot.c` | `core/proot/src/main/cpp/cli/proot.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/cli/proot.h` | `core/proot/src/main/cpp/cli/proot.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/compat.h` | `core/proot/src/main/cpp/compat.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/aoxp.c` | `core/proot/src/main/cpp/execve/aoxp.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/aoxp.h` | `core/proot/src/main/cpp/execve/aoxp.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/auxv.c` | `core/proot/src/main/cpp/execve/auxv.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/auxv.h` | `core/proot/src/main/cpp/execve/auxv.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/elf.c` | `core/proot/src/main/cpp/execve/elf.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/elf.h` | `core/proot/src/main/cpp/execve/elf.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/enter.c` | `core/proot/src/main/cpp/execve/enter.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/execve.h` | `core/proot/src/main/cpp/execve/execve.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/exit.c` | `core/proot/src/main/cpp/execve/exit.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/ldso.c` | `core/proot/src/main/cpp/execve/ldso.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/ldso.h` | `core/proot/src/main/cpp/execve/ldso.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/shebang.c` | `core/proot/src/main/cpp/execve/shebang.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/execve/shebang.h` | `core/proot/src/main/cpp/execve/shebang.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/ashmem_memfd/ashmem_memfd.c` | `core/proot/src/main/cpp/extension/ashmem_memfd/ashmem_memfd.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/extension.c` | `core/proot/src/main/cpp/extension/extension.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/extension.h` | `core/proot/src/main/cpp/extension/extension.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/access.c` | `core/proot/src/main/cpp/extension/fake_id0/access.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/access.h` | `core/proot/src/main/cpp/extension/fake_id0/access.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/chmod.c` | `core/proot/src/main/cpp/extension/fake_id0/chmod.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/chmod.h` | `core/proot/src/main/cpp/extension/fake_id0/chmod.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/chown.c` | `core/proot/src/main/cpp/extension/fake_id0/chown.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/chown.h` | `core/proot/src/main/cpp/extension/fake_id0/chown.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/chroot.c` | `core/proot/src/main/cpp/extension/fake_id0/chroot.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/chroot.h` | `core/proot/src/main/cpp/extension/fake_id0/chroot.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/config.h` | `core/proot/src/main/cpp/extension/fake_id0/config.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/exec.c` | `core/proot/src/main/cpp/extension/fake_id0/exec.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/exec.h` | `core/proot/src/main/cpp/extension/fake_id0/exec.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/fake_id0.c` | `core/proot/src/main/cpp/extension/fake_id0/fake_id0.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/getsockopt.c` | `core/proot/src/main/cpp/extension/fake_id0/getsockopt.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/getsockopt.h` | `core/proot/src/main/cpp/extension/fake_id0/getsockopt.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/helper_functions.c` | `core/proot/src/main/cpp/extension/fake_id0/helper_functions.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/helper_functions.h` | `core/proot/src/main/cpp/extension/fake_id0/helper_functions.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/link.c` | `core/proot/src/main/cpp/extension/fake_id0/link.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/link.h` | `core/proot/src/main/cpp/extension/fake_id0/link.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/mk.c` | `core/proot/src/main/cpp/extension/fake_id0/mk.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/mk.h` | `core/proot/src/main/cpp/extension/fake_id0/mk.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/open.c` | `core/proot/src/main/cpp/extension/fake_id0/open.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/open.h` | `core/proot/src/main/cpp/extension/fake_id0/open.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/rename.c` | `core/proot/src/main/cpp/extension/fake_id0/rename.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/rename.h` | `core/proot/src/main/cpp/extension/fake_id0/rename.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/sendmsg.c` | `core/proot/src/main/cpp/extension/fake_id0/sendmsg.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/sendmsg.h` | `core/proot/src/main/cpp/extension/fake_id0/sendmsg.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/socket.c` | `core/proot/src/main/cpp/extension/fake_id0/socket.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/socket.h` | `core/proot/src/main/cpp/extension/fake_id0/socket.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/stat.c` | `core/proot/src/main/cpp/extension/fake_id0/stat.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/stat.h` | `core/proot/src/main/cpp/extension/fake_id0/stat.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/symlink.c` | `core/proot/src/main/cpp/extension/fake_id0/symlink.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/symlink.h` | `core/proot/src/main/cpp/extension/fake_id0/symlink.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/unlink.c` | `core/proot/src/main/cpp/extension/fake_id0/unlink.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/unlink.h` | `core/proot/src/main/cpp/extension/fake_id0/unlink.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/utimensat.c` | `core/proot/src/main/cpp/extension/fake_id0/utimensat.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fake_id0/utimensat.h` | `core/proot/src/main/cpp/extension/fake_id0/utimensat.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/fix_symlink_size/fix_symlink_size.c` | `core/proot/src/main/cpp/extension/fix_symlink_size/fix_symlink_size.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/hidden_files/hidden_files.c` | `core/proot/src/main/cpp/extension/hidden_files/hidden_files.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/kompat/kompat.c` | `core/proot/src/main/cpp/extension/kompat/kompat.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/link2symlink/link2symlink.c` | `core/proot/src/main/cpp/extension/link2symlink/link2symlink.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/mountinfo/mountinfo.c` | `core/proot/src/main/cpp/extension/mountinfo/mountinfo.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/port_switch/port_switch.c` | `core/proot/src/main/cpp/extension/port_switch/port_switch.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/sysvipc/sysvipc.c` | `core/proot/src/main/cpp/extension/sysvipc/sysvipc.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/sysvipc/sysvipc.h` | `core/proot/src/main/cpp/extension/sysvipc/sysvipc.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/sysvipc/sysvipc_internal.h` | `core/proot/src/main/cpp/extension/sysvipc/sysvipc_internal.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/sysvipc/sysvipc_msg.c` | `core/proot/src/main/cpp/extension/sysvipc/sysvipc_msg.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/sysvipc/sysvipc_sem.c` | `core/proot/src/main/cpp/extension/sysvipc/sysvipc_sem.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/sysvipc/sysvipc_shm.c` | `core/proot/src/main/cpp/extension/sysvipc/sysvipc_shm.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/extension/sysvipc/sysvipc_sys.h` | `core/proot/src/main/cpp/extension/sysvipc/sysvipc_sys.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/loader/assembly-arm.h` | `core/proot/src/main/cpp/loader/assembly-arm.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/loader/assembly-arm64.h` | `core/proot/src/main/cpp/loader/assembly-arm64.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/loader/assembly-x86.h` | `core/proot/src/main/cpp/loader/assembly-x86.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/loader/assembly-x86_64.h` | `core/proot/src/main/cpp/loader/assembly-x86_64.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/loader/assembly.S` | `core/proot/src/main/cpp/loader/assembly.S` | GPL-2.0-or-later |
+   | `app/src/main/cpp/loader/loader-info.awk` | `core/proot/src/main/cpp/loader/loader-info.awk` | GPL-2.0-or-later |
+   | `app/src/main/cpp/loader/loader.c` | `core/proot/src/main/cpp/loader/loader.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/loader/script.h` | `core/proot/src/main/cpp/loader/script.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/loader/wrap_loader-m32.sh` | `core/proot/src/main/cpp/loader/wrap_loader-m32.sh` | GPL-2.0-or-later |
+   | `app/src/main/cpp/loader/wrap_loader.sh` | `core/proot/src/main/cpp/loader/wrap_loader.sh` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/binding.c` | `core/proot/src/main/cpp/path/binding.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/binding.h` | `core/proot/src/main/cpp/path/binding.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/canon.c` | `core/proot/src/main/cpp/path/canon.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/canon.h` | `core/proot/src/main/cpp/path/canon.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/f2fs-bug.c` | `core/proot/src/main/cpp/path/f2fs-bug.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/f2fs-bug.h` | `core/proot/src/main/cpp/path/f2fs-bug.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/glue.c` | `core/proot/src/main/cpp/path/glue.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/glue.h` | `core/proot/src/main/cpp/path/glue.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/path.c` | `core/proot/src/main/cpp/path/path.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/path.h` | `core/proot/src/main/cpp/path/path.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/proc.c` | `core/proot/src/main/cpp/path/proc.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/proc.h` | `core/proot/src/main/cpp/path/proc.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/temp.c` | `core/proot/src/main/cpp/path/temp.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/path/temp.h` | `core/proot/src/main/cpp/path/temp.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/ptrace/ptrace.c` | `core/proot/src/main/cpp/ptrace/ptrace.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/ptrace/ptrace.h` | `core/proot/src/main/cpp/ptrace/ptrace.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/ptrace/user.c` | `core/proot/src/main/cpp/ptrace/user.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/ptrace/user.h` | `core/proot/src/main/cpp/ptrace/user.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/ptrace/wait.c` | `core/proot/src/main/cpp/ptrace/wait.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/ptrace/wait.h` | `core/proot/src/main/cpp/ptrace/wait.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/chain.c` | `core/proot/src/main/cpp/syscall/chain.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/chain.h` | `core/proot/src/main/cpp/syscall/chain.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/enter.c` | `core/proot/src/main/cpp/syscall/enter.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/exit.c` | `core/proot/src/main/cpp/syscall/exit.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/heap.c` | `core/proot/src/main/cpp/syscall/heap.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/heap.h` | `core/proot/src/main/cpp/syscall/heap.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/rlimit.c` | `core/proot/src/main/cpp/syscall/rlimit.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/rlimit.h` | `core/proot/src/main/cpp/syscall/rlimit.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/seccomp.c` | `core/proot/src/main/cpp/syscall/seccomp.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/seccomp.h` | `core/proot/src/main/cpp/syscall/seccomp.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/socket.c` | `core/proot/src/main/cpp/syscall/socket.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/socket.h` | `core/proot/src/main/cpp/syscall/socket.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/syscall.c` | `core/proot/src/main/cpp/syscall/syscall.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/syscall.h` | `core/proot/src/main/cpp/syscall/syscall.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/sysnum.c` | `core/proot/src/main/cpp/syscall/sysnum.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/sysnum.h` | `core/proot/src/main/cpp/syscall/sysnum.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/sysnums-arm.h` | `core/proot/src/main/cpp/syscall/sysnums-arm.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/sysnums-arm64.h` | `core/proot/src/main/cpp/syscall/sysnums-arm64.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/sysnums-i386.h` | `core/proot/src/main/cpp/syscall/sysnums-i386.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/sysnums-sh4.h` | `core/proot/src/main/cpp/syscall/sysnums-sh4.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/sysnums-x32.h` | `core/proot/src/main/cpp/syscall/sysnums-x32.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/sysnums-x86_64.h` | `core/proot/src/main/cpp/syscall/sysnums-x86_64.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/syscall/sysnums.list` | `core/proot/src/main/cpp/syscall/sysnums.list` | GPL-2.0-or-later |
+   | `app/src/main/cpp/talloc/closefrom.c` | `core/proot/src/main/cpp/talloc/closefrom.c` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/config.h` | `core/proot/src/main/cpp/talloc/config.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/replace.c` | `core/proot/src/main/cpp/talloc/replace.c` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/replace.h` | `core/proot/src/main/cpp/talloc/replace.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/README` | `core/proot/src/main/cpp/talloc/system/README` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/capability.h` | `core/proot/src/main/cpp/talloc/system/capability.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/dir.h` | `core/proot/src/main/cpp/talloc/system/dir.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/filesys.h` | `core/proot/src/main/cpp/talloc/system/filesys.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/glob.h` | `core/proot/src/main/cpp/talloc/system/glob.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/gssapi.h` | `core/proot/src/main/cpp/talloc/system/gssapi.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/iconv.h` | `core/proot/src/main/cpp/talloc/system/iconv.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/kerberos.h` | `core/proot/src/main/cpp/talloc/system/kerberos.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/locale.h` | `core/proot/src/main/cpp/talloc/system/locale.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/network.h` | `core/proot/src/main/cpp/talloc/system/network.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/passwd.h` | `core/proot/src/main/cpp/talloc/system/passwd.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/readline.h` | `core/proot/src/main/cpp/talloc/system/readline.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/select.h` | `core/proot/src/main/cpp/talloc/system/select.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/shmem.h` | `core/proot/src/main/cpp/talloc/system/shmem.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/syslog.h` | `core/proot/src/main/cpp/talloc/system/syslog.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/terminal.h` | `core/proot/src/main/cpp/talloc/system/terminal.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/threads.h` | `core/proot/src/main/cpp/talloc/system/threads.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/time.h` | `core/proot/src/main/cpp/talloc/system/time.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/wait.h` | `core/proot/src/main/cpp/talloc/system/wait.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/system/wscript_configure` | `core/proot/src/main/cpp/talloc/system/wscript_configure` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/talloc.c` | `core/proot/src/main/cpp/talloc/talloc.c` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/talloc.h` | `core/proot/src/main/cpp/talloc/talloc.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/talloc/win32_replace.h` | `core/proot/src/main/cpp/talloc/win32_replace.h` | LGPL-3.0-or-later |
+   | `app/src/main/cpp/tracee/abi.h` | `core/proot/src/main/cpp/tracee/abi.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/event.c` | `core/proot/src/main/cpp/tracee/event.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/event.h` | `core/proot/src/main/cpp/tracee/event.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/mem.c` | `core/proot/src/main/cpp/tracee/mem.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/mem.h` | `core/proot/src/main/cpp/tracee/mem.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/reg.c` | `core/proot/src/main/cpp/tracee/reg.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/reg.h` | `core/proot/src/main/cpp/tracee/reg.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/seccomp.c` | `core/proot/src/main/cpp/tracee/seccomp.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/seccomp.h` | `core/proot/src/main/cpp/tracee/seccomp.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/statx.c` | `core/proot/src/main/cpp/tracee/statx.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/statx.h` | `core/proot/src/main/cpp/tracee/statx.h` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/tracee.c` | `core/proot/src/main/cpp/tracee/tracee.c` | GPL-2.0-or-later |
+   | `app/src/main/cpp/tracee/tracee.h` | `core/proot/src/main/cpp/tracee/tracee.h` | GPL-2.0-or-later |
+
+   The `extension/fake_id0/chroot.c` and `.h` files emulate guest syscalls; they do not invoke a host chroot mode. The unused GPLv3 `talloc/system/python.h`, generated `build.h`, and machine-specific `loader-info.d` were excluded. Full GPL-2.0-or-later and LGPL-3.0-or-later texts ship under `licenses/`. Source: https://github.com/leloush-x/wolfi-terminal/tree/d4cc3912d08edbf8557aac446e76fca0bee08ce3/core/proot/src/main/cpp
+
+6. RootfsExtractor.kt (adapted)
+   Source: `core/main/src/main/java/com/rk/terminal/rootfs/RootfsExtractor.kt` in wolfi-terminal commit d4cc3912d08edbf8557aac446e76fca0bee08ce3.
+   License: MIT, Copyright (c) 2024 Rohit Kushvaha. The parser adds strict header checksum and truncation checks and accepts standard NUL-type regular-file entries.
+
+7. EdDSA-Java (dependency)
+   Source: https://github.com/bloxbean/ed25519-java, release v0.3.1.
+   Maven coordinate: com.bloxbean.cardano:net-i2p-crypto-eddsa:0.3.1.
+   License: CC0-1.0; license text in licenses/CC0-1.0.txt.
+   Used to verify the OpenSSH Ed25519 envelope before parsing the embedded distro manifest.
 
 Code is never copied from termux-shared/ (GPLv3) or from ZeroTermux (GPL) into this repository.

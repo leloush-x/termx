@@ -31,6 +31,10 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
 
+      - name: Install pinned native toolchain
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.13846066" "cmake;3.22.1"
+
       - name: Make gradlew executable
         run: chmod +x gradlew
 
@@ -57,20 +61,52 @@ jobs:
           TERMX_KEY_PASSWORD: ${{ secrets.TERMX_KEY_PASSWORD }}
         run: ./gradlew assembleDirectRelease --stacktrace
 
-      - name: Check 16 KB alignment, report signature, stage APK
+      - name: Check 16 KB ZIP and ELF alignment, report signature, stage APK
         run: |
           set -euo pipefail
           APK="$(find app/build/outputs/apk/direct/release -name '*.apk' -print -quit)"
           test -n "$APK"
           BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          READELF="$ANDROID_HOME/ndk/29.0.13846066/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
 
           "$BT/zipalign" -c -P 16 -v 4 "$APK" >/dev/null
-          echo "16 KB page alignment: OK"
+          python3 - "$APK" "$READELF" <<'PY'
+          import re
+          import subprocess
+          import sys
+          import tempfile
+          import zipfile
+
+          apk, readelf = sys.argv[1:]
+          required = {
+              f'lib/{abi}/lib{library}.so'
+              for abi in ('arm64-v8a', 'x86_64')
+              for library in ('proot', 'loader')
+          }
+          with zipfile.ZipFile(apk) as archive:
+              names = set(archive.namelist())
+              missing = required - names
+              if missing:
+                  raise SystemExit(f'Missing native runtime libraries: {sorted(missing)}')
+              for name in sorted(required):
+                  with tempfile.NamedTemporaryFile() as elf:
+                      elf.write(archive.read(name))
+                      elf.flush()
+                      output = subprocess.check_output([readelf, '-lW', elf.name], text=True)
+                  aligns = [int(line.split()[-1], 0) for line in output.splitlines()
+                            if re.match(r'^\s*LOAD\s', line)]
+                  if not aligns or min(aligns) < 16384:
+                      raise SystemExit(f'{name} has LOAD alignment below 16 KB: {aligns}')
+                  print(f'{name}: LOAD alignments {aligns}')
+          PY
+          echo "16 KB ZIP and ELF alignment: OK"
 
           VERSION="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -1)"
           OUT="TermX-${VERSION}-direct.apk"
           mkdir -p dist
           cp "$APK" "dist/$OUT"
+          cp NOTICE licenses/GPL-2.0-or-later.txt licenses/LGPL-3.0-or-later.txt licenses/PROOT-SOURCE.txt dist/
+          tar -czf "dist/TermX-proot-source-${VERSION}.tar.gz" app/src/main/cpp licenses/GPL-2.0-or-later.txt licenses/LGPL-3.0-or-later.txt licenses/PROOT-SOURCE.txt
 
           if "$BT/apksigner" verify --print-certs "dist/$OUT" > "$RUNNER_TEMP/signer.txt" 2>&1; then
             echo "Signature: OK"
