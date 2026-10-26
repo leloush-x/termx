@@ -1,6 +1,7 @@
 package app.termx.productivity
 
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.provider.DocumentsContract
 import android.provider.MediaStore
@@ -125,7 +126,7 @@ fun ProductivityHub(
                     }
                 }
             }
-            ProductivityPage.FILES -> FileBrowser(sharedDirectory, workspaces)
+            ProductivityPage.FILES -> FileBrowser(sharedDirectory, workspaces, onShareFile)
             ProductivityPage.SNIPPETS -> SnippetList(onInsertText)
             ProductivityPage.PROFILES -> ProfileEditor(
                 profiles, selectedProfile, onCreateProfile, onSelectProfile, onUpdateProfile, onRemoveProfile, onOpenStorage,
@@ -268,11 +269,10 @@ private fun SnippetList(onInsertText: (String) -> Unit) {
     }
 }
 
-@Composable
 private data class BrowserDocument(val id: String, val name: String, val directory: Boolean)
 
 @Composable
-private fun FileBrowser(sharedDirectory: File, workspaces: List<StorageWorkspace>) {
+private fun FileBrowser(sharedDirectory: File, workspaces: List<StorageWorkspace>, onShareFile: (File) -> Unit) {
     val context = LocalContext.current
     var source by remember { mutableStateOf("shared") }
     var current by remember { mutableStateOf(sharedDirectory) }
