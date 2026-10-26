@@ -79,11 +79,11 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 
 ## Phase 4: Sessions and background (0.5.0)
 
-- [ ] `SessionService`: foreground, type `specialUse`, subtype property, permission
-- [ ] Notification actions: Open, New session, Stop all
-- [ ] Start from a visible screen. Handle `ForegroundServiceStartNotAllowedException`
-- [ ] Wake policy: partial wake lock only while busy, 30 s grace, off by default
-- [ ] Process-death reconnect (same cwd and environment)
+- [~] `SessionService`: foreground, type `specialUse`, subtype property, permission
+- [~] Notification actions: Open, New session, Stop all
+- [~] Start from a visible screen. Handle `ForegroundServiceStartNotAllowedException`
+- [~] Wake policy: partial wake lock only while output arrives, 30 s grace, off by default
+- [~] Process-death reconnect (same cwd and environment)
 
 **Gate:** 30 minutes in the background on a mid-range device. Reconnect works after a kill.
 

@@ -15,7 +15,11 @@ import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
 
 /** Connects the terminal surface to the emulator and the Android clipboard/IME. */
-class TerminalBackend(private val context: Context) : TerminalViewClient, TerminalSessionClient {
+class TerminalBackend(
+    private val context: Context,
+    private val onOutput: () -> Unit = {},
+    private val onFinished: (TerminalSession) -> Unit = {},
+) : TerminalViewClient, TerminalSessionClient {
     private var terminalView: TerminalView? = null
     private var fontSize = 16
 
@@ -25,6 +29,11 @@ class TerminalBackend(private val context: Context) : TerminalViewClient, Termin
     fun attach(view: TerminalView) {
         terminalView = view
         view.setTerminalViewClient(this)
+    }
+
+    fun detach() {
+        terminalView?.setTerminalViewClient(null)
+        terminalView = null
     }
 
     override fun onScale(scale: Float): Float {
@@ -57,11 +66,12 @@ class TerminalBackend(private val context: Context) : TerminalViewClient, Termin
     override fun onEmulatorSet() = terminalView?.invalidate() ?: Unit
 
     override fun onTextChanged(changedSession: TerminalSession) {
+        onOutput()
         terminalView?.onScreenUpdated()
     }
 
     override fun onTitleChanged(changedSession: TerminalSession) = Unit
-    override fun onSessionFinished(finishedSession: TerminalSession) = Unit
+    override fun onSessionFinished(finishedSession: TerminalSession) = onFinished(finishedSession)
 
     override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
         clipboard().setPrimaryClip(ClipData.newPlainText("TermX terminal", text))

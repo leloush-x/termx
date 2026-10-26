@@ -205,6 +205,7 @@ Notes on the manifest:
 - `play` flavor has no `MANAGE_EXTERNAL_STORAGE`. Google Play restricts that permission to approved use cases, so the Play build uses T0 and T2.
 - `specialUse` needs the subtype property (verified in the Android 14 foreground service docs). Without it the app is likely to be flagged in Play review.
 - Foreground services can't be started from the background on Android 12 and above. Start them from a visible activity and handle `ForegroundServiceStartNotAllowedException`.
+- Request `POST_NOTIFICATIONS` only when the user starts a session, with the reason that the notification exposes session status and controls. If denied, keep the foreground session running and explain that Android may hide its notification controls.
 - `<queries>` for `com.termux` is required on Android 11+ to detect Termux (package visibility).
 
 ### 2.5 Backup and data locations
