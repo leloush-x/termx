@@ -14,6 +14,8 @@ room = "2.8.5"
 ksp = "2.3.12"
 sqlite = "2.6.2"
 backdrop = "2.0.1"
+datastore = "1.2.1"
+json = "20260814"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -30,8 +32,10 @@ androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 termux-emulator = { module = "com.github.termux.termux-app:terminal-emulator", version.ref = "termuxEmulator" }
 junit = { module = "junit:junit", version.ref = "junit" }
+json-test = { module = "org.json:json", version.ref = "json" }
 eddsa = { module = "com.bloxbean.cardano:net-i2p-crypto-eddsa", version.ref = "eddsa" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
 kyant-backdrop = { module = "io.github.kyant0:backdrop", version.ref = "backdrop" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }

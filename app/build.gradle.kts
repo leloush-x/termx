@@ -114,7 +114,9 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.sqlite.bundled)
     implementation(libs.kyant.backdrop)
+    implementation(libs.androidx.datastore.preferences)
     ksp(libs.room.compiler)
 
     testImplementation(libs.junit)
+    testImplementation(libs.json.test)
 }

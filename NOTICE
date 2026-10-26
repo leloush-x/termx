@@ -3,6 +3,13 @@ Copyright (c) 2026 TermX contributors. Licensed under MIT (see LICENSE).
 
 Third-party code and components
 
+JetBrains Mono font (Phase 6)
+   Source: https://github.com/JetBrains/JetBrainsMono, pinned to commit
+   19371302b95d218af43299bce79ddbddd0bc364d; original file
+   fonts/archives/ttf/JetBrainsMono-Regular.ttf.
+   License: SIL Open Font License 1.1; full license in
+   app/src/main/assets/licenses/OFL-JetBrainsMono.txt.
+
 0. Backdrop / AndroidLiquidGlass (Phase 5: consumed as a dependency)
    Source: https://github.com/Kyant0/AndroidLiquidGlass, pinned to commit
    65ab177e90e5c1d8c62e70cf7755841982da65f6 (published artifact 2.0.1).
@@ -14,6 +21,8 @@ Third-party code and components
    License: Apache-2.0 for terminal-emulator and terminal-view, per the
    exception in termux-app LICENSE.md. Originally from jackpal/Android-Terminal-Emulator
    (Apache-2.0).
+   `TerminalTheme.kt` adapts the pinned terminal-emulator's public palette
+   array API to apply imported ANSI colors; no third-party source was copied.
 
 2. Termux terminal-view (Phase 1: vendored into app/src/main/java/app/termx/terminal/view/)
    Source: https://github.com/termux/termux-app, commit

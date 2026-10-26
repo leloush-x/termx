@@ -98,16 +98,16 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 - [x] Saved-session reconnect state prevents the landing screen flashing before the terminal attaches
 - [x] Minimal terminal chrome and animated session drawer with the current terminal, a new-terminal action, installed-distro selection, and Settings; Back returns to the drawer instead of closing TermX
 
-**Gate:** CI compilation, 100,000-row search under 100 ms, palette under 100 ms, and file/share behavior remain pending. The owner directed promotion to `main`; this does not claim the Phase 5 gate passed, and `v0.6.0` remains untagged until verification.
+**Gate:** CI compilation, 100,000-row search under 100 ms, palette under 100 ms, and file/share behavior remain pending. The owner directed promotion to `main` and continuation to Phase 6 (D47, D50); this does not claim the Phase 5 gate passed, and `v0.6.0` remains untagged until verification.
 
-## Phase 6: Customization (0.7.0)
+## Phase 6: Customization (0.7.0) `[~]`
 
-- [ ] Theme JSON with 16 ANSI colors and field-named validation errors. AMOLED toggle
+- [x] Theme JSON with 16 ANSI colors and field-named validation errors. AMOLED toggle
 - [x] Material 3 Material You dynamic light/dark palette on Android 12+, following system appearance
-- [ ] Fonts: bundled JetBrains Mono (OFL), TTF import, loaded off the main thread
-- [ ] Keymap and extra-key layouts as JSON (ARCHITECTURE §20.4)
-- [ ] DataStore settings. Export and import with secrets excluded. Keystore-backed secrets
-- [ ] Backup rules, then enable `allowBackup` (D12)
+- [x] Fonts: bundled JetBrains Mono (OFL), TTF import, loaded off the main thread
+- [x] Keymap and extra-key layouts as JSON (ARCHITECTURE §20.4)
+- [x] DataStore settings. Export and import with secrets excluded. Keystore-backed secrets
+- [x] Backup rules, then enable `allowBackup` (D12)
 
 **Gate:** invalid theme and layout tests pass. A settings export has no secrets.
 

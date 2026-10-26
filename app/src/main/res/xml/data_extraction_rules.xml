@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="datastore/termx-secrets.preferences_pb" />
+        <exclude domain="database" path="termx-history.db" />
+        <exclude domain="database" path="termx-history.db-wal" />
+        <exclude domain="database" path="termx-history.db-shm" />
+        <exclude domain="file" path="history/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="datastore/termx-secrets.preferences_pb" />
+        <exclude domain="database" path="termx-history.db" />
+        <exclude domain="database" path="termx-history.db-wal" />
+        <exclude domain="database" path="termx-history.db-shm" />
+        <exclude domain="file" path="history/" />
+    </device-transfer>
+</data-extraction-rules>

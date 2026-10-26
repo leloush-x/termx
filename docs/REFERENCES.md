@@ -11,6 +11,7 @@ Every source below was checked during planning (2026-10-26). Pin these commits w
 | hanxinhao000/ZeroTermux | `27749a7` | GPL (per its README) | Feature ideas only: backup with integrity check, crash history, scheduled jobs, share receivers, mirror switching | Any code. Its AI debug HTTP server, exported timer service, remote menu and script downloads, and committed keys are on the do-not-copy list (ARCHITECTURE §10) |
 | bloxbean/ed25519-java | `v0.3.1` | CC0-1.0 | Ed25519 verification on API 26–32 for the signed distro manifest | The older `net.i2p.crypto:eddsa:0.3.0` artifact, which has a signature-malleability flaw |
 | Kyant0/AndroidLiquidGlass | `65ab177e90e5c1d8c62e70cf7755841982da65f6` (`io.github.kyant0:backdrop:2.0.1`) | Apache-2.0 | Native Compose backdrop blur, vibrancy, and lens effect for distro landing and terminal side-panel glass | Demo app and unrelated catalog components; consume the library API instead of copying its implementation |
+| JetBrains/JetBrainsMono | `19371302b95d218af43299bce79ddbddd0bc364d` | SIL Open Font License 1.1 | `fonts/archives/ttf/JetBrainsMono-Regular.ttf` and `OFL.txt` | Build scripts and unneeded font variants |
 
 ## Verified facts used in the plan
 
@@ -25,6 +26,7 @@ Every source below was checked during planning (2026-10-26). Pin these commits w
 - The Phase 4 service lifecycle and notification structure adapts wolfi-terminal's `core/main/src/main/java/com/rk/terminal/service/SessionService.kt` at the pinned MIT commit `d4cc391`; the original wake-lock behavior is not reused.
 - Phase 4's service type, declaration, subtype property, launch restrictions, and exception handling were checked against [Android foreground service types](https://developer.android.com/develop/background-work/services/fgs/service-types), [service launch](https://developer.android.com/develop/background-work/services/fgs/launch), and [background start restrictions](https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start).
 - wolfi-terminal v1.3.1 shrank with R8 and crashed on launch. Keep R8 off until a release smoke test exists.
+- JetBrains Mono's regular TTF is distributed under OFL-1.1; DataStore Preferences 1.2.1 is the stable AndroidX release selected for this phase: [JetBrains Mono license](https://github.com/JetBrains/JetBrainsMono) and [AndroidX DataStore releases](https://developer.android.com/jetpack/androidx/releases/datastore).
 
 ## Not verified yet
 
