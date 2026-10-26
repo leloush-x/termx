@@ -23,6 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.Switch
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +71,9 @@ internal fun DistroSettingsScreen(
     val panel = RoundedCornerShape(24.dp)
     val backdrop = rememberLayerBackdrop()
     val base = if (amoledMode) Color.Black else Color(0xFF0D0F10)
+    var searchQuery by remember { mutableStateOf("") }
+    val query = searchQuery.trim().lowercase()
+    fun matches(vararg terms: String): Boolean = query.isBlank() || terms.any { it.contains(query, ignoreCase = true) }
     Box(Modifier.fillMaxSize().background(base)) {
         Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             Canvas(Modifier.fillMaxSize()) {
@@ -96,6 +101,21 @@ internal fun DistroSettingsScreen(
                     style = MaterialTheme.typography.bodySmall)
             }
         }
+        // Search / filter
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("Search settings", color = Color.White.copy(alpha = 0.5f)) },
+            leadingIcon = { Text("🔍", color = Color.White.copy(alpha = 0.6f)) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedBorderColor = Color.White.copy(alpha = 0.4f),
+                unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+            ),
+        )
 
         Column(
             Modifier.fillMaxWidth().clip(panel)
