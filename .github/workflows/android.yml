@@ -32,7 +32,8 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
 
       - name: Install pinned native toolchain
-        run: "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.13846066" "cmake;3.22.1"
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.13846066" "cmake;3.22.1"
 
       - name: Make gradlew executable
         run: chmod +x gradlew
