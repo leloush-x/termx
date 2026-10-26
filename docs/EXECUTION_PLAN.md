@@ -94,9 +94,9 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 - [~] Variable snippets insert by default; run shows a confirmation with the resolved command
 - [~] App-private profiles for distro, working directory and environment; existing SAF workspaces remain explicit copies
 - [~] File browser for shared app storage, SAF workspaces and MediaStore Downloads; non-exported FileProvider sharing and incoming share intents
-- [x] Compact animated distro picker with a glass-style dock and distro-specific accent themes; preserve the selection and show install progress on the landing screen
-- [x] Kyant0 Backdrop glass and animated accent/petal background on the distro dock; saved-session reconnect state prevents the landing screen flashing before the terminal attaches
-- [x] Minimal terminal chrome, a session/settings side panel, settings controls for default distro and on-demand downloads, and Back gesture handling that returns to the panel instead of closing TermX
+- [x] Compact distro picker with distro-specific color accents, a single glass selection rail, selected-distro persistence, and install progress
+- [x] Saved-session reconnect state prevents the landing screen flashing before the terminal attaches
+- [x] Minimal terminal chrome and animated session drawer with the current terminal, a new-terminal action, installed-distro selection, and Settings; Back returns to the drawer instead of closing TermX
 
 **Gate:** CI compilation, 100,000-row search under 100 ms, palette under 100 ms, and file/share behavior remain pending. The owner directed promotion to `main`; this does not claim the Phase 5 gate passed, and `v0.6.0` remains untagged until verification.
 

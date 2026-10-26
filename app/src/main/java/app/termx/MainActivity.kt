@@ -1,6 +1,7 @@
 package app.termx
 
 import android.os.Bundle
+import android.animation.ValueAnimator
 import android.Manifest
 import android.app.ForegroundServiceStartNotAllowedException
 import android.content.ComponentName
@@ -18,6 +19,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -382,7 +391,6 @@ class MainActivity : ComponentActivity() {
                                 if (::backend.isInitialized) backend.detach()
                                 showSettings = true
                             },
-                            isInstalling = installingDistroId == selectedDistroId,
                             progress = installProgress[selectedDistroId] ?: 0f,
                             status = installStatuses[selectedDistroId],
                             onInstall = ::installDistro,
@@ -395,15 +403,11 @@ class MainActivity : ComponentActivity() {
                         )
                     } else {
                         val terminalBackdrop = rememberLayerBackdrop()
+                        val animateTerminalPanel = remember { ValueAnimator.areAnimatorsEnabled() }
                         val activeDistro = distroPackages.firstOrNull {
                             installer.installedRoot(it.distroId).absolutePath == activeLaunch?.workingDirectory
                         }
-                        val terminalAccent = when (activeDistro?.distroId) {
-                            "alpine" -> Color(0xFF83C7FF)
-                            "debian" -> Color(0xFFFF91AA)
-                            "void" -> Color(0xFF83E0BE)
-                            else -> Color(0xFFFFB17A)
-                        }
+                        val terminalAccent = distroAccentColor(activeDistro?.distroId ?: "wolfi")
                         val guestDirectory = activeLaunch?.arguments?.let { arguments ->
                             arguments.indexOf("-w").takeIf { it >= 0 }?.let { arguments.getOrNull(it + 1) }
                         } ?: "/root"
@@ -442,13 +446,30 @@ class MainActivity : ComponentActivity() {
                                 )
                                 ExtraKeysRow(session = session, backend = backend)
                             }
-                            if (showTerminalPanel) {
+                            AnimatedVisibility(
+                                visible = showTerminalPanel,
+                                modifier = Modifier.fillMaxSize(),
+                                enter = if (animateTerminalPanel) {
+                                    slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = tween(240)) + fadeIn(tween(180))
+                                } else EnterTransition.None,
+                                exit = if (animateTerminalPanel) {
+                                    slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = tween(180)) + fadeOut(tween(130))
+                                } else ExitTransition.None,
+                            ) {
                                 TerminalSidePanel(
                                     backdrop = terminalBackdrop,
                                     distroName = activeDistro?.distroName ?: "Linux session",
+                                    distroId = activeDistro?.distroId ?: "wolfi",
                                     workingDirectory = guestDirectory,
                                     accent = terminalAccent,
+                                    installedDistros = distroPackages.filter { it.distroId in installedDistros },
                                     onTerminal = { showTerminalPanel = false },
+                                    onNewTerminal = { pkg ->
+                                        selectedDistroId = pkg.distroId
+                                        getSharedPreferences("landing", MODE_PRIVATE).edit().putString("selected_distro", pkg.distroId).apply()
+                                        showTerminalPanel = false
+                                        startTerminal(pkg)
+                                    },
                                     onSettings = {
                                         backend.detach()
                                         showTerminalPanel = false

@@ -2,8 +2,8 @@ package app.termx
 
 import android.animation.ValueAnimator
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,43 +13,31 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -57,9 +45,6 @@ import androidx.compose.ui.unit.sp
 import app.termx.runtime.RootfsPackage
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import kotlin.math.PI
-import kotlin.math.sin
-import kotlin.random.Random
 
 @Composable
 fun DistroLandingScreen(
@@ -69,7 +54,6 @@ fun DistroLandingScreen(
     installingDistroId: String?,
     onSelectDistro: (String) -> Unit,
     onSettings: () -> Unit,
-    isInstalling: Boolean,
     progress: Float,
     status: String?,
     onInstall: (RootfsPackage) -> Unit,
@@ -80,244 +64,214 @@ fun DistroLandingScreen(
     onStorage: () -> Unit,
 ) {
     val selected = distros.firstOrNull { it.distroId == selectedDistroId } ?: distros.firstOrNull() ?: return
-    val theme = remember(selected.distroId) { distroPalette(selected.distroId) }
-    val motionEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
-    val backdrop = rememberLayerBackdrop()
-    val transition = rememberInfiniteTransition(label = "ambient-glow")
-    val driftState = if (motionEnabled) {
-        transition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(9000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-            label = "glow-drift",
-        )
-    } else {
-        remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-    }
-    val drift by driftState
-    val animatedAccent by distroColorState(theme.accent, motionEnabled, "distro-accent")
+    val palette = distroPalette(selected.distroId)
+    val canAnimate = remember { ValueAnimator.areAnimatorsEnabled() }
+    val accent by animateColorAsState(
+        targetValue = palette.accent,
+        animationSpec = tween(if (canAnimate) 360 else 0, easing = FastOutSlowInEasing),
+        label = "selected-distro-accent",
+    )
     val installed = selected.distroId in installedDistros
-    val currentInstall = isInstalling
-    val anotherInstallIsBusy = installingDistroId != null && installingDistroId != selected.distroId
-
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
+    val downloading = installingDistroId == selected.distroId
+    val anotherDownload = installingDistroId != null && !downloading
+    val backdrop = rememberLayerBackdrop()
+    Box(Modifier.fillMaxSize().background(INK)) {
         Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
-            val petals = remember { List(26) { index ->
-                val random = Random(index * 71 + 19)
-                Petal(x = random.nextFloat(), y = random.nextFloat(), size = 5f + random.nextFloat() * 7f,
-                    speed = 0.12f + random.nextFloat() * 0.24f, sway = 0.012f + random.nextFloat() * 0.025f,
-                    phase = random.nextFloat() * 6.28f)
-            } }
-            val petalTimeState = if (motionEnabled) {
-                transition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(tween(90_000, easing = LinearEasing)),
-                    label = "petal-drift",
-                )
-            } else {
-                remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-            }
-            val petalTime by petalTimeState
-            Canvas(Modifier.fillMaxSize()) {
-            val first = Offset(size.width * (0.18f + drift * 0.13f), size.height * 0.19f)
-            val second = Offset(size.width * (0.84f - drift * 0.11f), size.height * 0.72f)
-            drawRect(Color.Black)
-            drawCircle(Brush.radialGradient(listOf(animatedAccent.copy(alpha = 0.26f), Color.Transparent), first, size.minDimension * 0.62f),
-                radius = size.minDimension * 0.62f, center = first)
-            drawCircle(Brush.radialGradient(listOf(theme.secondary.copy(alpha = 0.18f), Color.Transparent), second, size.minDimension * 0.58f),
-                radius = size.minDimension * 0.58f, center = second)
-            petals.forEachIndexed { index, petal ->
-                val phase = petalTime * 2f * PI.toFloat()
-                val cy = ((petal.y + petalTime * petal.speed) % 1f) * size.height
-                val cx = (((petal.x + sin(phase + petal.phase) * petal.sway) % 1f) + 1f) % 1f * size.width
-                rotate(if (index % 2 == 0) petalTime * 360f else -petalTime * 360f, Offset(cx, cy)) {
-                    drawOval(
-                        color = if (index % 3 == 0) theme.secondary else animatedAccent,
-                        topLeft = Offset(cx - petal.size / 2f, cy - petal.size * 0.35f),
-                        size = Size(petal.size, petal.size * 0.7f),
-                        alpha = 0.25f,
-                    )
-                }
-            }
-            }
+            Box(Modifier.fillMaxSize().background(INK))
         }
 
         Column(
-            Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 16.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(horizontal = 22.dp, vertical = 15.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
-            Row(Modifier.widthIn(max = 520.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                val logoShape = RoundedCornerShape(13.dp)
-                Box(
-                    Modifier.size(36.dp).clip(logoShape)
-                        .termxLiquidGlass(backdrop, logoShape, animatedAccent.copy(alpha = 0.20f)),
-                    contentAlignment = Alignment.Center,
-                ) { Text(">_", color = animatedAccent, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
-                Spacer(Modifier.width(10.dp))
-                Text("TERM X", style = MaterialTheme.typography.labelLarge, letterSpacing = 2.2.sp, color = Color.White.copy(alpha = 0.92f))
+            Row(
+                Modifier.widthIn(max = 520.dp).fillMaxWidth().defaultMinSize(minHeight = 48.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("termx", color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.7).sp)
                 Spacer(Modifier.weight(1f))
-                Text("ROOTLESS  ·  PRIVATE", style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.48f), letterSpacing = 1.2.sp)
-                Spacer(Modifier.width(10.dp))
-                Text("⚙", Modifier.clip(CircleShape).clickable(onClick = onSettings)
-                    .padding(horizontal = 8.dp, vertical = 6.dp), color = Color.White.copy(alpha = 0.78f), fontSize = 18.sp)
+                Text(
+                    "Settings",
+                    Modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button, onClick = onSettings)
+                        .defaultMinSize(minWidth = 64.dp, minHeight = 44.dp)
+                        .padding(horizontal = 10.dp, vertical = 11.dp),
+                    color = Color.White.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.labelLarge,
+                )
             }
 
-            Spacer(Modifier.weight(0.62f))
-            Text("A LITTLE LINUX WORLD", style = MaterialTheme.typography.labelMedium,
-                color = animatedAccent, letterSpacing = 2.4.sp)
-            Spacer(Modifier.height(12.dp))
-            Text(
-                "Linux,\nshaped your way.",
-                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 39.sp, lineHeight = 43.sp, fontWeight = FontWeight.SemiBold),
-                color = Color.White,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(10.dp))
-            Text("A quiet, capable terminal. Pick a world and make it yours.",
-                style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.62f), textAlign = TextAlign.Center)
+            Spacer(Modifier.height(38.dp))
+            Column(Modifier.widthIn(max = 460.dp).fillMaxWidth()) {
+                Text("Choose a distro", color = Color(0xFFF2F1ED),
+                    style = MaterialTheme.typography.headlineLarge.copy(fontSize = 34.sp, lineHeight = 39.sp, fontWeight = FontWeight.Medium),
+                    letterSpacing = (-1.2).sp)
+                Spacer(Modifier.height(9.dp))
+                Text("Open an installed system or download another one.",
+                    color = Color(0xFFAAA9A4), style = MaterialTheme.typography.bodyMedium, lineHeight = 21.sp)
+            }
 
             Spacer(Modifier.height(30.dp))
-            DistroGlassDock(
+            DistroRail(
                 distros = distros,
                 selectedId = selected.distroId,
-                onSelect = onSelectDistro,
-                motionEnabled = motionEnabled,
                 backdrop = backdrop,
+                onSelect = onSelectDistro,
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(22.dp))
             Column(
-                modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth().animateContentSize()
-                    .clip(RoundedCornerShape(30.dp))
-                    .termxLiquidGlass(backdrop, RoundedCornerShape(30.dp), Color.White.copy(alpha = 0.075f)),
+                Modifier.widthIn(max = 460.dp).fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(SURFACE)
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
             ) {
-                Column(Modifier.padding(horizontal = 22.dp, vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(42.dp).clip(RoundedCornerShape(15.dp))
-                            .background(Brush.linearGradient(listOf(animatedAccent.copy(alpha = 0.95f), theme.secondary.copy(alpha = 0.78f)))),
-                            contentAlignment = Alignment.Center) {
-                            Text(theme.mark, color = Color(0xFF101116), fontSize = 21.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(selected.distroName, style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.SemiBold)
-                            Text(theme.caption, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.59f))
-                        }
-                        Surface(shape = CircleShape, color = if (installed) animatedAccent.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.075f)) {
-                            Text(if (installed) "READY" else "ON DEMAND", Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
-                                style = MaterialTheme.typography.labelSmall, color = if (installed) animatedAccent else Color.White.copy(alpha = 0.62f), letterSpacing = 0.8.sp)
-                        }
-                    }
-
-                    Spacer(Modifier.height(18.dp))
-                    Button(
-                        onClick = { if (installed) onStart(selected) else onInstall(selected) },
-                        enabled = !currentInstall && (installed || !anotherInstallIsBusy),
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = animatedAccent, contentColor = Color(0xFF101116),
-                            disabledContainerColor = animatedAccent.copy(alpha = 0.42f)),
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(accent.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text(when { currentInstall -> "Preparing ${selected.distroName}…"; installed -> "Open ${selected.distroName}"; else -> "Install ${selected.distroName}" },
-                            style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Text(palette.mark, color = accent, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                     }
-                    if (currentInstall) {
-                        Spacer(Modifier.height(12.dp))
-                        LinearProgressIndicator(progress = { progress.coerceIn(0f, 1f) }, Modifier.fillMaxWidth(), color = animatedAccent,
-                            trackColor = Color.White.copy(alpha = 0.12f))
+                    Spacer(Modifier.width(13.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(selected.distroName, color = Color(0xFFF1F0EC), style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold)
+                        Text(selected.version, color = Color(0xFF9B9A95), style = MaterialTheme.typography.bodySmall)
                     }
-                    val visibleStatus = status ?: if (anotherInstallIsBusy) {
-                        "${distros.firstOrNull { it.distroId == installingDistroId }?.distroName ?: "A distro"} is downloading in the background."
-                    } else null
-                    if (!visibleStatus.isNullOrBlank()) {
-                        Spacer(Modifier.height(10.dp))
-                        Text(visibleStatus, color = Color.White.copy(alpha = 0.66f), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
-                    }
+                    Text(if (installed) "Installed" else "Not installed", color = if (installed) accent else Color(0xFFAAA9A4),
+                        style = MaterialTheme.typography.labelSmall)
+                }
+
+                Spacer(Modifier.height(18.dp))
+                Row(
+                    Modifier.fillMaxWidth().defaultMinSize(minHeight = 52.dp)
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(accent)
+                        .clickable(role = Role.Button, enabled = !downloading && (!anotherDownload || installed)) {
+                            if (installed) onStart(selected) else onInstall(selected)
+                        }
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        when {
+                            downloading -> "Preparing ${selected.distroName}…"
+                            installed -> "Open terminal"
+                            anotherDownload -> "Another download is running"
+                            else -> "Install ${selected.distroName}"
+                        },
+                        Modifier.weight(1f), color = Color(0xFF151719), style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                if (downloading) {
+                    Spacer(Modifier.height(13.dp))
+                    LinearProgressIndicator(
+                        progress = { progress.coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth(), color = accent,
+                        trackColor = Color.White.copy(alpha = 0.12f),
+                    )
+                }
+                val statusLine = status ?: if (anotherDownload) {
+                    "${distros.firstOrNull { it.distroId == installingDistroId }?.distroName ?: "A distro"} is downloading."
+                } else null
+                if (!statusLine.isNullOrBlank()) {
+                    Spacer(Modifier.height(11.dp))
+                    Text(statusLine, color = Color(0xFFB6B4AE), style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Start)
                 }
             }
 
-            Spacer(Modifier.height(18.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
-                LandingAction("⌘", "Commands", onCommands)
-                LandingAction("▦", "Files", onFiles)
-                LandingAction("◉", "Profiles", onProfiles)
-                LandingAction("⌁", "Storage", onStorage)
+            Spacer(Modifier.height(25.dp))
+            Row(Modifier.widthIn(max = 460.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LandingLink("Commands", onCommands, Modifier.weight(1f))
+                LandingLink("Files", onFiles, Modifier.weight(1f))
+                LandingLink("Profiles", onProfiles, Modifier.weight(1f))
+                LandingLink("Storage", onStorage, Modifier.weight(1f))
             }
-            Spacer(Modifier.weight(0.58f))
-            Text("NO ROOT  ·  NO SURPRISES  ·  JUST LINUX", style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.36f), letterSpacing = 1.1.sp, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(18.dp))
         }
     }
 }
 
 @Composable
-private fun DistroGlassDock(
+private fun DistroRail(
     distros: List<RootfsPackage>,
     selectedId: String,
-    onSelect: (String) -> Unit,
-    motionEnabled: Boolean,
     backdrop: com.kyant.backdrop.Backdrop,
+    onSelect: (String) -> Unit,
 ) {
-        val dockShape = RoundedCornerShape(24.dp)
+    val railShape = RoundedCornerShape(16.dp)
+    val canAnimate = remember { ValueAnimator.areAnimatorsEnabled() }
+    Box(Modifier.widthIn(max = 460.dp).fillMaxWidth()) {
         Row(
-            Modifier.widthIn(max = 440.dp).fillMaxWidth().clip(dockShape)
-                .termxLiquidGlass(backdrop, dockShape, Color.White.copy(alpha = 0.065f))
-                .padding(7.dp).horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            Modifier.fillMaxWidth().clip(railShape)
+                .termxLiquidGlass(backdrop, railShape, Color(0x99212527))
+                .horizontalScroll(rememberScrollState()).padding(horizontal = 5.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             distros.forEach { distro ->
                 val selected = distro.distroId == selectedId
-                val tint = remember(distro.distroId) { distroPalette(distro.distroId) }
-                val fill by distroColorState(
-                    if (selected) tint.accent.copy(alpha = 0.19f) else Color.Transparent,
-                    motionEnabled,
-                    "dock-selection",
+                val palette = distroPalette(distro.distroId)
+                val selectedAccent by animateColorAsState(
+                    targetValue = if (selected) palette.accent else Color.Transparent,
+                    animationSpec = tween(if (canAnimate) 240 else 0),
+                    label = "distro-rail-selection",
                 )
-                Row(
-                    Modifier.defaultMinSize(minHeight = 46.dp).clip(RoundedCornerShape(18.dp))
-                        .background(fill)
-                        .then(if (selected) Modifier.border(1.dp, tint.accent.copy(alpha = 0.32f), RoundedCornerShape(18.dp)) else Modifier)
-                        .clickable { onSelect(distro.distroId) }
-                        .padding(horizontal = 13.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                Column(
+                    Modifier.widthIn(min = 88.dp).defaultMinSize(minHeight = 54.dp)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(if (selected) Color.White.copy(alpha = 0.055f) else Color.Transparent)
+                        .selectable(selected = selected, role = Role.RadioButton) { onSelect(distro.distroId) }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Center,
                 ) {
-                    Text(tint.mark, color = if (selected) tint.accent else Color.White.copy(alpha = 0.62f), fontSize = 14.sp)
-                    Text(distro.distroName, style = MaterialTheme.typography.labelMedium,
-                        color = if (selected) Color.White else Color.White.copy(alpha = 0.58f), fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+                    Text(distro.distroName, color = if (selected) Color.White else Color(0xFFAAA9A4),
+                        style = MaterialTheme.typography.labelMedium, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        maxLines = 1)
+                    Spacer(Modifier.height(4.dp))
+                    Text(if (distro.distroId == selectedId) "SELECTED" else "${distro.version}",
+                        color = if (selected) palette.accent else Color(0xFF85847F),
+                        style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, letterSpacing = 0.55.sp, maxLines = 1)
+                    Spacer(Modifier.height(5.dp))
+                    Box(Modifier.fillMaxWidth().height(2.dp).background(selectedAccent, RoundedCornerShape(1.dp)))
                 }
             }
         }
-}
-
-@Composable
-private fun distroColorState(target: Color, motionEnabled: Boolean, label: String): State<Color> =
-    if (motionEnabled) animateColorAsState(target, label = label) else rememberUpdatedState(target)
-
-@Composable
-private fun LandingAction(mark: String, label: String, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
-    Row(
-        Modifier.clip(shape).background(Color.White.copy(alpha = 0.055f), shape)
-            .border(1.dp, Color.White.copy(alpha = 0.085f), shape).clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 9.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically,
-    ) {
-            Text(mark, color = Color.White.copy(alpha = 0.74f), fontSize = 14.sp)
-            Text(label, color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.labelSmall)
     }
 }
 
-private data class Petal(val x: Float, val y: Float, val size: Float, val speed: Float, val sway: Float, val phase: Float)
-
-private data class DistroPalette(val accent: Color, val secondary: Color, val mark: String, val caption: String)
-
-private fun distroPalette(id: String) = when (id) {
-    "alpine" -> DistroPalette(Color(0xFF83C7FF), Color(0xFF98A7FF), "▲", "Small, secure, and wonderfully quick")
-    "debian" -> DistroPalette(Color(0xFFFF91AA), Color(0xFFC6A0FF), "◉", "The dependable classic, ready to explore")
-    "void" -> DistroPalette(Color(0xFF83E0BE), Color(0xFF77C9D5), "◌", "Independent, minimal, and yours to shape")
-    else -> DistroPalette(Color(0xFFFFB17A), Color(0xFFFF7FA4), "🐙", "A tiny, modern Linux world in your pocket")
+@Composable
+private fun LandingLink(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Text(
+        label,
+        modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button, onClick = onClick)
+            .defaultMinSize(minWidth = 48.dp, minHeight = 44.dp)
+            .padding(horizontal = 4.dp, vertical = 12.dp)
+            .semantics { contentDescription = label },
+        color = Color(0xFFAAA9A4), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center,
+        maxLines = 1,
+    )
 }
+
+private data class DistroPalette(val accent: Color, val mark: String)
+
+private fun distroPalette(id: String) = DistroPalette(distroAccentColor(id), when (id) {
+    "alpine" -> "A"
+    "debian" -> "D"
+    "void" -> "V"
+    else -> "W"
+})
+
+internal fun distroAccentColor(id: String): Color = when (id) {
+    "alpine" -> Color(0xFF79B8F3)
+    "debian" -> Color(0xFFE67583)
+    "void" -> Color(0xFF64C3A8)
+    else -> Color(0xFFF0A45F)
+}
+
+private val INK = Color(0xFF0D0F10)
+private val SURFACE = Color(0xFF171A1B)
