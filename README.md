@@ -2,7 +2,7 @@
 
 A light, fast Android terminal for proot Linux distros (Wolfi by default, plus Alpine, Debian and Void) that runs without root, Shizuku or Shevery.
 
-**Status:** Phase 0 (skeleton and CI). The plan lives in [docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md).
+**Status:** Phase 1 terminal surface is implemented and passes the CI build and unit-test job. Its on-device interaction gate is pending. The plan lives in [docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md).
 
 ## Builds
 

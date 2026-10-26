@@ -9,17 +9,32 @@ Third-party code and components
    exception in termux-app LICENSE.md. Originally from jackpal/Android-Terminal-Emulator
    (Apache-2.0).
 
-2. Termux terminal-view (Phase 1: vendored into app.termx.terminal.view)
-   Source: termux-app terminal-view at the commit recorded in docs/REFERENCES.md
-   License: Apache-2.0. Original license headers are kept on every vendored file.
+2. Termux terminal-view (Phase 1: vendored into app/src/main/java/app/termx/terminal/view/)
+   Source: https://github.com/termux/termux-app, commit
+   8629e632fcb95da272221be327db653fb24befe9; original paths under
+   terminal-view/src/main/java/com/termux/view/ and terminal-view/src/main/res/.
+   License: Apache-2.0, under the module exception in termux-app LICENSE.md.
+   Package names and resource references were adapted for app.termx. The terminal
+   input type was changed to a normal text field to keep voice input available.
+   Scrolling is kept in the view and SIXEL bitmap rendering was omitted to match
+   the v0.118.3 emulator dependency.
+   A copy of the Apache License 2.0 is in licenses/Apache-2.0.txt.
 
 3. ReTerminal (Phase 2 onward: adapted code)
    Source: https://github.com/RohitKushvaha01/ReTerminal (pinned in docs/REFERENCES.md)
    License: MIT, Copyright (c) 2024 Rohit Kushvaha
 
-4. wolfi-terminal (Phase 2 onward: adapted code)
+4. wolfi-terminal (Phase 1 onward: adapted code)
    Source: https://github.com/leloush-x/wolfi-terminal (pinned in docs/REFERENCES.md)
    License: MIT, Copyright (c) 2024 Rohit Kushvaha
+
+   ExtraKeysRow.kt adapts the key mapping from
+   core/main/src/main/java/com/rk/terminal/ui/screens/terminal/virtualkeys/VirtualKeysListener.kt
+   at commit d4cc3912d08edbf8557aac446e76fca0bee08ce3.
+
+   ExtraKeysRow.kt adapts the key mapping from
+   core/main/src/main/java/com/rk/terminal/ui/screens/terminal/virtualkeys/VirtualKeysListener.kt
+   at commit d4cc3912d08edbf8557aac446e76fca0bee08ce3.
 
 5. proot (Phase 2 onward: bundled as a separate executable, not linked)
    License: GNU GPL. The license text and the exact source revision ship with each release.
