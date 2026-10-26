@@ -40,13 +40,15 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 
 ## Phase 2: Distro runtime (0.3.0) `[~]`
 
-- [~] `core/proot` native build from wolfi (NDK `29.0.13846066`), `arm64-v8a` and `x86_64`
+- [x] `core/proot` native build from wolfi (NDK `29.0.13846066`), `arm64-v8a` and `x86_64` (CI run `40256209637`; all four ELF files pass 16 KB alignment)
 - [~] Rootfs install adapted from wolfi `rootfs/RootfsExtractor.kt`. Java extraction, header and payload validation, SHA-256 while streaming, Range resume, staged switch and rollback copy
 - [~] `ProotCommand` and `BindTable` (T0 binds only)
 - [~] Wolfi default. Alpine, Debian and Void from a signed manifest (Ed25519 check before parsing)
 - [~] PRoot licenses, source link and copied-source NOTICE records prepared for release packaging
 
 **Gate:** CI builds both ABIs. The 16 KB ELF check passes. On arm64, Wolfi installs and `uname -a` works in a session.
+
+The arm64 install/session check is pending. The on-demand ARM64 emulator job is in `.github/workflows/android.yml` (D34); it saves a screenshot and logcat as `termx-arm64-runtime-smoke`.
 
 ## Phase 3: Storage tiers (0.4.0)
 
