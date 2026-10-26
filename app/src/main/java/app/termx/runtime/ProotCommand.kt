@@ -41,9 +41,9 @@ object ProotCommand {
             }
         }
         binds.filter { it.guest == "/etc/resolv.conf" }.forEach { bind ->
-            require(bind.host.isFile) { "Android DNS configuration is unavailable" }
+            require(File(bind.host).isFile) { "Android DNS configuration is unavailable" }
             val guestResolver = File(rootfs, "etc/resolv.conf")
-            require(!java.nio.file.Files.isSymbolicLink(guestResolver)) {
+            require(!java.nio.file.Files.isSymbolicLink(guestResolver.toPath())) {
                 "Distro resolver path must not be a symbolic link"
             }
             if (!guestResolver.exists()) {

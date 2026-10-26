@@ -29,12 +29,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -76,10 +81,17 @@ class MainActivity : ComponentActivity() {
         distroPackages = DistroManifest.load(this)
 
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFF9CE6D8), secondary = Color(0xFFF0A6CA))) {
+            val darkTheme = isSystemInDarkTheme()
+            val colors = when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && darkTheme -> dynamicDarkColorScheme(LocalContext.current)
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> dynamicLightColorScheme(LocalContext.current)
+                darkTheme -> darkColorScheme(primary = Color(0xFF9CE6D8), secondary = Color(0xFFF0A6CA))
+                else -> lightColorScheme(primary = Color(0xFF006B5B), secondary = Color(0xFF82506F))
+            }
+            MaterialTheme(colorScheme = colors) {
                 Surface(
                     modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
-                    color = Color(0xFF101418),
+                    color = MaterialTheme.colorScheme.background,
                 ) {
                     val context = this@MainActivity
                     val sharedDir = remember { sharedDirectory() }

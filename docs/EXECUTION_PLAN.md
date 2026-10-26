@@ -99,7 +99,8 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 
 ## Phase 6: Customization (0.7.0)
 
-- [ ] Theme JSON with 16 ANSI colors and field-named validation errors. Monet on Android 12+. AMOLED toggle
+- [ ] Theme JSON with 16 ANSI colors and field-named validation errors. AMOLED toggle
+- [x] Material 3 Material You dynamic light/dark palette on Android 12+, following system appearance
 - [ ] Fonts: bundled JetBrains Mono (OFL), TTF import, loaded off the main thread
 - [ ] Keymap and extra-key layouts as JSON (ARCHITECTURE §20.4)
 - [ ] DataStore settings. Export and import with secrets excluded. Keystore-backed secrets
