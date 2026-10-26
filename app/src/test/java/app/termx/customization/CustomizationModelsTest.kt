@@ -11,7 +11,7 @@ class CustomizationModelsTest {
         val json = """{"schema":1,"name":"Night","mode":"dark","colors":{"background":"#000000","foreground":"#ffffff","cursor":"#ffffff","selection":"#334455","bold":"#ffffff"},"ansi":[$colors],"background":{"image":null,"blur":0,"dim":0.4}}"""
         assertEquals(16, TermXTheme.parse(json).ansi.size)
         val invalid = json.replace("\"#112233\",", "\"bad\",")
-        assertFieldError("colors.ansi[0]") { TermXTheme.parse(invalid) }
+        assertFieldError("ansi[0]") { TermXTheme.parse(invalid) }
     }
 
     @Test fun themeErrorNamesInvalidField() {
