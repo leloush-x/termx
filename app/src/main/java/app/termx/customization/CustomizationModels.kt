@@ -66,6 +66,23 @@ data class TermXTheme(
     }
 }
 
+/** Default true-black (AMOLED) theme: a pure #000000 surface with a legible dark-terminal palette. */
+fun defaultAmoledTheme(): TermXTheme = TermXTheme(
+    name = "AMOLED",
+    mode = "dark",
+    background = "#000000",
+    foreground = "#E6E6E6",
+    cursor = "#9CE6D8",
+    selection = "#2A3A38",
+    bold = "#9CE6D8",
+    ansi = listOf(
+        "#000000", "#E06C75", "#98C379", "#E5C07B",
+        "#61AFEF", "#C678DD", "#56B6C2", "#ABB2BF",
+        "#5C6370", "#E06C75", "#98C379", "#E5C07B",
+        "#61AFEF", "#C678DD", "#56B6C2", "#FFFFFF",
+    ),
+)
+
 /** Layout schema follows ARCHITECTURE §20.4 and rejects unknown control sequences by key name. */
 object KeyLayoutValidator {
     data class KeyButton(val label: String, val send: String?, val modifier: String?, val long: List<String>)
@@ -123,7 +140,7 @@ object KeyLayoutValidator {
             }
         } else {
             val modifier = key.optString("modifier").lowercase()
-            require(modifier in setOf("ctrl", "alt")) { "$path.modifier: unsupported modifier" }
+            require(modifier in setOf("ctrl", "alt", "shift")) { "$path.modifier: unsupported modifier" }
         }
         val long = key.optJSONArray("long")
         require(long == null || long.length() <= 6) { "$path.long: at most 6 choices" }

@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -73,10 +72,10 @@ internal fun BoxScope.TerminalSidePanel(
     )
 
     Column(
-        Modifier.align(Alignment.CenterStart).fillMaxHeight().widthIn(max = 320.dp).fillMaxWidth(0.88f)
+        Modifier.align(Alignment.CenterStart).fillMaxHeight().width(280.dp)
             .termxLiquidGlass(backdrop, panelShape, Color(0xF0141718))
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 22.dp, vertical = 26.dp),
+            .padding(horizontal = 20.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         Row(Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp), verticalAlignment = Alignment.CenterVertically) {

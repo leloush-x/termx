@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
@@ -46,11 +47,8 @@ internal fun DistroSettingsScreen(
     installStatus: String?,
     amoledMode: Boolean,
     onAmoledMode: (Boolean) -> Unit,
-    onImportTheme: () -> Unit,
-    onImportKeyLayout: () -> Unit,
-    onImportKeymap: () -> Unit,
-    onImportSettings: () -> Unit,
-    onExportSettings: () -> Unit,
+    terminalFontSize: Int,
+    onFontSize: (Int) -> Unit,
     onImportFont: () -> Unit,
     customizationMessage: String?,
     onBack: () -> Unit,
@@ -103,12 +101,21 @@ internal fun DistroSettingsScreen(
                 }
                 Switch(checked = amoledMode, onCheckedChange = onAmoledMode)
             }
-            SettingsAction("Import theme JSON", onImportTheme)
-            SettingsAction("Import key layout JSON", onImportKeyLayout)
-            SettingsAction("Import app keymap JSON", onImportKeymap)
+            Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Text size", color = Color.White, style = MaterialTheme.typography.titleSmall)
+                    Text("Terminal font size · ${terminalFontSize}sp", color = Color.White.copy(alpha = 0.62f),
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            Slider(
+                value = terminalFontSize.toFloat(),
+                onValueChange = { onFontSize(it.toInt()) },
+                valueRange = 12f..28f,
+                steps = 15,
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+            )
             SettingsAction("Import TTF font", onImportFont)
-            SettingsAction("Import settings", onImportSettings)
-            SettingsAction("Export settings", onExportSettings)
             customizationMessage?.let { Text(it, Modifier.padding(top = 8.dp), color = Color.White.copy(alpha = 0.75f),
                 style = MaterialTheme.typography.bodySmall) }
         }

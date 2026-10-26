@@ -25,6 +25,7 @@ class TerminalBackend(
 
     var controlPressed = false
     var altPressed = false
+    var shiftPressed = false
 
     fun attach(view: TerminalView) {
         terminalView = view
@@ -65,7 +66,7 @@ class TerminalBackend(
     override fun onLongPress(event: MotionEvent) = false
     override fun readControlKey() = controlPressed
     override fun readAltKey() = altPressed
-    override fun readShiftKey() = false
+    override fun readShiftKey() = shiftPressed
     override fun readFnKey() = false
     override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession) = false
     override fun onEmulatorSet() = terminalView?.invalidate() ?: Unit

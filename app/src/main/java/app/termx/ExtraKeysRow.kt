@@ -41,11 +41,13 @@ fun ExtraKeysRow(
 ) {
     var ctrlEnabled by remember { mutableStateOf(false) }
     var altEnabled by remember { mutableStateOf(false) }
+    var shiftEnabled by remember { mutableStateOf(false) }
     val defaultKeys = listOf(
         KeyLayoutValidator.KeyButton("ESC", "\u001B", null, emptyList()),
         KeyLayoutValidator.KeyButton("TAB", "\t", null, emptyList()),
         KeyLayoutValidator.KeyButton("CTRL", null, "ctrl", emptyList()),
         KeyLayoutValidator.KeyButton("ALT", null, "alt", emptyList()),
+        KeyLayoutValidator.KeyButton("SHIFT", null, "shift", emptyList()),
         KeyLayoutValidator.KeyButton("↑", "\u001B[A", null, emptyList()),
         KeyLayoutValidator.KeyButton("←", "\u001B[D", null, emptyList()),
         KeyLayoutValidator.KeyButton("↓", "\u001B[B", null, emptyList()),
@@ -65,7 +67,9 @@ fun ExtraKeysRow(
     ) {
         keys.forEach { key ->
             val label = key.label
-            val active = (key.modifier == "ctrl" && ctrlEnabled) || (key.modifier == "alt" && altEnabled)
+            val active = (key.modifier == "ctrl" && ctrlEnabled) ||
+                (key.modifier == "alt" && altEnabled) ||
+                (key.modifier == "shift" && shiftEnabled)
             Box(
                 modifier = Modifier.padding(horizontal = 3.dp, vertical = 2.dp)
                     .sizeIn(minWidth = 38.dp, minHeight = 34.dp)
@@ -80,7 +84,21 @@ fun ExtraKeysRow(
                                 altEnabled = !altEnabled
                                 backend.altPressed = altEnabled
                             }
-                            else -> key.send?.let(session::write)
+                            "shift" -> {
+                                shiftEnabled = !shiftEnabled
+                                backend.shiftPressed = shiftEnabled
+                            }
+                            else -> {
+                                val send = key.send
+                                if (shiftEnabled && send != null && send.length == 1 && send[0].isLowerCase()) {
+                                    session.write(send.uppercase())
+                                } else {
+                                    send?.let(session::write)
+                                }
+                                // SHIFT acts on the next key, then releases itself.
+                                shiftEnabled = false
+                                backend.shiftPressed = false
+                            }
                         }
                     }, onLongClick = { key.long.firstOrNull()?.let(session::write) }),
                 contentAlignment = Alignment.Center,

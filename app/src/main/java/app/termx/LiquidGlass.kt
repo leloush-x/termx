@@ -3,6 +3,7 @@ package app.termx
 import android.os.Build
 import androidx.compose.foundation.border
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
@@ -12,7 +13,12 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 
-/** Backdrop glass with a tinted fallback on Android versions without render effects. */
+/**
+ * Backdrop glass that reads as real glass: the layer behind is blurred and made vibrant,
+ * then a soft vertical gradient is painted on top (a brighter rim at the top fading to a
+ * near-transparent base) with a thin lit edge. On Android versions without runtime render
+ * effects this still degrades to a blurred tinted surface.
+ */
 internal fun Modifier.termxLiquidGlass(
     backdrop: Backdrop,
     shape: Shape,
@@ -22,14 +28,22 @@ internal fun Modifier.termxLiquidGlass(
     shape = { shape },
     effects = {
         vibrancy()
-        blur(12.dp.toPx())
+        blur(16.dp.toPx())
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             lens(
-                refractionHeight = 10.dp.toPx(),
-                refractionAmount = 15.dp.toPx(),
+                refractionHeight = 14.dp.toPx(),
+                refractionAmount = 18.dp.toPx(),
                 chromaticAberration = true,
             )
         }
     },
-    onDrawSurface = { drawRect(tint) },
-).border(1.dp, Color.White.copy(alpha = 0.16f), shape)
+    onDrawSurface = {
+        drawRect(
+            Brush.verticalGradient(
+                0f to tint.copy(alpha = (tint.alpha + 0.06f).coerceAtMost(1f)),
+                0.5f to tint,
+                1f to tint.copy(alpha = (tint.alpha * 0.55f).coerceAtMost(1f)),
+            ),
+        )
+    },
+).border(1.dp, Color.White.copy(alpha = 0.18f), shape)

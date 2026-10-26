@@ -4,6 +4,7 @@ import android.animation.ValueAnimator
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,6 +35,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -52,6 +55,7 @@ fun DistroLandingScreen(
     installedDistros: Set<String>,
     selectedDistroId: String,
     installingDistroId: String?,
+    amoled: Boolean,
     onSelectDistro: (String) -> Unit,
     onSettings: () -> Unit,
     progress: Float,
@@ -75,9 +79,24 @@ fun DistroLandingScreen(
     val downloading = installingDistroId == selected.distroId
     val anotherDownload = installingDistroId != null && !downloading
     val backdrop = rememberLayerBackdrop()
-    Box(Modifier.fillMaxSize().background(INK)) {
+    val base = if (amoled) Color.Black else INK
+    Box(Modifier.fillMaxSize().background(base)) {
         Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
-            Box(Modifier.fillMaxSize().background(INK))
+            Box(Modifier.fillMaxSize().background(base)) {
+                Canvas(Modifier.fillMaxSize()) {
+                    val glowCenter = Offset(size.width * 0.5f, size.height * 0.26f)
+                    val glowRadius = size.minDimension * 0.78f
+                    drawCircle(
+                        Brush.radialGradient(
+                            listOf(accent.copy(alpha = if (amoled) 0.20f else 0.26f), Color.Transparent),
+                            glowCenter,
+                            glowRadius,
+                        ),
+                        radius = glowRadius,
+                        center = glowCenter,
+                    )
+                }
+            }
         }
 
         Column(
@@ -124,7 +143,7 @@ fun DistroLandingScreen(
                 Modifier.widthIn(max = 460.dp).fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
                     .background(SURFACE)
-                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
+                    .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
                     .padding(horizontal = 18.dp, vertical = 18.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

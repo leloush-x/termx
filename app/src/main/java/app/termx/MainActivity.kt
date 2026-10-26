@@ -52,6 +52,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -86,11 +87,10 @@ import app.termx.productivity.ProfileStore
 import app.termx.productivity.searchHistory
 import app.termx.terminal.view.TerminalView
 import app.termx.customization.FontRepository
-import app.termx.customization.KeyLayoutValidator
-import app.termx.customization.KeymapValidator
 import app.termx.customization.TermXSettingsStore
 import app.termx.customization.TermXTheme
 import app.termx.customization.TerminalTheme
+import app.termx.customization.defaultAmoledTheme
 import com.termux.terminal.TerminalSession
 import java.io.File
 
@@ -99,6 +99,7 @@ private data class CustomizationSnapshot(
     val themeJson: String?,
     val keyLayoutJson: String?,
     val fontPath: String?,
+    val fontSize: Int,
 )
 
 class MainActivity : ComponentActivity() {
@@ -122,11 +123,11 @@ class MainActivity : ComponentActivity() {
     private var restoringSavedSession by mutableStateOf(false)
     private var showTerminalPanel by mutableStateOf(false)
     private var showSettings by mutableStateOf(false)
-    private var amoledMode by mutableStateOf(false)
+    private var amoledMode by mutableStateOf(true)
     private var terminalThemeJson by mutableStateOf<String?>(null)
     private var terminalKeyLayoutJson by mutableStateOf<String?>(null)
     private var terminalTypeface by mutableStateOf<Typeface?>(null)
-    private var pendingCustomizationImport by mutableStateOf("settings")
+    private var terminalFontSize by mutableIntStateOf(16)
     private var customizationMessage by mutableStateOf<String?>(null)
     private lateinit var customizationStore: TermXSettingsStore
     private lateinit var fontRepository: FontRepository
@@ -178,16 +179,18 @@ class MainActivity : ComponentActivity() {
         redactionText = HistoryRedactions.text(this)
         Thread({
             val loaded = runCatching { kotlinx.coroutines.runBlocking {
-                CustomizationSnapshot(customizationStore.get("amoled_mode") == "true",
+                CustomizationSnapshot(customizationStore.get("amoled_mode", "true") != "false",
                     customizationStore.get("theme_json").takeIf { it.isNotBlank() },
                     customizationStore.get("key_layout_json").takeIf { it.isNotBlank() },
-                    customizationStore.get("font_path").takeIf { it.isNotBlank() })
+                    customizationStore.get("font_path").takeIf { it.isNotBlank() },
+                    customizationStore.get("text_size", "16").toIntOrNull() ?: 16)
             } }
             runOnUiThread {
                 loaded.onSuccess { snapshot ->
                     amoledMode = snapshot.amoled
                     terminalThemeJson = snapshot.themeJson
                     terminalKeyLayoutJson = snapshot.keyLayoutJson
+                    terminalFontSize = snapshot.fontSize
                     if (snapshot.fontPath != null) fontRepository.loadImported(File(snapshot.fontPath)) { font ->
                         font.onSuccess { typeface -> runOnUiThread { terminalTypeface = typeface } }
                     }
@@ -200,6 +203,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val customTheme = terminalThemeJson?.let { runCatching { TermXTheme.parse(it) }.getOrNull() }
+                ?: if (amoledMode) defaultAmoledTheme() else null
             val darkTheme = when (customTheme?.mode) {
                 "dark" -> true
                 "light" -> false
@@ -300,73 +304,6 @@ class MainActivity : ComponentActivity() {
                             WorkspaceTransfer.copyDocumentIntoShared(context, uri, sharedDir)
                         }
                     }
-                    val settingsExportLauncher = rememberLauncherForActivityResult(
-                        ActivityResultContracts.CreateDocument("application/json"),
-                    ) { uri ->
-                        if (uri != null) Thread({
-                            val result = runCatching {
-                                val text = kotlinx.coroutines.runBlocking { customizationStore.export().toString(2) }
-                                contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(text) }
-                                    ?: error("Could not open the selected export location")
-                            }
-                            runOnUiThread { customizationMessage = result.fold({ "Settings exported." }, { it.message ?: "Export failed" }) }
-                        }, "termx-settings-export").start()
-                    }
-                    val customizationImportLauncher = rememberLauncherForActivityResult(
-                        ActivityResultContracts.OpenDocument(),
-                    ) { uri ->
-                        if (uri != null) Thread({
-                            val result = runCatching {
-                                val raw = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                                    ?: error("Could not read the selected file")
-                                when (pendingCustomizationImport) {
-                                    "theme" -> {
-                                        val parsed = TermXTheme.parse(raw)
-                                        kotlinx.coroutines.runBlocking { customizationStore.put("theme_json", parsed.toJson().toString()) }
-                                        raw
-                                    }
-                                    "layout" -> {
-                                        val layout = KeyLayoutValidator.validate(raw)
-                                        kotlinx.coroutines.runBlocking { customizationStore.put("key_layout_json", layout.toString()) }
-                                        raw
-                                    }
-                                    "keymap" -> {
-                                        val keymap = KeymapValidator.validate(raw)
-                                        kotlinx.coroutines.runBlocking { customizationStore.put("keymap_json", keymap.toString()) }
-                                        raw
-                                    }
-                                    else -> {
-                                        kotlinx.coroutines.runBlocking { customizationStore.import(raw) }
-                                        null
-                                    }
-                                }
-                            }
-                            runOnUiThread {
-                                result.onSuccess { imported ->
-                                    if (pendingCustomizationImport == "theme") terminalThemeJson = imported
-                                    if (pendingCustomizationImport == "layout") terminalKeyLayoutJson = imported
-                                    if (pendingCustomizationImport == "settings") {
-                                        Thread({
-                                            runCatching { kotlinx.coroutines.runBlocking {
-                                                CustomizationSnapshot(customizationStore.get("amoled_mode") == "true",
-                                                    customizationStore.get("theme_json").takeIf(String::isNotBlank),
-                                                    customizationStore.get("key_layout_json").takeIf(String::isNotBlank),
-                                                    customizationStore.get("font_path").takeIf(String::isNotBlank))
-                                            } }.onSuccess { snapshot -> runOnUiThread {
-                                                amoledMode = snapshot.amoled
-                                                terminalThemeJson = snapshot.themeJson
-                                                terminalKeyLayoutJson = snapshot.keyLayoutJson
-                                                snapshot.fontPath?.let { fontRepository.loadImported(File(it)) { font ->
-                                                    font.onSuccess { typeface -> runOnUiThread { terminalTypeface = typeface } }
-                                                } }
-                                            } }
-                                        }, "termx-settings-reload").start()
-                                    }
-                                    customizationMessage = "${pendingCustomizationImport.replaceFirstChar { it.uppercase() }} imported."
-                                }.onFailure { customizationMessage = it.message ?: "Import failed" }
-                            }
-                        }, "termx-settings-import").start()
-                    }
                     val fontImportLauncher = rememberLauncherForActivityResult(
                         ActivityResultContracts.OpenDocument(),
                     ) { uri ->
@@ -409,11 +346,12 @@ class MainActivity : ComponentActivity() {
                                 Thread({ runCatching { kotlinx.coroutines.runBlocking { customizationStore.put("amoled_mode", enabled.toString()) } } },
                                     "termx-appearance-save").start()
                             },
-                            onImportTheme = { pendingCustomizationImport = "theme"; customizationImportLauncher.launch(arrayOf("application/json", "text/json", "text/plain")) },
-                            onImportKeyLayout = { pendingCustomizationImport = "layout"; customizationImportLauncher.launch(arrayOf("application/json", "text/json", "text/plain")) },
-                            onImportKeymap = { pendingCustomizationImport = "keymap"; customizationImportLauncher.launch(arrayOf("application/json", "text/json", "text/plain")) },
-                            onImportSettings = { pendingCustomizationImport = "settings"; customizationImportLauncher.launch(arrayOf("application/json", "text/json", "text/plain")) },
-                            onExportSettings = { settingsExportLauncher.launch("termx-settings.json") },
+                            terminalFontSize = terminalFontSize,
+                            onFontSize = { size ->
+                                terminalFontSize = size.coerceIn(12, 28)
+                                Thread({ runCatching { kotlinx.coroutines.runBlocking { customizationStore.put("text_size", terminalFontSize.toString()) } } },
+                                    "termx-appearance-save").start()
+                            },
                             onImportFont = { fontImportLauncher.launch(arrayOf("font/ttf", "application/x-font-ttf", "application/octet-stream")) },
                             customizationMessage = customizationMessage,
                             onBack = { showSettings = false },
@@ -541,6 +479,7 @@ class MainActivity : ComponentActivity() {
                             installedDistros = installedDistros,
                             selectedDistroId = selectedDistroId,
                             installingDistroId = installingDistroId,
+                            amoled = amoledMode,
                             onSelectDistro = { id ->
                                 selectedDistroId = id
                                 getSharedPreferences("landing", MODE_PRIVATE).edit().putString("selected_distro", id).apply()
@@ -589,29 +528,32 @@ class MainActivity : ComponentActivity() {
                                     }
                                     Box(Modifier.size(7.dp).background(terminalAccent, androidx.compose.foundation.shape.CircleShape))
                                 }
-                                AndroidView(
-                                    modifier = Modifier.weight(1f),
-                                    factory = { viewContext ->
-                                        TerminalView(viewContext, null).apply {
-                                            setTextSize(16)
-                                            setBackgroundColor(customTheme?.let { android.graphics.Color.parseColor(it.background) }
-                                                ?: android.graphics.Color.BLACK)
-                                            terminalTypeface?.let(::setTypeface)
+                                key(session) {
+                                    AndroidView(
+                                        modifier = Modifier.weight(1f),
+                                        factory = { viewContext ->
+                                            TerminalView(viewContext, null).apply {
+                                                setTextSize(terminalFontSize)
+                                                setBackgroundColor(customTheme?.let { android.graphics.Color.parseColor(it.background) }
+                                                    ?: android.graphics.Color.BLACK)
+                                                terminalTypeface?.let(::setTypeface)
+                                                customTheme?.let { TerminalTheme.apply(session.emulator, it) }
+                                                backend.attach(this)
+                                                attachSession(session)
+                                                isFocusableInTouchMode = true
+                                                requestFocus()
+                                            }
+                                        },
+                                        update = { view ->
+                                            view.setTextSize(terminalFontSize)
+                                            terminalTypeface?.let(view::setTypeface)
                                             customTheme?.let { TerminalTheme.apply(session.emulator, it) }
-                                            backend.attach(this)
-                                            attachSession(session)
-                                            isFocusableInTouchMode = true
-                                            requestFocus()
-                                        }
-                                    },
-                                    update = { view ->
-                                        terminalTypeface?.let(view::setTypeface)
-                                        customTheme?.let { TerminalTheme.apply(session.emulator, it) }
-                                        view.setBackgroundColor(customTheme?.let { android.graphics.Color.parseColor(it.background) }
-                                            ?: android.graphics.Color.BLACK)
-                                        view.invalidate()
-                                    },
-                                )
+                                            view.setBackgroundColor(customTheme?.let { android.graphics.Color.parseColor(it.background) }
+                                                ?: android.graphics.Color.BLACK)
+                                            view.invalidate()
+                                        },
+                                    )
+                                }
                                 ExtraKeysRow(session = session, backend = backend, keyLayoutJson = terminalKeyLayoutJson)
                             }
                             AnimatedVisibility(
@@ -636,7 +578,8 @@ class MainActivity : ComponentActivity() {
                                         selectedDistroId = pkg.distroId
                                         getSharedPreferences("landing", MODE_PRIVATE).edit().putString("selected_distro", pkg.distroId).apply()
                                         showTerminalPanel = false
-                                        startTerminal(pkg)
+                                        runCatching { startTerminal(pkg) }
+                                            .onFailure { storageMessage = it.message ?: "Could not start ${pkg.distroName}" }
                                     },
                                     onSettings = {
                                         backend.detach()
