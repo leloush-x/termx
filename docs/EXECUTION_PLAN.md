@@ -89,13 +89,13 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 
 ## Phase 5: Productivity (0.6.0)
 
-- [ ] History hooks for bash and zsh (ARCHITECTURE §8.2), importer, Room + FTS5, redaction, 90-day retention
-- [ ] Command palette with stable action IDs
-- [ ] Snippets with variables. Insert by default. Run needs a tap and shows the command first
-- [ ] Profiles and workspaces
-- [ ] File browser: app storage, SAF workspaces, MediaStore Downloads. Share receiver
+- [~] Bash and zsh history hooks, private TSV spool, Room importer, bundled SQLite FTS5 index, default and editable redaction rules, 90-day retention
+- [~] Material 3 command palette with stable action IDs and fuzzy matching
+- [~] Variable snippets insert by default; run shows a confirmation with the resolved command
+- [~] App-private profiles for distro, working directory and environment; existing SAF workspaces remain explicit copies
+- [~] File browser for shared app storage, SAF workspaces and MediaStore Downloads; non-exported FileProvider sharing and incoming share intents
 
-**Gate:** search over 100,000 rows under 100 ms (benchmark test). Palette opens under 100 ms.
+**Gate:** CI compilation, 100,000-row search under 100 ms, palette under 100 ms, and file/share behavior remain pending. No Phase 5 gate is claimed yet.
 
 ## Phase 6: Customization (0.7.0)
 

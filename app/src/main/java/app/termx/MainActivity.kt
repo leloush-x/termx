@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -67,6 +68,14 @@ import app.termx.storage.StorageHealthScreen
 import app.termx.storage.StoragePreferences
 import app.termx.storage.StorageTier
 import app.termx.storage.WorkspaceTransfer
+import app.termx.productivity.HistoryDatabase
+import app.termx.productivity.HistoryEntry
+import app.termx.productivity.HistoryImporter
+import app.termx.productivity.HistoryRedactions
+import app.termx.productivity.ProductivityHub
+import app.termx.productivity.ProductivityPage
+import app.termx.productivity.ProfileStore
+import app.termx.productivity.searchHistory
 import app.termx.terminal.view.TerminalView
 import com.termux.terminal.TerminalSession
 import java.io.File
@@ -77,8 +86,14 @@ class MainActivity : ComponentActivity() {
     private lateinit var distroPackages: List<RootfsPackage>
     private var terminalSession by mutableStateOf<TerminalSession?>(null)
     private var sessionBinds by mutableStateOf<List<Bind>?>(null)
+    private var activeLaunch by mutableStateOf<ProotLaunch?>(null)
     private var storageRevision by mutableIntStateOf(0)
     private var showStorageHealth by mutableStateOf(false)
+    private var productivityPage by mutableStateOf<ProductivityPage?>(null)
+    private var historyItems by mutableStateOf<List<HistoryEntry>>(emptyList())
+    private var historyQuery by mutableStateOf("")
+    private var redactionText by mutableStateOf("")
+    private var profileRevision by mutableIntStateOf(0)
     private var storageMessage by mutableStateOf<String?>(null)
     private var sessionBinder: SessionService.LocalBinder? = null
     private var pendingLaunch: ProotLaunch? = null
@@ -116,6 +131,8 @@ class MainActivity : ComponentActivity() {
         configureTerminalSystemBars()
         installer = RootfsInstaller(this)
         distroPackages = DistroManifest.load(this)
+        redactionText = HistoryRedactions.text(this)
+        acceptSharedFiles(intent)
 
         setContent {
             val darkTheme = isSystemInDarkTheme()
@@ -133,6 +150,8 @@ class MainActivity : ComponentActivity() {
                     val context = this@MainActivity
                     val sharedDir = remember { sharedDirectory() }
                     val workspaces = remember(storageRevision) { StoragePreferences.workspaces(context) }
+                    val profiles = remember(profileRevision) { ProfileStore.all(context) }
+                    val selectedProfile = remember(profileRevision) { ProfileStore.selected(context) }
                     val snapshot = remember(storageRevision, workspaces.size) {
                         StorageAccess.snapshot(context, workspaces.size, sharedDir.isDirectory && sharedDir.canWrite())
                     }
@@ -177,7 +196,70 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     val session = terminalSession
-                    if (showStorageHealth) {
+                    if (productivityPage != null) {
+                        ProductivityHub(
+                            page = requireNotNull(productivityPage),
+                            sharedDirectory = sharedDir,
+                            workspaces = workspaces,
+                            history = historyItems,
+                            profiles = profiles,
+                            selectedProfile = selectedProfile,
+                            historyQuery = historyQuery,
+                            redactionText = redactionText,
+                            message = storageMessage,
+                            onHistoryQuery = { historyQuery = it },
+                            onSearchHistory = { refreshHistory(historyQuery) },
+                            onClearHistory = {
+                                Thread({
+                                    val result = runCatching {
+                                        HistoryDatabase.get(this).history().clear()
+                                        distroPackages.forEach { pkg ->
+                                            File(installer.installedRoot(pkg.distroId), "root/.local/state/termx/history.tsv")
+                                                .takeIf { it.isFile }?.writeText("")
+                                        }
+                                    }
+                                    runOnUiThread {
+                                        historyItems = emptyList()
+                                        storageMessage = result.fold({ "Command history cleared." }, { "Could not clear history: ${it.message}" })
+                                    }
+                                }, "termx-history-clear").start()
+                            },
+                            onRedactionText = { redactionText = it },
+                            onSaveRedactions = {
+                                runCatching { HistoryRedactions.save(context, redactionText) }
+                                    .onSuccess { storageMessage = "History privacy rules saved." }
+                                    .onFailure { storageMessage = "Invalid redaction regex: ${it.message}" }
+                            },
+                            onBack = { productivityPage = null; storageMessage = null },
+                            onNavigate = { page ->
+                                productivityPage = page
+                                if (page == ProductivityPage.HISTORY) refreshHistory("")
+                            },
+                            onOpenStorage = { productivityPage = null; showStorageHealth = true },
+                            onInsertText = { text ->
+                                if (terminalSession == null) {
+                                    storageMessage = "Start a terminal session before inserting or running a command."
+                                } else {
+                                    productivityPage = null
+                                    backend.insertText(text)
+                                }
+                            },
+                            onShareFile = { file -> shareFile(file) },
+                            onCreateProfile = { name ->
+                                runCatching { ProfileStore.create(context, name) }
+                                    .onFailure { storageMessage = it.message ?: "Could not create profile" }
+                                profileRevision++
+                            },
+                            onSelectProfile = { id -> ProfileStore.select(context, id); profileRevision++ },
+                            onUpdateProfile = { profile ->
+                                runCatching { ProfileStore.update(context, profile) }
+                                    .onSuccess { storageMessage = "Profile saved." }
+                                    .onFailure { storageMessage = it.message ?: "Could not save profile" }
+                                profileRevision++
+                            },
+                            onRemoveProfile = { id -> ProfileStore.remove(context, id); profileRevision++ },
+                        )
+                    } else if (showStorageHealth) {
                         StorageHealthScreen(
                             statuses = StorageAccess.statuses(snapshot),
                             selectedTier = selectedTier,
@@ -236,6 +318,11 @@ class MainActivity : ComponentActivity() {
                             }
                             Text("Your distros", style = MaterialTheme.typography.titleLarge)
                             OutlinedButton(onClick = { showStorageHealth = true }) { Text("Storage Health") }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(onClick = { productivityPage = ProductivityPage.PALETTE }) { Text("Commands") }
+                                OutlinedButton(onClick = { productivityPage = ProductivityPage.FILES }) { Text("Files") }
+                                OutlinedButton(onClick = { productivityPage = ProductivityPage.PROFILES }) { Text("Profiles") }
+                            }
                             distroPackages.forEach { pkg ->
                                 var installing by remember(pkg.distroId) { mutableStateOf(false) }
                                 var status by remember(pkg.distroId) { mutableStateOf("") }
@@ -292,6 +379,11 @@ class MainActivity : ComponentActivity() {
                         }
                     } else {
                         Column(modifier = Modifier.fillMaxSize()) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                TextButton(onClick = { productivityPage = ProductivityPage.PALETTE }) { Text("⌕ Commands") }
+                                TextButton(onClick = { productivityPage = ProductivityPage.FILES }) { Text("Files") }
+                                TextButton(onClick = { productivityPage = ProductivityPage.HISTORY; refreshHistory("") }) { Text("History") }
+                            }
                             AndroidView(
                                 modifier = Modifier.weight(1f),
                                 factory = { context ->
@@ -317,6 +409,52 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        acceptSharedFiles(intent)
+    }
+
+    private fun acceptSharedFiles(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND && intent?.action != Intent.ACTION_SEND_MULTIPLE) return
+        val uris: List<Uri> = when (intent.action) {
+            Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) {
+                listOfNotNull(intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java))
+            } else {
+                @Suppress("DEPRECATION")
+                listOfNotNull(intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM))
+            }
+            Intent.ACTION_SEND_MULTIPLE -> if (Build.VERSION.SDK_INT >= 33) {
+                intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java).orEmpty()
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM).orEmpty()
+            }
+            else -> emptyList()
+        }
+        if (uris.isEmpty()) {
+            storageMessage = "The shared item did not contain a readable file."
+            return
+        }
+        runCatching { uris.sumOf { WorkspaceTransfer.copyDocumentIntoShared(this, it, sharedDirectory()) } }
+            .onSuccess { count -> storageMessage = "Imported $count shared file${if (count == 1) "" else "s"} into TermX shared storage." }
+            .onFailure { storageMessage = StorageAccess.permissionHint(it) ?: (it.message ?: "Could not import shared file") }
+    }
+
+    private fun shareFile(file: File) {
+        runCatching {
+            val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.files", file)
+            val mime = contentResolver.getType(uri) ?: java.net.URLConnection.guessContentTypeFromName(file.name) ?: "application/octet-stream"
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = mime
+                putExtra(Intent.EXTRA_STREAM, uri)
+                clipData = android.content.ClipData.newUri(contentResolver, file.name, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(send, "Share ${file.name}"))
+        }.onFailure { storageMessage = it.message ?: "Could not share this file" }
+    }
+
     private fun startTerminal(pkg: RootfsPackage) {
         val rootfs = installer.installedRoot(pkg.distroId)
         val shared = sharedDirectory().apply { mkdirs() }
@@ -324,6 +462,8 @@ class MainActivity : ComponentActivity() {
         val snapshot = StorageAccess.snapshot(this, workspaces.size, shared.isDirectory && shared.canWrite())
         val requestedTier = StoragePreferences.selectedTier(this)
         val activeTier = StorageAccess.effectiveTier(requestedTier, snapshot)
+        val profile = ProfileStore.selected(this)
+        val guestWorkingDirectory = if (profile.distroId == pkg.distroId) profile.workingDirectory else "/root"
         if (activeTier != requestedTier) {
             storageMessage = "${requestedTier} is not active. This session will use T0; open Storage Health to fix access."
         }
@@ -335,6 +475,8 @@ class MainActivity : ComponentActivity() {
             storageTier = activeTier,
             externalStorageRoot = if (activeTier == StorageTier.T1) Environment.getExternalStorageDirectory() else null,
             dnsResolverFile = AndroidDnsResolver.writeConfig(this, File(cacheDir, "proot/${pkg.distroId}")),
+            guestWorkingDirectory = guestWorkingDirectory,
+            extraEnvironment = if (profile.distroId == pkg.distroId) profile.environment else emptyMap(),
         )
         if (Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -350,6 +492,24 @@ class MainActivity : ComponentActivity() {
     private fun setActiveSession(session: TerminalSession) {
         terminalSession = session
         sessionBinds = sessionBinder?.sessionBinds()
+        activeLaunch = sessionBinder?.activeLaunch()
+    }
+
+    private fun refreshHistory(query: String) {
+        Thread({
+            val result = runCatching {
+                val database = HistoryDatabase.get(this)
+                val profile = ProfileStore.selected(this)
+                val rootfs = activeLaunch?.workingDirectory?.let(::File) ?: installer.installedRoot(profile.distroId)
+                val historyFile = File(rootfs, "root/.local/state/termx/history.tsv")
+                HistoryImporter(database).import(historyFile, profileId = profile.id, redactionPatterns = HistoryRedactions.patterns(this))
+                searchHistory(database, query)
+            }
+            runOnUiThread {
+                historyItems = result.getOrDefault(emptyList())
+                storageMessage = result.exceptionOrNull()?.let { "History is unavailable: ${it.message ?: "database error"}" }
+            }
+        }, "termx-history-query").start()
     }
 
     private fun connectSessionService(launch: ProotLaunch? = null, newSession: Boolean = false) {

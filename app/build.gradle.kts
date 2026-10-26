@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 // Release signing comes only from CI secrets (exported as TERMX_KEYSTORE_FILE and
@@ -110,6 +111,9 @@ dependencies {
     // API 26 lacks the platform Ed25519 Signature provider. This strict-verification fork
     // avoids the signature-malleability issue in the older net.i2p.crypto:eddsa:0.3.0.
     implementation(libs.eddsa)
+    implementation(libs.room.runtime)
+    implementation(libs.sqlite.bundled)
+    ksp(libs.room.compiler)
 
     testImplementation(libs.junit)
 }
