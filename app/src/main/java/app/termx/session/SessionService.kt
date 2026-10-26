@@ -45,6 +45,15 @@ class SessionService : Service() {
         fun activeSession(): TerminalSession? = sessions.values.lastOrNull()?.terminal
         fun allSessions(): List<SessionRecord> =
             sessions.values.map { SessionRecord(it.id, it.launch, it.terminal) }
+        /** Closes one session and returns the session that is now active (or null). */
+        fun closeSession(id: String): TerminalSession? {
+            val running = sessions.remove(id) ?: return activeSession()
+            running.terminal.finishIfRunning()
+            saveSessions()
+            updateNotification()
+            if (sessions.isEmpty()) stopSelf()
+            return sessions.values.lastOrNull()?.terminal
+        }
         fun sessionBinds(): List<app.termx.runtime.Bind>? = sessions.values.lastOrNull()?.launch?.binds
         fun activeLaunch(): ProotLaunch? = sessions.values.lastOrNull()?.launch
         fun terminalBackend(): TerminalBackend = terminalBackend

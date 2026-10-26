@@ -656,6 +656,20 @@ class MainActivity : ComponentActivity() {
                                         }
                                         showTerminalPanel = false
                                     },
+                                    onDeleteSession = { id ->
+                                        val newActive = sessionBinder?.closeSession(id)
+                                        sessionRecords = sessionBinder?.allSessions() ?: emptyList()
+                                        if (terminalSession?.isRunning == false || terminalSession == null) {
+                                            terminalSession = newActive ?: sessionBinder?.activeSession()
+                                        }
+                                        if (terminalSession != null) {
+                                            setActiveSession(terminalSession!!)
+                                        } else {
+                                            activeLaunch = null
+                                            sessionBinds = null
+                                        }
+                                        showTerminalPanel = false
+                                    },
                                     onNewTerminal = { pkg ->
                                         selectedDistroId = pkg.distroId
                                         getSharedPreferences("landing", MODE_PRIVATE).edit().putString("selected_distro", pkg.distroId).apply()

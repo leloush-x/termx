@@ -74,6 +74,7 @@ internal fun BoxScope.TerminalSidePanel(
     installedDistros: List<RootfsPackage>,
     onTerminal: () -> Unit,
     onSelectSession: (String) -> Unit,
+    onDeleteSession: (String) -> Unit,
     onNewTerminal: (RootfsPackage) -> Unit,
     onSettings: () -> Unit,
     onClose: () -> Unit,
@@ -182,6 +183,14 @@ internal fun BoxScope.TerminalSidePanel(
                             if (session.isCurrent) {
                                 Text("live", color = group.accent, style = MaterialTheme.typography.labelSmall)
                             }
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "×",
+                                Modifier.clip(RoundedCornerShape(6.dp)).clickable(role = Role.Button) { onDeleteSession(session.id) }
+                                    .defaultMinSize(minWidth = 26.dp, minHeight = 26.dp)
+                                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                                color = Color(0xFF85847F), style = MaterialTheme.typography.labelMedium,
+                            )
                         }
                     }
                 }
