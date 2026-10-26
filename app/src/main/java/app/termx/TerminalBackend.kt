@@ -66,7 +66,15 @@ class TerminalBackend(
     override fun shouldUseCtrlSpaceWorkaround() = true
     override fun isTerminalViewSelected() = true
     override fun copyModeChanged(copyMode: Boolean) = Unit
-    override fun onKeyDown(keyCode: Int, e: KeyEvent, session: TerminalSession) = false
+    override fun onKeyDown(keyCode: Int, e: KeyEvent, session: TerminalSession): Boolean {
+        // A finished session can no longer accept input. Treat Enter as "acknowledge/close"
+        // so the "press Enter" prompt (if any) actually does something instead of being ignored.
+        if (keyCode == KeyEvent.KEYCODE_ENTER && !session.isRunning) {
+            onFinished(session)
+            return true
+        }
+        return false
+    }
     override fun onKeyUp(keyCode: Int, e: KeyEvent) = false
     override fun onLongPress(event: MotionEvent) = false
     override fun readControlKey() = controlPressed

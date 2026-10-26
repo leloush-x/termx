@@ -154,6 +154,20 @@ class MainActivity : ComponentActivity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as? SessionService.LocalBinder ?: return
             sessionBinder = binder
+            binder.setFinishedListener { finished ->
+                runOnUiThread {
+                    refreshSessions()
+                    if (terminalSession === finished || terminalSession?.isRunning == false) {
+                        val next = binder.activeSession()
+                        if (next != null) setActiveSession(next)
+                        else {
+                            terminalSession = null
+                            activeLaunch = null
+                            sessionBinds = null
+                        }
+                    }
+                }
+            }
             backend = binder.terminalBackend()
             when {
                 pendingLaunch != null -> setActiveSession(binder.createSession(requireNotNull(pendingLaunch)))
@@ -170,6 +184,7 @@ class MainActivity : ComponentActivity() {
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            sessionBinder?.setFinishedListener(null)
             sessionBinder = null
             serviceBound = false
         }

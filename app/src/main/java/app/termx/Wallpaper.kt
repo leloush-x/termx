@@ -77,12 +77,19 @@ internal fun WallpaperLayer(
     modifier: Modifier = Modifier,
 ) {
     if (bitmap == null) return
-    Box(modifier.fillMaxSize()) {
+    // Size to the FULL screen, not the (possibly keyboard-shrunk) window, so the image never
+    // shifts or re-crops when the IME opens. Anchored to the top so the visible portion stays
+    // put while the window resizes beneath it.
+    val config = androidx.compose.ui.platform.LocalConfiguration.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val screenWidth = with(density) { config.screenWidthDp.dp }
+    val screenHeight = with(density) { config.screenHeightDp.dp }
+    Box(modifier.size(screenWidth, screenHeight)) {
         Image(
             bitmap = bitmap,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            alpha = 1f - dim.coerceIn(0f, 1f) * 0.75f,
+            alpha = 1f,
             modifier = Modifier.fillMaxSize().let {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && radius > 0f) it.blur(radius.dp) else it
             },
