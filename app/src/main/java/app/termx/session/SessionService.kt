@@ -42,6 +42,7 @@ class SessionService : Service() {
     inner class LocalBinder : Binder() {
         private var finishedListener: ((TerminalSession) -> Unit)? = null
         fun setFinishedListener(listener: ((TerminalSession) -> Unit)?) { finishedListener = listener }
+        fun notifyFinished(terminal: TerminalSession) { finishedListener?.invoke(terminal) }
         fun createSession(launch: ProotLaunch): TerminalSession = createSessionInternal(launch)
         fun createSessionFromLastLaunch(): TerminalSession? = latestLaunch()?.let(::createSessionInternal)
         fun activeSession(): TerminalSession? = sessions.values.lastOrNull()?.terminal
@@ -145,7 +146,7 @@ class SessionService : Service() {
             sessions.remove(id)
             saveSessions()
             updateNotification()
-            binder.finishedListener?.invoke(terminal)
+            binder.notifyFinished(terminal)
             if (sessions.isEmpty()) stopSelf()
         }
     }
