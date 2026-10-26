@@ -129,7 +129,7 @@ internal fun BoxScope.TerminalSidePanel(
                     when (installedDistros.size) {
                         0 -> "No installed distro available"
                         1 -> "Start ${installedDistros.single().distroName}"
-                        else -> if (showingDistroChoices) "Choose a distro below" else "Choose an installed distro",
+                        else -> if (showingDistroChoices) "Choose a distro below" else "Choose an installed distro"
                     },
                     color = Color(0xFFAAA9A4), style = MaterialTheme.typography.bodySmall,
                 )
