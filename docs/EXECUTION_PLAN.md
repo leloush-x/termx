@@ -100,7 +100,7 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 
 **Gate:** CI compilation, 100,000-row search under 100 ms, palette under 100 ms, and file/share behavior remain pending. The owner directed promotion to `main` and continuation to Phase 6 (D47, D50); this does not claim the Phase 5 gate passed, and `v0.6.0` remains untagged until verification.
 
-## Phase 6: Customization (0.7.0) `[~]`
+## Phase 6: Customization (0.7.0) `[x]`
 
 - [x] Theme JSON with 16 ANSI colors and field-named validation errors. AMOLED toggle
 - [x] Material 3 Material You dynamic light/dark palette on Android 12+, following system appearance
@@ -109,7 +109,7 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 - [x] DataStore settings. Export and import with secrets excluded. Keystore-backed secrets
 - [x] Backup rules, then enable `allowBackup` (D12)
 
-**Gate:** invalid theme and layout tests pass. A settings export has no secrets. CI run `40282479314` is green and produced the direct APK artifact. The phase remains an untagged candidate because the device lab below has not been run in this environment.
+**Gate:** invalid theme and layout tests pass. A settings export has no secrets. CI run `40282479314` is green and produced the direct APK artifact. The owner authorized the Phase 6 release while the device lab remains explicitly unverified.
 
 ## Phase 7: Termux options (0.8.0)
 
@@ -142,7 +142,7 @@ The checklist is intentionally recorded with evidence instead of being marked pa
 | Process death during a session, then reconnect | Not run | `adb` force-stop/relaunch log with the restored cwd/environment |
 | Android 8 (API 26), newest Android (API 37), x86_64 and arm64 where available | Not run | Device/emulator identifiers and smoke-test logs |
 
-Phase 7 and Phase 8 are intentionally not started, per the owner's instruction. No Phase 7/8 code, release tag, or release claim is being made.
+Phase 7 and Phase 8 are intentionally not started, per the owner's instruction. No Phase 7/8 code or release tag is being made.
 
 ## Unverified claims (check before relying on them)
 
