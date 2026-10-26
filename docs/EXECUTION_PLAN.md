@@ -35,7 +35,7 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 - [x] Extra-keys row: ESC, TAB, CTRL, ALT, arrows (adapt from wolfi)
 - [x] Hardware key handling for Ctrl, Alt, arrows, Home, End, PgUp, PgDn (provided by the vendored view)
 
-**Gate:** Build/test CI and signed APK artifact passed. Hosted emulator checks are not reliable here: AOSP ATD produced identical black screenshots, while the standard API 30 image failed APK installation with `Failure calling service package: Broken pipe (32)` (D29). The owner still needs to install the APK on a device and verify that `echo hi` prints `hi` and `seq 10000` scrolls smoothly before merge and tag.
+**Gate:** Build/test CI and signed APK artifact passed. Hosted emulator checks were not reliable here: AOSP ATD produced identical black screenshots, while the standard API 30 image failed APK installation with `Failure calling service package: Broken pipe (32)` (D29). On 2026-10-26, the owner directed progression with the device check unverified (D30); this authorization permits merging and tagging the candidate, but it does not establish that `echo hi` or smooth `seq 10000` scrolling passed on a device.
 
 ## Phase 2: Distro runtime (0.3.0)
 
