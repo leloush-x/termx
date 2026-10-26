@@ -32,9 +32,11 @@ Third-party code and components
    core/main/src/main/java/com/rk/terminal/ui/screens/terminal/virtualkeys/VirtualKeysListener.kt
    at commit d4cc3912d08edbf8557aac446e76fca0bee08ce3.
 
-   ExtraKeysRow.kt adapts the key mapping from
-   core/main/src/main/java/com/rk/terminal/ui/screens/terminal/virtualkeys/VirtualKeysListener.kt
-   at commit d4cc3912d08edbf8557aac446e76fca0bee08ce3.
+   MainActivity.openAllFilesSettings() adapts the app-specific Settings intent
+   and fallback from core/main/src/main/java/com/rk/terminal/ui/screens/settings/SettingsScreen.kt
+   at commit d4cc3912d08edbf8557aac446e76fca0bee08ce3. The storage-tier policy,
+   bind table and SAF copy code are new TermX code; the unconditional bind logic
+   in MkSession.kt was explicitly excluded.
 
 5. proot (Phase 2 onward: bundled as a separate executable)
    PRoot sources are GPL-2.0-or-later; vendored talloc sources are

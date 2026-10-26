@@ -67,8 +67,8 @@ Core targets:
 
 ### 2.1 Why you get permission errors today (root causes, verified in source)
 
-1. **Unconditional binds.** `init-host.sh` (and the Debian and chroot variants) always run `-b /sdcard` and `-b /storage`. Without All-files access, those paths come up empty or fail, so commands inside the distro report permission denied.
-2. **Permission is only reachable from a settings row.** `SettingsScreen.kt` launches `ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION`, but nothing asks at the point of need. `MainActivity` only requests `POST_NOTIFICATIONS`.
+1. **Unconditional binds.** `init-host.sh` (and related distro variants) always run `-b /sdcard` and `-b /storage`. Without All-files access, those paths come up empty or fail, so commands inside the distro report permission denied.
+2. **Permission was only reachable from a settings row in the original app.** `SettingsScreen.kt` launches `ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION`, but nothing asks at the point of need. TermX shows the reason in Storage Health before opening the grant screen.
 3. **Legacy permissions do nothing on new Android.** `READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE` have no effect on API 30 and above. `requestLegacyExternalStorage` is ignored once targetSdk is 30 or higher, and your app targets 37.
 4. **A hidden flag.** `ignore_storage_permission` hides the prompt but does not change the binds, so the errors continue.
 
@@ -77,68 +77,42 @@ Core targets:
 | Tier | Permission | Available in | What the user gets |
 |---|---|---|---|
 | **T0 (default, everywhere)** | None | `play` and `direct` | Private distro home (`noBackupFilesDir`). App shared folder (`getExternalFilesDir`). Import via the system file picker. Export to `Downloads/TermX` through MediaStore. Share sheet. |
-| **T1 (opt-in)** | All files access (`MANAGE_EXTERNAL_STORAGE`) | `direct` only (F-Droid, GitHub) | Bind `/storage/emulated/0` into `~/storage/shared`. Symlinks such as `~/storage/downloads`. |
+| **T1 (opt-in)** | API 26–28: `READ_EXTERNAL_STORAGE` + `WRITE_EXTERNAL_STORAGE`; API 30+: All-files (`MANAGE_EXTERNAL_STORAGE`) | `direct` only (F-Droid, GitHub); unavailable on API 29 | Bind shared device storage into `~/storage/shared` only after the matching grant is active. |
 | **T2 (SAF folders)** | Persisted SAF grant, per folder | `play` and `direct` | Pick folders as "workspaces". Copy-in and copy-out are explicit actions. SAF folders cannot be bind-mounted, so this is an honest limitation. |
 
 Rules:
 
 - **Never request a permission at launch.** Ask at the point of need, with a sentence that says why.
 - **Bind only what exists.** A bind is added only when its tier is active. No unconditional `/sdcard`.
-- **Errors are translated.** If a command fails on a missing grant, the shell prints one line that names the fix. It doesn't print a raw `EACCES`.
+- **Errors are translated.** Storage actions that receive `EACCES` or a permission denial show one line pointing to Storage Health or a SAF workspace.
 - **Storage Health screen.** Shows each tier as active, inactive, or blocked, with a button for each fix. Also shows the exact binds in the current session.
 
 ### 2.3 Why this is compatible from Android 8 to 17
 
 | API | Behavior that matters | TermX handling |
 |---|---|---|
-| 26–28 | Legacy storage, `WRITE_EXTERNAL_STORAGE` works | Declare with `maxSdkVersion="29"` |
-| 29 | Scoped storage can be opted out with `requestLegacyExternalStorage` | Not used (ignored at target 30+) |
+| 26–28 | Legacy shared storage requires read/write runtime permissions | Direct flavor declares both with `maxSdkVersion="28"`; request only when the user enables T1 |
+| 29 | Scoped storage; All-files access is not available | T1 is unavailable for this target. Use T0 or a user-picked T2 workspace |
 | 30–32 | Scoped storage enforced. All-files access is granted in Settings, not a dialog | `Environment.isExternalStorageManager()` check; `ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION` intent with fallback |
 | 33+ | Media permissions split | Not needed. Import uses the system picker |
 | 30+ | `getExternalFilesDir` needs no permission | Used for the shared folder |
 | 29+ | MediaStore writes to `Downloads` need no permission for files you create | Used for export |
 | 37 | Targets stricter storage and network checks | Re-test T1 and T2 on 37 before release |
 
-Storage check code (reference):
+Storage policy shape (reference; Android checks are adapted to the API level and flavor):
 
 ```kotlin
 // core/storage/StorageAccess.kt
 package app.termx.core.storage
 
-import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
-import android.os.Environment
-import androidx.core.content.ContextCompat
-import app.termx.BuildConfig
-import java.io.File
+enum class StorageTier { T0, T1, T2 }
 
-enum class StorageLevel { APP_ONLY, ALL_FILES }
-
-object StorageAccess {
-    /** True only in the "direct" flavor, which declares MANAGE_EXTERNAL_STORAGE. */
-    val flavorAllowsAllFiles: Boolean get() = BuildConfig.HAS_ALL_FILES
-
-    fun level(context: Context): StorageLevel {
-        if (!flavorAllowsAllFiles) return StorageLevel.APP_ONLY
-        val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Environment.isExternalStorageManager()
-        } else {
-            ContextCompat.checkSelfPermission(
-                context, Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
-        }
-        return if (granted) StorageLevel.ALL_FILES else StorageLevel.APP_ONLY
-    }
-
-    /** App-specific shared folder. Needs no permission on any API level. */
-    fun sharedDir(context: Context): File {
-        val base = requireNotNull(context.getExternalFilesDir(null)) {
-            "external storage not mounted"
-        }
-        return File(base, "shared").apply { mkdirs() }
-    }
+fun canUseT1(state: StorageSnapshot): Boolean = when {
+    !state.allowsAllFiles -> false
+    state.apiLevel in 26..28 -> state.legacyReadGranted && state.legacyWriteGranted
+    state.apiLevel == 29 -> false // No All-files access; scoped storage is enforced.
+    state.apiLevel >= 30 -> state.allFilesGranted
+    else -> false
 }
 ```
 
@@ -154,12 +128,6 @@ object StorageAccess {
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-
-    <!-- API 26-29 only. Ignored (and not requested) on newer APIs. -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
 
     <!-- Only if the user enables Termux tier 1 (RUN_COMMAND bridge). -->
     <queries>
@@ -221,9 +189,13 @@ object StorageAccess {
 Flavor manifests:
 
 ```xml
-<!-- app/src/direct/AndroidManifest.xml (F-Droid, GitHub). Adds All-files access. -->
+<!-- app/src/direct/AndroidManifest.xml (F-Droid, GitHub). Adds T1 permissions. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
 </manifest>
 ```
 
@@ -1392,7 +1364,7 @@ Record each architectural decision as `docs/decisions/NNNN-title.md` with: conte
 
 Verified during research:
 
-- Storage root causes: `core/main/src/main/assets/init-host.sh` and related init scripts in wolfi-terminal (unconditional `-b /sdcard` and `-b /storage`); `SettingsScreen.kt` for the All-files access intent; `MainActivity.kt` requesting only `POST_NOTIFICATIONS`.
+- Storage root causes in the original wolfi-terminal: `core/main/src/main/assets/init-host.sh` and related init scripts (unconditional `-b /sdcard` and `-b /storage`); `SettingsScreen.kt` for its All-files access intent; `MainActivity.kt` requesting only `POST_NOTIFICATIONS`.
 - Foreground service `specialUse` declaration and required subtype property: Android 14 foreground service types documentation.
 - `specialUse` is not in the 6-hour limit for `dataSync` and `mediaProcessing`: Android 15 foreground service timeout documentation.
 - 16 KB page size requirements, deadline of February 1, 2027, and NDK r28 default alignment: Android 16 KB page size documentation.

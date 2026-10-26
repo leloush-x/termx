@@ -16,6 +16,7 @@ Every source below was checked during planning (2026-10-26). Pin these commits w
 - termux-app's Gradle build publishes `terminal-emulator` through JitPack as `com.github.termux.termux-app:terminal-emulator:v0.118.3`. The wolfi-terminal project already depends on it.
 - wolfi-terminal targets `compileSdk 37` and `targetSdk 37` with AGP 9.2.1, Kotlin 2.3.20, Gradle 9.4.1, Compose BOM 2025.11.01, and NDK `29.0.13846066`.
 - Android's platform `Signature` provider supports Ed25519 starting at API 33; TermX supports API 26, so the pinned strict-verification Java provider is used for manifest checks on every supported API level.
+- Android's storage guidance was checked for Phase 3: All-files access is an API 30+ special grant, SAF tree grants can be persisted, and app-owned Downloads writes use MediaStore without a broad storage permission. API 29 T1 is treated as unavailable for this target; this behavior still needs device-matrix validation.
 - wolfi-terminal v1.3.1 shrank with R8 and crashed on launch. Keep R8 off until a release smoke test exists.
 
 ## Not verified yet

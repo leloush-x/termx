@@ -1,6 +1,7 @@
 package app.termx.runtime
 
 import java.io.File
+import app.termx.storage.StorageTier
 
 data class Bind(val host: String, val guest: String)
 
@@ -9,17 +10,8 @@ data class ProotLaunch(
     val workingDirectory: String,
     val arguments: Array<String>,
     val environment: Array<String>,
+    val binds: List<Bind>,
 )
-
-/** Phase 2 allows only app-owned T0 binds. */
-object BindTable {
-    fun t0(sharedDirectory: File): List<Bind> = listOf(
-        Bind("/dev", "/dev"),
-        Bind("/proc", "/proc"),
-        Bind("/sys", "/sys"),
-        Bind(sharedDirectory.absolutePath, "/root/shared"),
-    )
-}
 
 object ProotCommand {
     fun build(
@@ -27,6 +19,8 @@ object ProotCommand {
         rootfs: File,
         temporaryDirectory: File,
         sharedDirectory: File,
+        storageTier: StorageTier = StorageTier.T0,
+        externalStorageRoot: File? = null,
         command: List<String> = listOf("/bin/sh", "-l"),
     ): ProotLaunch {
         val proot = File(nativeLibraryDirectory, "libproot.so")
@@ -36,6 +30,13 @@ object ProotCommand {
         require(rootfs.isDirectory) { "Distro rootfs is missing" }
         require(command.isNotEmpty()) { "A guest command is required" }
         temporaryDirectory.mkdirs()
+        val binds = BindTable.build(storageTier, sharedDirectory, externalStorageRoot)
+        binds.filter { it.guest.startsWith("/root/") }.forEach { bind ->
+            val mountPoint = File(rootfs, bind.guest.removePrefix("/"))
+            require((mountPoint.isDirectory || mountPoint.mkdirs()) && mountPoint.isDirectory) {
+                "Could not prepare guest bind mount point: ${bind.guest}"
+            }
+        }
         val argv = buildList {
             add(proot.absolutePath)
             add("--kill-on-exit")
@@ -45,7 +46,7 @@ object ProotCommand {
             add(rootfs.absolutePath)
             add("-w")
             add("/root")
-            BindTable.t0(sharedDirectory).forEach { bind ->
+            binds.forEach { bind ->
                 add("-b")
                 add("${bind.host}:${bind.guest}")
             }
@@ -60,6 +61,27 @@ object ProotCommand {
             "HOME=/root",
             "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
         )
-        return ProotLaunch(proot, rootfs.absolutePath, argv, environment)
+        return ProotLaunch(proot, rootfs.absolutePath, argv, environment, binds)
+    }
+}
+
+/** The only place where host storage paths become PRoot binds. */
+object BindTable {
+    fun build(
+        tier: StorageTier,
+        sharedDirectory: File,
+        externalStorageRoot: File? = null,
+    ): List<Bind> = buildList {
+        add(Bind("/dev", "/dev"))
+        add(Bind("/proc", "/proc"))
+        add(Bind("/sys", "/sys"))
+        add(Bind(sharedDirectory.absolutePath, "/root/shared"))
+        if (tier == StorageTier.T1) {
+            val deviceStorage = requireNotNull(externalStorageRoot) {
+                "T1 requires granted access to shared device storage"
+            }
+            require(deviceStorage.isDirectory) { "Shared device storage is unavailable" }
+            add(Bind(deviceStorage.absolutePath, "/root/storage/shared"))
+        }
     }
 }
