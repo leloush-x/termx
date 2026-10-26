@@ -96,7 +96,7 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 - [~] File browser for shared app storage, SAF workspaces and MediaStore Downloads; non-exported FileProvider sharing and incoming share intents
 - [x] Compact animated distro picker with a glass-style dock and distro-specific accent themes; preserve the selection and show install progress on the landing screen
 
-**Gate:** CI compilation, 100,000-row search under 100 ms, palette under 100 ms, and file/share behavior remain pending. No Phase 5 gate is claimed yet.
+**Gate:** CI compilation, 100,000-row search under 100 ms, palette under 100 ms, and file/share behavior remain pending. The owner directed promotion to `main`; this does not claim the Phase 5 gate passed, and `v0.6.0` remains untagged until verification.
 
 ## Phase 6: Customization (0.7.0)
 
