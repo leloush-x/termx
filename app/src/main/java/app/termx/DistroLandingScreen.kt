@@ -1,5 +1,6 @@
 package app.termx
 
+import android.animation.ValueAnimator
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
@@ -29,8 +30,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -70,14 +73,20 @@ fun DistroLandingScreen(
 ) {
     val selected = distros.firstOrNull { it.distroId == selectedDistroId } ?: distros.firstOrNull() ?: return
     val theme = remember(selected.distroId) { distroPalette(selected.distroId) }
+    val motionEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
     val transition = rememberInfiniteTransition(label = "ambient-glow")
-    val drift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(9000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "glow-drift",
-    )
-    val animatedAccent by animateColorAsState(theme.accent, label = "distro-accent")
+    val driftState = if (motionEnabled) {
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(9000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+            label = "glow-drift",
+        )
+    } else {
+        remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    }
+    val drift by driftState
+    val animatedAccent by distroColorState(theme.accent, motionEnabled, "distro-accent")
     val installed = selected.distroId in installedDistros
     val currentInstall = isInstalling
     val anotherInstallIsBusy = installingDistroId != null && installingDistroId != selected.distroId
@@ -131,6 +140,7 @@ fun DistroLandingScreen(
                 selectedId = selected.distroId,
                 onSelect = onSelectDistro,
                 palette = theme,
+                motionEnabled = motionEnabled,
             )
 
             Spacer(Modifier.height(16.dp))
@@ -206,6 +216,7 @@ private fun DistroGlassDock(
     selectedId: String,
     onSelect: (String) -> Unit,
     palette: DistroPalette,
+    motionEnabled: Boolean,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth().widthIn(max = 440.dp),
@@ -218,7 +229,11 @@ private fun DistroGlassDock(
             distros.forEach { distro ->
                 val selected = distro.distroId == selectedId
                 val tint = remember(distro.distroId) { distroPalette(distro.distroId) }
-                val fill by animateColorAsState(if (selected) tint.accent.copy(alpha = 0.19f) else Color.Transparent, label = "dock-selection")
+                val fill by distroColorState(
+                    if (selected) tint.accent.copy(alpha = 0.19f) else Color.Transparent,
+                    motionEnabled,
+                    "dock-selection",
+                )
                 Row(
                     Modifier.defaultMinSize(minHeight = 46.dp).clip(RoundedCornerShape(18.dp))
                         .background(fill)
@@ -236,6 +251,10 @@ private fun DistroGlassDock(
         }
     }
 }
+
+@Composable
+private fun distroColorState(target: Color, motionEnabled: Boolean, label: String): State<Color> =
+    if (motionEnabled) animateColorAsState(target, label = label) else rememberUpdatedState(target)
 
 @Composable
 private fun LandingAction(mark: String, label: String, onClick: () -> Unit) {
