@@ -77,15 +77,15 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 | S9 | Newest Android device, all tiers | Works. No deprecated prompts |
 | S10 | Deny the grant twice | No prompt loop. A Settings deep link is offered |
 
-## Phase 4: Sessions and background (0.5.0)
+## Phase 4: Sessions and background (0.5.0) `[~]`
 
-- [~] `SessionService`: foreground, type `specialUse`, subtype property, permission
-- [~] Notification actions: Open, New session, Stop all
-- [~] Start from a visible screen. Handle `ForegroundServiceStartNotAllowedException`
-- [~] Wake policy: partial wake lock only while output arrives, 30 s grace, off by default
-- [~] Process-death reconnect (same cwd and environment)
+- [x] `SessionService`: foreground, type `specialUse`, subtype property, permission
+- [x] Notification actions: Open, New session, Stop all
+- [x] Start from a visible screen. Handle `ForegroundServiceStartNotAllowedException`
+- [x] Wake policy: partial wake lock only while output arrives, 30 s grace, off by default
+- [x] Process-death reconnect (same cwd and environment)
 
-**Gate:** 30 minutes in the background on a mid-range device. Reconnect works after a kill.
+**Gate:** 30 minutes in the background on a mid-range device and reconnect after a process kill remain unverified. The owner directed progression to Phase 5 (D44); this does not establish the device gate passed.
 
 ## Phase 5: Productivity (0.6.0)
 
