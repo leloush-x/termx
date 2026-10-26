@@ -94,6 +94,7 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 - [~] Variable snippets insert by default; run shows a confirmation with the resolved command
 - [~] App-private profiles for distro, working directory and environment; existing SAF workspaces remain explicit copies
 - [~] File browser for shared app storage, SAF workspaces and MediaStore Downloads; non-exported FileProvider sharing and incoming share intents
+- [x] Compact animated distro picker with a glass-style dock and distro-specific accent themes; preserve the selection and show install progress on the landing screen
 
 **Gate:** CI compilation, 100,000-row search under 100 ms, palette under 100 ms, and file/share behavior remain pending. No Phase 5 gate is claimed yet.
 

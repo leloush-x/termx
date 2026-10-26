@@ -18,6 +18,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,15 +27,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -43,7 +38,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
@@ -54,8 +49,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import app.termx.runtime.DistroManifest
 import app.termx.runtime.RootfsInstaller
 import app.termx.runtime.RootfsPackage
@@ -95,6 +88,11 @@ class MainActivity : ComponentActivity() {
     private var historyQuery by mutableStateOf("")
     private var redactionText by mutableStateOf("")
     private var profileRevision by mutableIntStateOf(0)
+    private var selectedDistroId by mutableStateOf("wolfi")
+    private var installedRevision by mutableIntStateOf(0)
+    private var installingDistroId by mutableStateOf<String?>(null)
+    private val installProgress = mutableStateMapOf<String, Float>()
+    private val installStatuses = mutableStateMapOf<String, String>()
     private var storageMessage by mutableStateOf<String?>(null)
     private var sessionBinder: SessionService.LocalBinder? = null
     private var pendingLaunch: ProotLaunch? = null
@@ -129,9 +127,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        configureTerminalSystemBars()
         installer = RootfsInstaller(this)
         distroPackages = DistroManifest.load(this)
+        selectedDistroId = getSharedPreferences("landing", MODE_PRIVATE).getString("selected_distro", "wolfi") ?: "wolfi"
         redactionText = HistoryRedactions.text(this)
         acceptSharedFiles(intent)
 
@@ -144,9 +142,14 @@ class MainActivity : ComponentActivity() {
                 else -> lightColorScheme(primary = Color(0xFF006B5B), secondary = Color(0xFF82506F))
             }
             MaterialTheme(colorScheme = colors) {
+                val rootSurfaceColor = when {
+                    terminalSession != null && productivityPage == null && !showStorageHealth -> MaterialTheme.colorScheme.surface
+                    sessionIsLandingScreen() -> Color(0xFF090C13)
+                    else -> MaterialTheme.colorScheme.background
+                }
                 Surface(
-                    modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
-                    color = MaterialTheme.colorScheme.background,
+                    modifier = Modifier.fillMaxSize().background(rootSurfaceColor).windowInsetsPadding(WindowInsets.safeDrawing),
+                    color = Color.Transparent,
                 ) {
                     val context = this@MainActivity
                     val sharedDir = remember { sharedDirectory() }
@@ -174,6 +177,11 @@ class MainActivity : ComponentActivity() {
                     SideEffect {
                         notificationPermissionRequester = {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        WindowCompat.getInsetsController(window, window.decorView).apply {
+                            val useDarkIcons = !sessionIsLandingScreen() && !darkTheme
+                            isAppearanceLightStatusBars = useDarkIcons
+                            isAppearanceLightNavigationBars = useDarkIcons
                         }
                     }
                     val workspaceLauncher = rememberLauncherForActivityResult(
@@ -303,81 +311,29 @@ class MainActivity : ComponentActivity() {
                             } },
                         )
                     } else if (session == null) {
-                        Column(
-                            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                Column(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text("TermX  🐙", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-                                    Text("A little Linux world in your pocket", style = MaterialTheme.typography.titleMedium)
-                                    Text("Choose a distro to install or continue where you left off.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    if (Build.VERSION.SDK_INT >= 33) {
-                                        Text("Session notifications keep the terminal controls available while you work elsewhere.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
-                            Text("Your distros", style = MaterialTheme.typography.titleLarge)
-                            OutlinedButton(onClick = { showStorageHealth = true }) { Text("Storage Health") }
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedButton(onClick = { productivityPage = ProductivityPage.PALETTE }) { Text("Commands") }
-                                OutlinedButton(onClick = { productivityPage = ProductivityPage.FILES }) { Text("Files") }
-                                OutlinedButton(onClick = { productivityPage = ProductivityPage.PROFILES }) { Text("Profiles") }
-                            }
-                            distroPackages.forEach { pkg ->
-                                var installing by remember(pkg.distroId) { mutableStateOf(false) }
-                                var status by remember(pkg.distroId) { mutableStateOf("") }
-                                var downloadProgress by remember(pkg.distroId) { mutableFloatStateOf(0f) }
-                                val installed = installer.installedRoot(pkg.distroId).isDirectory
-                                Card(modifier = Modifier.fillMaxWidth()) {
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        Text("${if (pkg.distroId == "wolfi") "🐙" else "🐧"}  ${pkg.distroName}", style = MaterialTheme.typography.titleLarge)
-                                        Text(if (installed) "Ready · ${pkg.version}" else "${pkg.version} · verified before install", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Button(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            enabled = !installing,
-                                            onClick = {
-                                                if (installed) {
-                                                    runCatching { startTerminal(pkg) }
-                                                        .onFailure { status = it.message ?: "Could not start the distro" }
-                                                } else {
-                                                    installing = true
-                                                    downloadProgress = 0f
-                                                    status = "Preparing secure download…"
-                                                    Thread({
-                                                        val result = runCatching {
-                                                            installer.install(pkg) { downloaded, total ->
-                                                                runOnUiThread {
-                                                                    downloadProgress = if (total > 0) downloaded.toFloat() / total else 0f
-                                                                    status = "Downloading · ${downloaded / (1024 * 1024)} / ${total / (1024 * 1024)} MB"
-                                                                }
-                                                            }
-                                                        }
-                                                        runOnUiThread {
-                                                            installing = false
-                                                            status = result.fold(
-                                                                onSuccess = { "${pkg.distroName} is ready. Start it when you like." },
-                                                                onFailure = { it.message ?: "Install failed" },
-                                                            )
-                                                        }
-                                                    }, "termx-rootfs-${pkg.distroId}").start()
-                                                }
-                                            },
-                                        ) {
-                                            Text(if (installing) "Installing…" else if (installed) "Start ${pkg.distroName}" else "Install ${pkg.distroName}")
-                                        }
-                                        if (installing) LinearProgressIndicator(
-                                            progress = { downloadProgress.coerceIn(0f, 1f) },
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                        if (status.isNotEmpty()) Text(status, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
+                        val installedDistros = remember(installedRevision) {
+                            distroPackages.filter { installer.installedRoot(it.distroId).isDirectory }.map { it.distroId }.toSet()
                         }
+                        DistroLandingScreen(
+                            distros = distroPackages,
+                            installedDistros = installedDistros,
+                            selectedDistroId = selectedDistroId,
+                            installingDistroId = installingDistroId,
+                            onSelectDistro = { id ->
+                                selectedDistroId = id
+                                getSharedPreferences("landing", MODE_PRIVATE).edit().putString("selected_distro", id).apply()
+                            },
+                            isInstalling = installingDistroId == selectedDistroId,
+                            progress = installProgress[selectedDistroId] ?: 0f,
+                            status = installStatuses[selectedDistroId],
+                            onInstall = ::installDistro,
+                            onStart = { pkg -> runCatching { startTerminal(pkg) }
+                                .onFailure { installStatuses[pkg.distroId] = it.message ?: "Could not start the distro" } },
+                            onCommands = { productivityPage = ProductivityPage.PALETTE },
+                            onFiles = { productivityPage = ProductivityPage.FILES },
+                            onProfiles = { productivityPage = ProductivityPage.PROFILES },
+                            onStorage = { showStorageHealth = true },
+                        )
                     } else {
                         Column(modifier = Modifier.fillMaxSize()) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -490,6 +446,35 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun installDistro(pkg: RootfsPackage) {
+        if (installingDistroId != null) return
+        installingDistroId = pkg.distroId
+        installProgress[pkg.distroId] = 0f
+        installStatuses[pkg.distroId] = "Preparing secure download…"
+        Thread({
+            val result = runCatching {
+                installer.install(pkg) { downloaded, total ->
+                    runOnUiThread {
+                        installProgress[pkg.distroId] = if (total > 0) downloaded.toFloat() / total else 0f
+                        installStatuses[pkg.distroId] = if (total > 0) {
+                            "Downloading · ${downloaded / (1024 * 1024)} / ${total / (1024 * 1024)} MB"
+                        } else {
+                            "Downloading · ${downloaded / (1024 * 1024)} MB"
+                        }
+                    }
+                }
+            }
+            runOnUiThread {
+                installedRevision++
+                installStatuses[pkg.distroId] = result.fold(
+                    onSuccess = { "${pkg.distroName} is ready. Open it when you like." },
+                    onFailure = { it.message ?: "Install failed" },
+                )
+                installingDistroId = null
+            }
+        }, "termx-rootfs-${pkg.distroId}").start()
+    }
+
     private fun setActiveSession(session: TerminalSession) {
         terminalSession = session
         sessionBinds = sessionBinder?.sessionBinds()
@@ -585,17 +570,7 @@ class MainActivity : ComponentActivity() {
         if (terminalSession?.isRunning == false && !SessionService.hasSavedSessions(this)) terminalSession = null
     }
 
-    /** Keep immersive terminal mode; Compose applies safe drawing insets around the curved/cutout edges. */
-    private fun configureTerminalSystemBars() {
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        controller.hide(WindowInsetsCompat.Type.statusBars())
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) configureTerminalSystemBars()
-    }
+    private fun sessionIsLandingScreen() = terminalSession == null && productivityPage == null && !showStorageHealth
 
     override fun onDestroy() {
         if (::backend.isInitialized) backend.detach()
