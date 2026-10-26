@@ -438,6 +438,15 @@ class MainActivity : ComponentActivity() {
                                     customizationStore.put("wallpaper_uri", "")
                                 } } }, "termx-wallpaper-save").start()
                             },
+                            onGitHubLogin = {
+                                val command = "if command -v gh >/dev/null 2>&1; then gh auth login; else echo 'gh not found - install: apk add github-cli'; fi"
+                                terminalSession?.let { it.write(command + "\n") } ?: run { storageMessage = "Open a terminal first" }
+                                showSettings = false
+                            },
+                            onGitHubLogout = {
+                                terminalSession?.let { it.write("gh auth logout 2>/dev/null; echo 'gh logged out'\n") } ?: run { storageMessage = "Open a terminal first" }
+                                showSettings = false
+                            },
                             customizationMessage = customizationMessage,
                             onBack = { showSettings = false },
                             onSetDefault = { id ->
