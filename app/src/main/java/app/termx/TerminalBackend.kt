@@ -10,6 +10,8 @@ import android.view.MotionEvent
 import android.view.inputmethod.InputMethodManager
 import app.termx.terminal.view.TerminalView
 import app.termx.terminal.view.TerminalViewClient
+import app.termx.customization.TermXTheme
+import app.termx.customization.TerminalTheme
 import com.termux.terminal.TerminalEmulator
 import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
@@ -26,6 +28,9 @@ class TerminalBackend(
     var controlPressed = false
     var altPressed = false
     var shiftPressed = false
+
+    /** Palette to apply once the emulator is initialized (it is null until the first layout). */
+    var theme: TermXTheme? = null
 
     fun attach(view: TerminalView) {
         terminalView = view
@@ -69,7 +74,12 @@ class TerminalBackend(
     override fun readShiftKey() = shiftPressed
     override fun readFnKey() = false
     override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession) = false
-    override fun onEmulatorSet() = terminalView?.invalidate() ?: Unit
+    override fun onEmulatorSet() {
+        terminalView?.let { view ->
+            theme?.let { TerminalTheme.apply(view.mEmulator, it) }
+            view.invalidate()
+        }
+    }
 
     override fun onTextChanged(changedSession: TerminalSession) {
         onOutput()

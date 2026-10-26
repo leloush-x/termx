@@ -537,7 +537,7 @@ class MainActivity : ComponentActivity() {
                                                 setBackgroundColor(customTheme?.let { android.graphics.Color.parseColor(it.background) }
                                                     ?: android.graphics.Color.BLACK)
                                                 terminalTypeface?.let(::setTypeface)
-                                                customTheme?.let { TerminalTheme.apply(session.emulator, it) }
+                                                backend.theme = customTheme
                                                 backend.attach(this)
                                                 attachSession(session)
                                                 isFocusableInTouchMode = true
@@ -547,7 +547,8 @@ class MainActivity : ComponentActivity() {
                                         update = { view ->
                                             view.setTextSize(terminalFontSize)
                                             terminalTypeface?.let(view::setTypeface)
-                                            customTheme?.let { TerminalTheme.apply(session.emulator, it) }
+                                            backend.theme = customTheme
+                                            customTheme?.let { TerminalTheme.apply(view.mEmulator, it) }
                                             view.setBackgroundColor(customTheme?.let { android.graphics.Color.parseColor(it.background) }
                                                 ?: android.graphics.Color.BLACK)
                                             view.invalidate()
