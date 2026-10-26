@@ -69,7 +69,7 @@ fun ExtraKeysRow(session: TerminalSession, backend: TerminalBackend, accent: Col
                             }
                             else -> value?.let(session::write)
                         }
-                    }
+                    },
                 contentAlignment = Alignment.Center,
             ) { Text(label, Modifier.padding(horizontal = 9.dp), color = if (active) accent else Color.White.copy(alpha = 0.78f), fontSize = 11.sp) }
         }
