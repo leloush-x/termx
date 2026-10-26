@@ -16,16 +16,23 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -39,6 +46,7 @@ import app.termx.runtime.DistroManifest
 import app.termx.runtime.RootfsInstaller
 import app.termx.runtime.RootfsPackage
 import app.termx.runtime.ProotCommand
+import app.termx.runtime.AndroidDnsResolver
 import app.termx.runtime.Bind
 import app.termx.storage.StorageAccess
 import app.termx.storage.StorageHealthScreen
@@ -68,8 +76,11 @@ class MainActivity : ComponentActivity() {
         distroPackages = DistroManifest.load(this)
 
         setContent {
-            MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
+            MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFF9CE6D8), secondary = Color(0xFFF0A6CA))) {
+                Surface(
+                    modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
+                    color = Color(0xFF101418),
+                ) {
                     val context = this@MainActivity
                     val sharedDir = remember { sharedDirectory() }
                     val workspaces = remember(storageRevision) { StoragePreferences.workspaces(context) }
@@ -153,48 +164,67 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Text("Choose a Linux distro. Downloads start only when you tap Install.", color = Color.White)
-                            OutlinedButton(onClick = { showStorageHealth = true }) {
-                                Text("Storage Health")
+                            Card(modifier = Modifier.fillMaxWidth()) {
+                                Column(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("TermX  🐙", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+                                    Text("A little Linux world in your pocket", style = MaterialTheme.typography.titleMedium)
+                                    Text("Choose a distro to install or continue where you left off.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
+                            Text("Your distros", style = MaterialTheme.typography.titleLarge)
+                            OutlinedButton(onClick = { showStorageHealth = true }) { Text("Storage Health") }
                             distroPackages.forEach { pkg ->
                                 var installing by remember(pkg.distroId) { mutableStateOf(false) }
                                 var status by remember(pkg.distroId) { mutableStateOf("") }
+                                var downloadProgress by remember(pkg.distroId) { mutableFloatStateOf(0f) }
                                 val installed = installer.installedRoot(pkg.distroId).isDirectory
-                                Button(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    enabled = !installing,
-                                    onClick = {
-                                        if (installed) {
-                                            runCatching { startTerminal(pkg) }
-                                                .onFailure { status = it.message ?: "Could not start the distro" }
-                                        } else {
-                                            installing = true
-                                            status = "Downloading ${pkg.distroName}…"
-                                            Thread({
-                                                val result = runCatching {
-                                                    installer.install(pkg) { downloaded, total ->
-                                                        if (downloaded == total || downloaded % (1024 * 1024) < 64 * 1024) {
-                                                            runOnUiThread {
-                                                                status = "Downloading ${pkg.distroName}: ${downloaded / (1024 * 1024)} / ${total / (1024 * 1024)} MB"
+                                Card(modifier = Modifier.fillMaxWidth()) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Text("${if (pkg.distroId == "wolfi") "🐙" else "🐧"}  ${pkg.distroName}", style = MaterialTheme.typography.titleLarge)
+                                        Text(if (installed) "Ready · ${pkg.version}" else "${pkg.version} · verified before install", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Button(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            enabled = !installing,
+                                            onClick = {
+                                                if (installed) {
+                                                    runCatching { startTerminal(pkg) }
+                                                        .onFailure { status = it.message ?: "Could not start the distro" }
+                                                } else {
+                                                    installing = true
+                                                    downloadProgress = 0f
+                                                    status = "Preparing secure download…"
+                                                    Thread({
+                                                        val result = runCatching {
+                                                            installer.install(pkg) { downloaded, total ->
+                                                                runOnUiThread {
+                                                                    downloadProgress = if (total > 0) downloaded.toFloat() / total else 0f
+                                                                    status = "Downloading · ${downloaded / (1024 * 1024)} / ${total / (1024 * 1024)} MB"
+                                                                }
                                                             }
                                                         }
-                                                    }
+                                                        runOnUiThread {
+                                                            installing = false
+                                                            status = result.fold(
+                                                                onSuccess = { "${pkg.distroName} is ready. Start it when you like." },
+                                                                onFailure = { it.message ?: "Install failed" },
+                                                            )
+                                                        }
+                                                    }, "termx-rootfs-${pkg.distroId}").start()
                                                 }
-                                                runOnUiThread {
-                                                    installing = false
-                                                    status = result.fold(
-                                                        onSuccess = { "${pkg.distroName} installed. Tap Start to open it." },
-                                                        onFailure = { it.message ?: "Install failed" },
-                                                    )
-                                                }
-                                            }, "termx-rootfs-${pkg.distroId}").start()
+                                            },
+                                        ) {
+                                            Text(if (installing) "Installing…" else if (installed) "Start ${pkg.distroName}" else "Install ${pkg.distroName}")
                                         }
-                                    },
-                                ) {
-                                    Text(if (installed) "Start ${pkg.distroName}" else "Install ${pkg.distroName}")
+                                        if (installing) LinearProgressIndicator(
+                                            progress = { downloadProgress.coerceIn(0f, 1f) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                        if (status.isNotEmpty()) Text(status, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
                                 }
-                                if (status.isNotEmpty()) Text(status, color = Color.LightGray)
                             }
                         }
                     } else {
@@ -240,6 +270,7 @@ class MainActivity : ComponentActivity() {
             sharedDirectory = shared,
             storageTier = activeTier,
             externalStorageRoot = if (activeTier == StorageTier.T1) Environment.getExternalStorageDirectory() else null,
+            dnsResolverFile = AndroidDnsResolver.writeConfig(this, File(cacheDir, "proot/${pkg.distroId}")),
         )
         sessionBinds = launch.binds
         terminalSession = TerminalSession(
@@ -286,7 +317,7 @@ class MainActivity : ComponentActivity() {
         if (::backend.isInitialized) storageRevision++
     }
 
-    /** Hide the top status bar while keeping system navigation available. */
+    /** Keep immersive terminal mode; Compose applies safe drawing insets around the curved/cutout edges. */
     private fun configureTerminalSystemBars() {
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE

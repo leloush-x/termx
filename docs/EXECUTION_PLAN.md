@@ -57,6 +57,8 @@ The arm64 install/session check is pending. GitHub's ARM64 runner image does not
 - [x] One-line hint for permission failures in storage actions
 - [x] CI guard: reject storage binds outside the tier-aware `BindTable`
 - [x] Unit tests for `BindTable` and `StorageAccess`
+- [x] Feed Android's active DNS servers into the guest resolver and keep terminal/install UI inside safe drawing insets
+- [x] Start Wolfi with interactive Bash and an editable colored prompt when the distro has no existing shell startup files
 
 **Gate:** unit tests must be green. The manual S1–S10 checks on Android 8 and the newest available Android device are still pending; do not mark Phase 3 complete until they pass.
 

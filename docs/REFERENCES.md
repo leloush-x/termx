@@ -17,6 +17,8 @@ Every source below was checked during planning (2026-10-26). Pin these commits w
 - wolfi-terminal targets `compileSdk 37` and `targetSdk 37` with AGP 9.2.1, Kotlin 2.3.20, Gradle 9.4.1, Compose BOM 2025.11.01, and NDK `29.0.13846066`.
 - Android's platform `Signature` provider supports Ed25519 starting at API 33; TermX supports API 26, so the pinned strict-verification Java provider is used for manifest checks on every supported API level.
 - Android's storage guidance was checked for Phase 3: All-files access is an API 30+ special grant, SAF tree grants can be persisted, and app-owned Downloads writes use MediaStore without a broad storage permission. API 29 T1 is treated as unavailable for this target; this behavior still needs device-matrix validation.
+- Android's `ConnectivityManager` and `LinkProperties` provide the active network's DNS server list; TermX uses it to prepare guest `/etc/resolv.conf` without making a network request. Chainguard documents `https://apk.cgr.dev/chainguard` as its public Wolfi APK repository; an HTTP 200 check succeeded on 2026-10-26, so the reported warning is consistent with a transient device/network failure rather than a bad repository URL.
+- Compose's `WindowInsets.safeDrawing` and display-cutout guidance is used to keep terminal and installer content clear of cutouts and system UI, including edge-to-edge Android 15+ layouts: [Android window insets](https://developer.android.com/develop/ui/compose/system/insets) and [display cutouts](https://developer.android.com/develop/ui/compose/system/cutouts).
 - wolfi-terminal v1.3.1 shrank with R8 and crashed on launch. Keep R8 off until a release smoke test exists.
 
 ## Not verified yet

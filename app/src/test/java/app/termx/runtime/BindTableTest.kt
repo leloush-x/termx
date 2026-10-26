@@ -48,4 +48,14 @@ class BindTableTest {
 
         assertTrue(error is IllegalArgumentException)
     }
+
+    @Test
+    fun resolverBindIsExplicitAndDoesNotChangeStorageTier() {
+        val shared = File(temporaryFolder.root, "shared")
+        val resolver = File(temporaryFolder.root, "resolv.conf")
+        val binds = BindTable.build(StorageTier.T0, shared, dnsResolverFile = resolver)
+
+        assertEquals(Bind(resolver.absolutePath, "/etc/resolv.conf"), binds.last())
+        assertFalse(binds.any { it.host == "/sdcard" || it.host.startsWith("/storage") })
+    }
 }

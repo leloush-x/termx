@@ -76,7 +76,7 @@ Core targets:
 
 | Tier | Permission | Available in | What the user gets |
 |---|---|---|---|
-| **T0 (default, everywhere)** | None | `play` and `direct` | Private distro home (`noBackupFilesDir`). App shared folder (`getExternalFilesDir`). Import via the system file picker. Export to `Downloads/TermX` through MediaStore. Share sheet. |
+| **T0 (default, everywhere)** | No user-granted permission | `play` and `direct` | Private distro home (`noBackupFilesDir`). App shared folder (`getExternalFilesDir`). TermX writes the active Android DNS servers to a private resolver file and binds it at `/etc/resolv.conf` for Linux package/network tools. Import via the system file picker. Export to `Downloads/TermX` through MediaStore. Share sheet. |
 | **T1 (opt-in)** | API 26–28: `READ_EXTERNAL_STORAGE` + `WRITE_EXTERNAL_STORAGE`; API 30+: All-files (`MANAGE_EXTERNAL_STORAGE`) | `direct` only (F-Droid, GitHub); unavailable on API 29 | Bind shared device storage into `~/storage/shared` only after the matching grant is active. |
 | **T2 (SAF folders)** | Persisted SAF grant, per folder | `play` and `direct` | Pick folders as "workspaces". Copy-in and copy-out are explicit actions. SAF folders cannot be bind-mounted, so this is an honest limitation. |
 
@@ -124,6 +124,7 @@ fun canUseT1(state: StorageSnapshot): Boolean = when {
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
