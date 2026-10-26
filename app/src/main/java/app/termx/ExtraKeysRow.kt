@@ -30,6 +30,14 @@ import androidx.compose.ui.unit.sp
 import com.termux.terminal.TerminalSession
 import app.termx.customization.KeyLayoutValidator
 
+/** US-keyboard shift map for the extra-keys row, so SHIFT + "/" types "?" like a hardware keyboard. */
+private val shiftSymbols = mapOf(
+    "/" to "?", "-" to "_", "." to "<", "," to ">", "=" to "+", ";" to ":",
+    "'" to "\"", "[" to "{", "]" to "}", "\\" to "|", "`" to "~",
+    "1" to "!", "2" to "@", "3" to "#", "4" to "$", "5" to "%",
+    "6" to "^", "7" to "&", "8" to "*", "9" to "(", "0" to ")",
+)
+
 /** Extra terminal keys adapted from wolfi-terminal's VirtualKeysListener. */
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
@@ -48,6 +56,7 @@ fun ExtraKeysRow(
         KeyLayoutValidator.KeyButton("CTRL", null, "ctrl", emptyList()),
         KeyLayoutValidator.KeyButton("ALT", null, "alt", emptyList()),
         KeyLayoutValidator.KeyButton("SHIFT", null, "shift", emptyList()),
+        KeyLayoutValidator.KeyButton("/", "/", null, emptyList()),
         KeyLayoutValidator.KeyButton("↑", "\u001B[A", null, emptyList()),
         KeyLayoutValidator.KeyButton("←", "\u001B[D", null, emptyList()),
         KeyLayoutValidator.KeyButton("↓", "\u001B[B", null, emptyList()),
@@ -90,11 +99,13 @@ fun ExtraKeysRow(
                             }
                             else -> {
                                 val send = key.send
-                                if (shiftEnabled && send != null && send.length == 1 && send[0].isLowerCase()) {
-                                    session.write(send.uppercase())
-                                } else {
-                                    send?.let(session::write)
+                                val outgoing = when {
+                                    send == null -> null
+                                    shiftEnabled && send in shiftSymbols -> shiftSymbols.getValue(send)
+                                    shiftEnabled && send.length == 1 && send[0].isLowerCase() -> send.uppercase()
+                                    else -> send
                                 }
+                                outgoing?.let(session::write)
                                 // SHIFT acts on the next key, then releases itself.
                                 shiftEnabled = false
                                 backend.shiftPressed = false
