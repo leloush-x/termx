@@ -66,11 +66,14 @@ data class TermXTheme(
     }
 }
 
-/** Default true-black (AMOLED) theme: a pure #000000 surface with a legible dark-terminal palette. */
-fun defaultAmoledTheme(): TermXTheme = TermXTheme(
-    name = "AMOLED",
+/**
+ * Terminal palette defaults. The terminal always gets a concrete theme so AMOLED mode can switch
+ * the shell between true #000000 (pixels off on OLED) and a soft near-black for standard dark mode.
+ */
+private fun terminalThemeNamed(name: String, background: String): TermXTheme = TermXTheme(
+    name = name,
     mode = "dark",
-    background = "#000000",
+    background = background,
     foreground = "#E6E6E6",
     cursor = "#9CE6D8",
     selection = "#2A3A38",
@@ -82,6 +85,12 @@ fun defaultAmoledTheme(): TermXTheme = TermXTheme(
         "#61AFEF", "#C678DD", "#56B6C2", "#FFFFFF",
     ),
 )
+
+/** True-black (AMOLED) terminal: pure #000000 so OLED pixels switch fully off. */
+fun defaultAmoledTheme(): TermXTheme = terminalThemeNamed("AMOLED", "#000000")
+
+/** Standard dark terminal: a soft near-black surface, used when AMOLED mode is off. */
+fun defaultDarkTheme(): TermXTheme = terminalThemeNamed("Dark", "#0D0F10")
 
 /** Layout schema follows ARCHITECTURE §20.4 and rejects unknown control sequences by key name. */
 object KeyLayoutValidator {

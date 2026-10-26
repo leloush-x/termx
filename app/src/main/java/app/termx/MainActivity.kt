@@ -72,6 +72,7 @@ import app.termx.runtime.AndroidDnsResolver
 import app.termx.runtime.Bind
 import app.termx.runtime.ProotLaunch
 import app.termx.session.SessionService
+import app.termx.session.SessionService.SessionRecord
 import app.termx.storage.StorageAccess
 import app.termx.storage.StorageHealthScreen
 import app.termx.storage.StoragePreferences
@@ -91,6 +92,7 @@ import app.termx.customization.TermXSettingsStore
 import app.termx.customization.TermXTheme
 import app.termx.customization.TerminalTheme
 import app.termx.customization.defaultAmoledTheme
+import app.termx.customization.defaultDarkTheme
 import com.termux.terminal.TerminalSession
 import java.io.File
 
@@ -109,6 +111,7 @@ class MainActivity : ComponentActivity() {
     private var terminalSession by mutableStateOf<TerminalSession?>(null)
     private var sessionBinds by mutableStateOf<List<Bind>?>(null)
     private var activeLaunch by mutableStateOf<ProotLaunch?>(null)
+    private var sessionRecords by mutableStateOf<List<SessionRecord>>(emptyList())
     private var storageRevision by mutableIntStateOf(0)
     private var showStorageHealth by mutableStateOf(false)
     private var productivityPage by mutableStateOf<ProductivityPage?>(null)
@@ -203,7 +206,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val customTheme = terminalThemeJson?.let { runCatching { TermXTheme.parse(it) }.getOrNull() }
-                ?: if (amoledMode) defaultAmoledTheme() else null
+            val terminalTheme = customTheme ?: if (amoledMode) defaultAmoledTheme() else defaultDarkTheme()
+            val terminalBackground = android.graphics.Color.parseColor(terminalTheme.background)
+            val terminalSurfaceColor = Color(terminalBackground)
             val darkTheme = when (customTheme?.mode) {
                 "dark" -> true
                 "light" -> false
@@ -505,10 +510,24 @@ class MainActivity : ComponentActivity() {
                             installer.installedRoot(it.distroId).absolutePath == activeLaunch?.workingDirectory
                         }
                         val terminalAccent = distroAccentColor(activeDistro?.distroId ?: "wolfi")
-                        val guestDirectory = activeLaunch?.arguments?.let { arguments ->
-                            arguments.indexOf("-w").takeIf { it >= 0 }?.let { arguments.getOrNull(it + 1) }
-                        } ?: "/root"
-                        Box(Modifier.fillMaxSize().background(Color.Black)) {
+                        val guestDirectory = activeLaunch?.let(::guestDirOf) ?: "/root"
+                        // Group every running session by the distro that owns it so the panel can
+                        // list Wolfi sessions under Wolfi, Alpine under Alpine, and so on.
+                        val currentId = sessionRecords.firstOrNull { it.terminal === session }?.id
+                        val panelGroups = (sessionRecords.ifEmpty {
+                            listOfNotNull(activeLaunch?.let { SessionRecord("current", it, session) })
+                        }).groupBy { distroIdForWorkingDirectory(it.launch.workingDirectory) ?: "wolfi" }
+                            .map { (id, records) ->
+                                PanelGroup(
+                                    distroId = id,
+                                    distroName = distroPackages.firstOrNull { it.distroId == id }?.distroName ?: id,
+                                    accent = distroAccentColor(id),
+                                    sessions = records.map { record ->
+                                        PanelSession(record.id, guestDirOf(record.launch), record.id == currentId)
+                                    },
+                                )
+                            }
+                        Box(Modifier.fillMaxSize().background(terminalSurfaceColor)) {
                             Column(Modifier.fillMaxSize().layerBackdrop(terminalBackdrop)) {
                                 Row(
                                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
@@ -516,7 +535,8 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     Text(
                                         "≡",
-                                        Modifier.clickable { showTerminalPanel = true }.padding(horizontal = 10.dp, vertical = 3.dp),
+                                        Modifier.clickable { refreshSessions(); showTerminalPanel = true }
+                                            .padding(horizontal = 10.dp, vertical = 3.dp),
                                         color = Color.White,
                                         style = MaterialTheme.typography.titleLarge,
                                     )
@@ -534,10 +554,9 @@ class MainActivity : ComponentActivity() {
                                         factory = { viewContext ->
                                             TerminalView(viewContext, null).apply {
                                                 setTextSize(terminalFontSize)
-                                                setBackgroundColor(customTheme?.let { android.graphics.Color.parseColor(it.background) }
-                                                    ?: android.graphics.Color.BLACK)
+                                                setBackgroundColor(terminalBackground)
                                                 terminalTypeface?.let(::setTypeface)
-                                                backend.theme = customTheme
+                                                backend.theme = terminalTheme
                                                 backend.attach(this)
                                                 attachSession(session)
                                                 isFocusableInTouchMode = true
@@ -547,10 +566,9 @@ class MainActivity : ComponentActivity() {
                                         update = { view ->
                                             view.setTextSize(terminalFontSize)
                                             terminalTypeface?.let(view::setTypeface)
-                                            backend.theme = customTheme
-                                            customTheme?.let { TerminalTheme.apply(view.mEmulator, it) }
-                                            view.setBackgroundColor(customTheme?.let { android.graphics.Color.parseColor(it.background) }
-                                                ?: android.graphics.Color.BLACK)
+                                            backend.theme = terminalTheme
+                                            TerminalTheme.apply(view.mEmulator, terminalTheme)
+                                            view.setBackgroundColor(terminalBackground)
                                             view.invalidate()
                                         },
                                     )
@@ -573,8 +591,17 @@ class MainActivity : ComponentActivity() {
                                     distroId = activeDistro?.distroId ?: "wolfi",
                                     workingDirectory = guestDirectory,
                                     accent = terminalAccent,
+                                    groups = panelGroups,
                                     installedDistros = distroPackages.filter { it.distroId in installedDistros },
                                     onTerminal = { showTerminalPanel = false },
+                                    onSelectSession = { id ->
+                                        sessionRecords.firstOrNull { it.id == id }?.let { record ->
+                                            terminalSession = record.terminal
+                                            activeLaunch = record.launch
+                                            sessionBinds = record.launch.binds
+                                        }
+                                        showTerminalPanel = false
+                                    },
                                     onNewTerminal = { pkg ->
                                         selectedDistroId = pkg.distroId
                                         getSharedPreferences("landing", MODE_PRIVATE).edit().putString("selected_distro", pkg.distroId).apply()
@@ -713,9 +740,23 @@ class MainActivity : ComponentActivity() {
 
     private fun setActiveSession(session: TerminalSession) {
         terminalSession = session
-        sessionBinds = sessionBinder?.sessionBinds()
-        activeLaunch = sessionBinder?.activeLaunch()
+        refreshSessions()
+        val record = sessionRecords.firstOrNull { it.terminal === session }
+        activeLaunch = record?.launch ?: sessionBinder?.activeLaunch()
+        sessionBinds = activeLaunch?.binds ?: sessionBinder?.sessionBinds()
     }
+
+    private fun refreshSessions() {
+        sessionRecords = sessionBinder?.allSessions() ?: emptyList()
+    }
+
+    /** Maps a launch's host rootfs directory back to the distro id that owns it. */
+    private fun distroIdForWorkingDirectory(workingDirectory: String): String? =
+        distroPackages.firstOrNull { installer.installedRoot(it.distroId).absolutePath == workingDirectory }?.distroId
+
+    /** Guest working directory encoded in a launch's `-w` argument. */
+    private fun guestDirOf(launch: ProotLaunch): String =
+        launch.arguments.indexOf("-w").takeIf { it >= 0 }?.let { launch.arguments.getOrNull(it + 1) } ?: "/root"
 
     private fun refreshHistory(query: String) {
         Thread({
@@ -806,6 +847,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         storageRevision++
+        refreshSessions()
         if (terminalSession?.isRunning == false && !SessionService.hasSavedSessions(this)) terminalSession = null
     }
 

@@ -58,11 +58,12 @@ internal fun DistroSettingsScreen(
 ) {
     val panel = RoundedCornerShape(24.dp)
     val backdrop = rememberLayerBackdrop()
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
+    val base = if (amoledMode) Color.Black else Color(0xFF0D0F10)
+    Box(Modifier.fillMaxSize().background(base)) {
         Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             Canvas(Modifier.fillMaxSize()) {
                 val center = Offset(size.width * 0.82f, size.height * 0.16f)
-                drawRect(Color.Black)
+                drawRect(base)
                 drawCircle(
                     Brush.radialGradient(listOf(Color(0xFF7D3050).copy(alpha = 0.38f), Color.Transparent), center, size.minDimension * 0.72f),
                     radius = size.minDimension * 0.72f,

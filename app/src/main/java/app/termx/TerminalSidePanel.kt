@@ -46,6 +46,17 @@ import androidx.compose.ui.unit.sp
 import app.termx.runtime.RootfsPackage
 import com.kyant.backdrop.Backdrop
 
+/** A single running session, listed inside its distro group. */
+internal data class PanelSession(val id: String, val subtitle: String, val isCurrent: Boolean)
+
+/** All running sessions of one distro, grouped together in the side panel. */
+internal data class PanelGroup(
+    val distroId: String,
+    val distroName: String,
+    val accent: Color,
+    val sessions: List<PanelSession>,
+)
+
 @Composable
 internal fun BoxScope.TerminalSidePanel(
     backdrop: Backdrop,
@@ -53,8 +64,10 @@ internal fun BoxScope.TerminalSidePanel(
     distroId: String,
     workingDirectory: String,
     accent: Color,
+    groups: List<PanelGroup>,
     installedDistros: List<RootfsPackage>,
     onTerminal: () -> Unit,
+    onSelectSession: (String) -> Unit,
     onNewTerminal: (RootfsPackage) -> Unit,
     onSettings: () -> Unit,
     onClose: () -> Unit,
@@ -89,13 +102,15 @@ internal fun BoxScope.TerminalSidePanel(
                 color = Color(0xFFAAA9A4), style = MaterialTheme.typography.labelMedium,
             )
         }
-        Spacer(Modifier.height(28.dp))
+
+        // Prominent card for the session the terminal is currently showing.
+        Spacer(Modifier.height(18.dp))
         Text("CURRENT SESSION", color = Color(0xFFAAA9A4), style = MaterialTheme.typography.labelSmall, letterSpacing = 1.1.sp)
         Spacer(Modifier.height(8.dp))
         Row(
             Modifier.fillMaxWidth().defaultMinSize(minHeight = 54.dp)
                 .clip(RoundedCornerShape(11.dp))
-                .background(Color.White.copy(alpha = 0.045f))
+                .background(accent.copy(alpha = 0.14f))
                 .clickable(role = Role.Button, onClick = onTerminal)
                 .padding(horizontal = 11.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -107,6 +122,53 @@ internal fun BoxScope.TerminalSidePanel(
                 Text(workingDirectory, color = Color(0xFFAAA9A4), style = MaterialTheme.typography.bodySmall, maxLines = 1)
             }
             Text("›", color = Color.White.copy(alpha = 0.55f), fontSize = 21.sp)
+        }
+
+        // Every running session, grouped by the distro it belongs to.
+        if (groups.isNotEmpty()) {
+            Spacer(Modifier.height(20.dp))
+            Text("SESSIONS", color = Color(0xFFAAA9A4), style = MaterialTheme.typography.labelSmall, letterSpacing = 1.1.sp)
+        }
+        groups.forEach { group ->
+            Row(
+                Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(9.dp).background(group.accent, CircleShape))
+                Spacer(Modifier.width(9.dp))
+                Text(group.distroName, color = Color(0xFFF1F0EC),
+                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.weight(1f))
+                val count = group.sessions.size
+                Text("$count session${if (count == 1) "" else "s"}",
+                    color = Color(0xFF85847F), style = MaterialTheme.typography.labelSmall)
+            }
+            group.sessions.forEachIndexed { index, session ->
+                Row(
+                    Modifier.fillMaxWidth().defaultMinSize(minHeight = 46.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (session.isCurrent) group.accent.copy(alpha = 0.16f) else Color.Transparent)
+                        .clickable(role = Role.Button) { onSelectSession(session.id) }
+                        .padding(horizontal = 10.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        Modifier.size(7.dp).background(
+                            if (session.isCurrent) group.accent else Color.White.copy(alpha = 0.35f), CircleShape,
+                        ),
+                    )
+                    Spacer(Modifier.width(11.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("#${index + 1}", color = if (session.isCurrent) Color.White else Color(0xFFE4E2DC),
+                            style = MaterialTheme.typography.labelLarge)
+                        Text(session.subtitle, color = Color(0xFF85847F),
+                            style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                    }
+                    if (session.isCurrent) {
+                        Text("current", color = group.accent, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
         }
 
         Spacer(Modifier.height(18.dp))

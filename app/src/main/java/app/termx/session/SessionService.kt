@@ -29,6 +29,9 @@ import java.util.UUID
 class SessionService : Service() {
     private data class RunningSession(val id: String, val launch: ProotLaunch, val terminal: TerminalSession)
 
+    /** A live session exposed to the UI so it can list and switch between them. */
+    data class SessionRecord(val id: String, val launch: ProotLaunch, val terminal: TerminalSession)
+
     private val sessions = linkedMapOf<String, RunningSession>()
     private lateinit var terminalBackend: TerminalBackend
     private val handler = Handler(Looper.getMainLooper())
@@ -40,6 +43,8 @@ class SessionService : Service() {
         fun createSession(launch: ProotLaunch): TerminalSession = createSessionInternal(launch)
         fun createSessionFromLastLaunch(): TerminalSession? = latestLaunch()?.let(::createSessionInternal)
         fun activeSession(): TerminalSession? = sessions.values.lastOrNull()?.terminal
+        fun allSessions(): List<SessionRecord> =
+            sessions.values.map { SessionRecord(it.id, it.launch, it.terminal) }
         fun sessionBinds(): List<app.termx.runtime.Bind>? = sessions.values.lastOrNull()?.launch?.binds
         fun activeLaunch(): ProotLaunch? = sessions.values.lastOrNull()?.launch
         fun terminalBackend(): TerminalBackend = terminalBackend
