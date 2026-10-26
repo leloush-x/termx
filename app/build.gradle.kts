@@ -113,6 +113,7 @@ dependencies {
     implementation(libs.eddsa)
     implementation(libs.room.runtime)
     implementation(libs.sqlite.bundled)
+    implementation(libs.kyant.backdrop)
     ksp(libs.room.compiler)
 
     testImplementation(libs.junit)

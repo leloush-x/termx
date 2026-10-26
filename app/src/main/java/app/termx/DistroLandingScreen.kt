@@ -3,7 +3,6 @@ package app.termx
 import android.animation.ValueAnimator
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,19 +39,27 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.termx.runtime.RootfsPackage
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import kotlin.math.PI
+import kotlin.math.sin
+import kotlin.random.Random
 
 @Composable
 fun DistroLandingScreen(
@@ -61,6 +68,7 @@ fun DistroLandingScreen(
     selectedDistroId: String,
     installingDistroId: String?,
     onSelectDistro: (String) -> Unit,
+    onSettings: () -> Unit,
     isInstalling: Boolean,
     progress: Float,
     status: String?,
@@ -74,6 +82,7 @@ fun DistroLandingScreen(
     val selected = distros.firstOrNull { it.distroId == selectedDistroId } ?: distros.firstOrNull() ?: return
     val theme = remember(selected.distroId) { distroPalette(selected.distroId) }
     val motionEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
+    val backdrop = rememberLayerBackdrop()
     val transition = rememberInfiniteTransition(label = "ambient-glow")
     val driftState = if (motionEnabled) {
         transition.animateFloat(
@@ -91,15 +100,47 @@ fun DistroLandingScreen(
     val currentInstall = isInstalling
     val anotherInstallIsBusy = installingDistroId != null && installingDistroId != selected.distroId
 
-    Box(Modifier.fillMaxSize().background(Color(0xFF090C13))) {
-        Canvas(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
+            val petals = remember { List(26) { index ->
+                val random = Random(index * 71 + 19)
+                Petal(x = random.nextFloat(), y = random.nextFloat(), size = 5f + random.nextFloat() * 7f,
+                    speed = 0.12f + random.nextFloat() * 0.24f, sway = 0.012f + random.nextFloat() * 0.025f,
+                    phase = random.nextFloat() * 6.28f)
+            } }
+            val petalTimeState = if (motionEnabled) {
+                transition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(tween(90_000, easing = LinearEasing)),
+                    label = "petal-drift",
+                )
+            } else {
+                remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            }
+            val petalTime by petalTimeState
+            Canvas(Modifier.fillMaxSize()) {
             val first = Offset(size.width * (0.18f + drift * 0.13f), size.height * 0.19f)
             val second = Offset(size.width * (0.84f - drift * 0.11f), size.height * 0.72f)
-            drawRect(Brush.verticalGradient(listOf(Color(0xFF101522), Color(0xFF090C13), Color(0xFF0A0D14))))
-            drawCircle(Brush.radialGradient(listOf(theme.accent.copy(alpha = 0.21f), Color.Transparent), first, size.minDimension * 0.62f),
+            drawRect(Color.Black)
+            drawCircle(Brush.radialGradient(listOf(animatedAccent.copy(alpha = 0.26f), Color.Transparent), first, size.minDimension * 0.62f),
                 radius = size.minDimension * 0.62f, center = first)
-            drawCircle(Brush.radialGradient(listOf(theme.secondary.copy(alpha = 0.13f), Color.Transparent), second, size.minDimension * 0.58f),
+            drawCircle(Brush.radialGradient(listOf(theme.secondary.copy(alpha = 0.18f), Color.Transparent), second, size.minDimension * 0.58f),
                 radius = size.minDimension * 0.58f, center = second)
+            petals.forEachIndexed { index, petal ->
+                val phase = petalTime * 2f * PI.toFloat()
+                val cy = ((petal.y + petalTime * petal.speed) % 1f) * size.height
+                val cx = (((petal.x + sin(phase + petal.phase) * petal.sway) % 1f) + 1f) % 1f * size.width
+                rotate(if (index % 2 == 0) petalTime * 360f else -petalTime * 360f, Offset(cx, cy)) {
+                    drawOval(
+                        color = if (index % 3 == 0) theme.secondary else animatedAccent,
+                        topLeft = Offset(cx - petal.size / 2f, cy - petal.size * 0.35f),
+                        size = Size(petal.size, petal.size * 0.7f),
+                        alpha = 0.25f,
+                    )
+                }
+            }
+            }
         }
 
         Column(
@@ -107,17 +148,21 @@ fun DistroLandingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Row(Modifier.fillMaxWidth().widthIn(max = 520.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.widthIn(max = 520.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                val logoShape = RoundedCornerShape(13.dp)
                 Box(
-                    Modifier.size(34.dp).clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(animatedAccent, theme.secondary))),
+                    Modifier.size(36.dp).clip(logoShape)
+                        .termxLiquidGlass(backdrop, logoShape, animatedAccent.copy(alpha = 0.20f)),
                     contentAlignment = Alignment.Center,
-                ) { Text("✦", color = Color(0xFF101116), fontSize = 18.sp, fontWeight = FontWeight.Bold) }
+                ) { Text(">_", color = animatedAccent, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
                 Spacer(Modifier.width(10.dp))
                 Text("TERM X", style = MaterialTheme.typography.labelLarge, letterSpacing = 2.2.sp, color = Color.White.copy(alpha = 0.92f))
                 Spacer(Modifier.weight(1f))
                 Text("ROOTLESS  ·  PRIVATE", style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.48f), letterSpacing = 1.2.sp)
+                Spacer(Modifier.width(10.dp))
+                Text("⚙", Modifier.clip(CircleShape).clickable(onClick = onSettings)
+                    .padding(horizontal = 8.dp, vertical = 6.dp), color = Color.White.copy(alpha = 0.78f), fontSize = 18.sp)
             }
 
             Spacer(Modifier.weight(0.62f))
@@ -139,17 +184,15 @@ fun DistroLandingScreen(
                 distros = distros,
                 selectedId = selected.distroId,
                 onSelect = onSelectDistro,
-                palette = theme,
                 motionEnabled = motionEnabled,
+                backdrop = backdrop,
             )
 
             Spacer(Modifier.height(16.dp))
-            Surface(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 440.dp).animateContentSize(),
-                shape = RoundedCornerShape(30.dp),
-                color = Color.White.copy(alpha = 0.065f),
-                border = BorderStroke(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = 0.22f), animatedAccent.copy(alpha = 0.14f), Color.White.copy(alpha = 0.05f)))),
-                shadowElevation = 18.dp,
+            Column(
+                modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth().animateContentSize()
+                    .clip(RoundedCornerShape(30.dp))
+                    .termxLiquidGlass(backdrop, RoundedCornerShape(30.dp), Color.White.copy(alpha = 0.075f)),
             ) {
                 Column(Modifier.padding(horizontal = 22.dp, vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -215,17 +258,16 @@ private fun DistroGlassDock(
     distros: List<RootfsPackage>,
     selectedId: String,
     onSelect: (String) -> Unit,
-    palette: DistroPalette,
     motionEnabled: Boolean,
+    backdrop: com.kyant.backdrop.Backdrop,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().widthIn(max = 440.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = Color.White.copy(alpha = 0.055f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
-        shadowElevation = 12.dp,
-    ) {
-        Row(Modifier.padding(7.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        val dockShape = RoundedCornerShape(24.dp)
+        Row(
+            Modifier.widthIn(max = 440.dp).fillMaxWidth().clip(dockShape)
+                .termxLiquidGlass(backdrop, dockShape, Color.White.copy(alpha = 0.065f))
+                .padding(7.dp).horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
             distros.forEach { distro ->
                 val selected = distro.distroId == selectedId
                 val tint = remember(distro.distroId) { distroPalette(distro.distroId) }
@@ -249,7 +291,6 @@ private fun DistroGlassDock(
                 }
             }
         }
-    }
 }
 
 @Composable
@@ -258,18 +299,19 @@ private fun distroColorState(target: Color, motionEnabled: Boolean, label: Strin
 
 @Composable
 private fun LandingAction(mark: String, label: String, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White.copy(alpha = 0.055f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.085f)),
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        Modifier.clip(shape).background(Color.White.copy(alpha = 0.055f), shape)
+            .border(1.dp, Color.White.copy(alpha = 0.085f), shape).clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(mark, color = Color.White.copy(alpha = 0.74f), fontSize = 14.sp)
             Text(label, color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.labelSmall)
-        }
     }
 }
+
+private data class Petal(val x: Float, val y: Float, val size: Float, val speed: Float, val sway: Float, val phase: Float)
 
 private data class DistroPalette(val accent: Color, val secondary: Color, val mark: String, val caption: String)
 

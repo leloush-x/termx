@@ -3,6 +3,12 @@ Copyright (c) 2026 TermX contributors. Licensed under MIT (see LICENSE).
 
 Third-party code and components
 
+0. Backdrop / AndroidLiquidGlass (Phase 5: consumed as a dependency)
+   Source: https://github.com/Kyant0/AndroidLiquidGlass, pinned to commit
+   65ab177e90e5c1d8c62e70cf7755841982da65f6 (published artifact 2.0.1).
+   License: Apache-2.0. The project uses the `io.github.kyant0:backdrop` API;
+   no library source files are copied into TermX.
+
 1. Termux terminal-emulator (Phase 0: consumed as a dependency)
    Source: https://github.com/termux/termux-app (pinned v0.118.3 via JitPack)
    License: Apache-2.0 for terminal-emulator and terminal-view, per the

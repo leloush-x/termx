@@ -13,12 +13,14 @@ import android.os.Build
 import android.os.Environment
 import android.os.IBinder
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,7 +32,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -49,6 +50,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import app.termx.runtime.DistroManifest
 import app.termx.runtime.RootfsInstaller
 import app.termx.runtime.RootfsPackage
@@ -89,8 +92,12 @@ class MainActivity : ComponentActivity() {
     private var redactionText by mutableStateOf("")
     private var profileRevision by mutableIntStateOf(0)
     private var selectedDistroId by mutableStateOf("wolfi")
+    private var defaultDistroId by mutableStateOf("wolfi")
     private var installedRevision by mutableIntStateOf(0)
     private var installingDistroId by mutableStateOf<String?>(null)
+    private var restoringSavedSession by mutableStateOf(false)
+    private var showTerminalPanel by mutableStateOf(false)
+    private var showSettings by mutableStateOf(false)
     private val installProgress = mutableStateMapOf<String, Float>()
     private val installStatuses = mutableStateMapOf<String, String>()
     private var storageMessage by mutableStateOf<String?>(null)
@@ -114,6 +121,7 @@ class MainActivity : ComponentActivity() {
                 }
                 else -> binder.activeSession()?.let(::setActiveSession)
             }
+            restoringSavedSession = false
             pendingLaunch = null
             pendingNewSession = false
         }
@@ -129,7 +137,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         installer = RootfsInstaller(this)
         distroPackages = DistroManifest.load(this)
-        selectedDistroId = getSharedPreferences("landing", MODE_PRIVATE).getString("selected_distro", "wolfi") ?: "wolfi"
+        val preferences = getSharedPreferences("landing", MODE_PRIVATE)
+        defaultDistroId = preferences.getString("default_distro", preferences.getString("selected_distro", "wolfi")) ?: "wolfi"
+        selectedDistroId = defaultDistroId
+        restoringSavedSession = SessionService.hasSavedSessions(this) || intent.getBooleanExtra(EXTRA_NEW_SESSION, false)
         redactionText = HistoryRedactions.text(this)
         acceptSharedFiles(intent)
 
@@ -143,8 +154,8 @@ class MainActivity : ComponentActivity() {
             }
             MaterialTheme(colorScheme = colors) {
                 val rootSurfaceColor = when {
+                    sessionIsDarkScreen() -> Color.Black
                     terminalSession != null && productivityPage == null && !showStorageHealth -> MaterialTheme.colorScheme.surface
-                    sessionIsLandingScreen() -> Color(0xFF090C13)
                     else -> MaterialTheme.colorScheme.background
                 }
                 Surface(
@@ -179,9 +190,20 @@ class MainActivity : ComponentActivity() {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
                         WindowCompat.getInsetsController(window, window.decorView).apply {
-                            val useDarkIcons = !sessionIsLandingScreen() && !darkTheme
+                            val useDarkIcons = !sessionIsDarkScreen() && !darkTheme
                             isAppearanceLightStatusBars = useDarkIcons
                             isAppearanceLightNavigationBars = useDarkIcons
+                        }
+                    }
+                    BackHandler {
+                        when {
+                            showTerminalPanel -> showTerminalPanel = false
+                            showSettings -> showSettings = false
+                            productivityPage != null -> { productivityPage = null; storageMessage = null }
+                            showStorageHealth -> showStorageHealth = false
+                            terminalSession != null -> showTerminalPanel = true
+                            restoringSavedSession -> Unit
+                            else -> Unit
                         }
                     }
                     val workspaceLauncher = rememberLauncherForActivityResult(
@@ -205,7 +227,42 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     val session = terminalSession
-                    if (productivityPage != null) {
+                    val installedDistros = remember(installedRevision) {
+                        distroPackages.filter { installer.installedRoot(it.distroId).isDirectory }.map { it.distroId }.toSet()
+                    }
+                    if (restoringSavedSession && session == null) {
+                        Column(
+                            Modifier.fillMaxSize().background(Color.Black),
+                            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                        ) {
+                            Text("TERM X", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.labelLarge)
+                            androidx.compose.foundation.layout.Spacer(Modifier.padding(12.dp))
+                            Text("Reconnecting to your terminal…", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                        }
+                    } else if (showSettings) {
+                        DistroSettingsScreen(
+                            distros = distroPackages,
+                            installedDistros = installedDistros,
+                            defaultDistroId = defaultDistroId,
+                            installingDistroId = installingDistroId,
+                            installProgress = installingDistroId?.let(installProgress::get) ?: 0f,
+                            installStatus = installingDistroId?.let(installStatuses::get),
+                            onBack = { showSettings = false },
+                            onSetDefault = { id ->
+                                defaultDistroId = id
+                                selectedDistroId = id
+                                getSharedPreferences("landing", MODE_PRIVATE).edit()
+                                    .putString("default_distro", id).putString("selected_distro", id).apply()
+                            },
+                            onInstall = ::installDistro,
+                            onOpenStorage = {
+                                if (::backend.isInitialized) backend.detach()
+                                showSettings = false
+                                showStorageHealth = true
+                            },
+                        )
+                    } else if (productivityPage != null) {
                         ProductivityHub(
                             page = requireNotNull(productivityPage),
                             sharedDirectory = sharedDir,
@@ -311,9 +368,6 @@ class MainActivity : ComponentActivity() {
                             } },
                         )
                     } else if (session == null) {
-                        val installedDistros = remember(installedRevision) {
-                            distroPackages.filter { installer.installedRoot(it.distroId).isDirectory }.map { it.distroId }.toSet()
-                        }
                         DistroLandingScreen(
                             distros = distroPackages,
                             installedDistros = installedDistros,
@@ -322,6 +376,10 @@ class MainActivity : ComponentActivity() {
                             onSelectDistro = { id ->
                                 selectedDistroId = id
                                 getSharedPreferences("landing", MODE_PRIVATE).edit().putString("selected_distro", id).apply()
+                            },
+                            onSettings = {
+                                if (::backend.isInitialized) backend.detach()
+                                showSettings = true
                             },
                             isInstalling = installingDistroId == selectedDistroId,
                             progress = installProgress[selectedDistroId] ?: 0f,
@@ -335,30 +393,69 @@ class MainActivity : ComponentActivity() {
                             onStorage = { showStorageHealth = true },
                         )
                     } else {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                TextButton(onClick = { productivityPage = ProductivityPage.PALETTE }) { Text("⌕ Commands") }
-                                TextButton(onClick = { productivityPage = ProductivityPage.FILES }) { Text("Files") }
-                                TextButton(onClick = { productivityPage = ProductivityPage.HISTORY; refreshHistory("") }) { Text("History") }
-                            }
-                            AndroidView(
-                                modifier = Modifier.weight(1f),
-                                factory = { context ->
-                                    TerminalView(context, null).apply {
-                                        setTextSize(16)
-                                        backend.attach(this)
-                                        attachSession(session)
-                                        isFocusableInTouchMode = true
-                                        requestFocus()
+                        val terminalBackdrop = rememberLayerBackdrop()
+                        val activeDistro = distroPackages.firstOrNull {
+                            installer.installedRoot(it.distroId).absolutePath == activeLaunch?.workingDirectory
+                        }
+                        val terminalAccent = when (activeDistro?.distroId) {
+                            "alpine" -> Color(0xFF83C7FF)
+                            "debian" -> Color(0xFFFF91AA)
+                            "void" -> Color(0xFF83E0BE)
+                            else -> Color(0xFFFFB17A)
+                        }
+                        val guestDirectory = activeLaunch?.arguments?.let { arguments ->
+                            arguments.indexOf("-w").takeIf { it >= 0 }?.let { arguments.getOrNull(it + 1) }
+                        } ?: "/root"
+                        Box(Modifier.fillMaxSize().background(Color.Black)) {
+                            Column(Modifier.fillMaxSize().layerBackdrop(terminalBackdrop)) {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        "≡",
+                                        Modifier.clickable { showTerminalPanel = true }.padding(horizontal = 10.dp, vertical = 3.dp),
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.titleLarge,
+                                    )
+                                    Column(Modifier.weight(1f)) {
+                                        Text(activeDistro?.distroName ?: "Terminal", color = Color.White,
+                                            style = MaterialTheme.typography.labelLarge)
+                                        Text(guestDirectory, color = Color.White.copy(alpha = 0.58f),
+                                            style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                     }
-                                },
-                            )
-                            ExtraKeysRow(session = session, backend = backend, onStorageClick = {
-                                backend.detach()
-                                storageMessage = null
-                                storageRevision++
-                                showStorageHealth = true
-                            })
+                                    Box(Modifier.size(7.dp).background(terminalAccent, androidx.compose.foundation.shape.CircleShape))
+                                }
+                                AndroidView(
+                                    modifier = Modifier.weight(1f),
+                                    factory = { viewContext ->
+                                        TerminalView(viewContext, null).apply {
+                                            setTextSize(16)
+                                            setBackgroundColor(android.graphics.Color.BLACK)
+                                            backend.attach(this)
+                                            attachSession(session)
+                                            isFocusableInTouchMode = true
+                                            requestFocus()
+                                        }
+                                    },
+                                )
+                                ExtraKeysRow(session = session, backend = backend)
+                            }
+                            if (showTerminalPanel) {
+                                TerminalSidePanel(
+                                    backdrop = terminalBackdrop,
+                                    distroName = activeDistro?.distroName ?: "Linux session",
+                                    workingDirectory = guestDirectory,
+                                    accent = terminalAccent,
+                                    onTerminal = { showTerminalPanel = false },
+                                    onSettings = {
+                                        backend.detach()
+                                        showTerminalPanel = false
+                                        showSettings = true
+                                    },
+                                    onClose = { showTerminalPanel = false },
+                                )
+                            }
                         }
                     }
                 }
@@ -370,6 +467,11 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         acceptSharedFiles(intent)
+        if (intent.getBooleanExtra(EXTRA_NEW_SESSION, false)) {
+            intent.removeExtra(EXTRA_NEW_SESSION)
+            restoringSavedSession = true
+            connectSessionService(newSession = true)
+        }
     }
 
     private fun acceptSharedFiles(intent: Intent?) {
@@ -509,6 +611,7 @@ class MainActivity : ComponentActivity() {
             }
             pendingLaunch = null
             pendingNewSession = false
+            restoringSavedSession = false
             return
         }
         val intent = Intent(this, SessionService::class.java)
@@ -516,7 +619,9 @@ class MainActivity : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
             if (!serviceBound) serviceBound = bindService(intent, sessionConnection, Context.BIND_AUTO_CREATE)
             if (!serviceBound) storageMessage = "Could not connect to the terminal session service. Tap Start again."
+            if (!serviceBound) restoringSavedSession = false
         } catch (failure: Exception) {
+            restoringSavedSession = false
             storageMessage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && failure is ForegroundServiceStartNotAllowedException) {
                 "Android blocked the background service start. Open TermX and tap Start again."
             } else {
@@ -570,7 +675,8 @@ class MainActivity : ComponentActivity() {
         if (terminalSession?.isRunning == false && !SessionService.hasSavedSessions(this)) terminalSession = null
     }
 
-    private fun sessionIsLandingScreen() = terminalSession == null && productivityPage == null && !showStorageHealth
+    private fun sessionIsDarkScreen() = showSettings || restoringSavedSession ||
+        (terminalSession == null && productivityPage == null && !showStorageHealth)
 
     override fun onDestroy() {
         if (::backend.isInitialized) backend.detach()
