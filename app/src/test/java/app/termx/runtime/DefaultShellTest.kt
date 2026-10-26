@@ -18,7 +18,7 @@ class DefaultShellTest {
         File(rootfs, "bin").mkdirs()
         File(rootfs, "bin/bash").writeText("")
 
-        assertEquals(listOf("/bin/bash", "--login", "--interactive"), ProotCommand.defaultShell(rootfs))
+        assertEquals(listOf("/bin/bash", "--login", "-i"), ProotCommand.defaultShell(rootfs))
         assertEquals(listOf("/bin/sh", "-l"), ProotCommand.defaultShell(temporaryFolder.newFolder("minimal")))
     }
 

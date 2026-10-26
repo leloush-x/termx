@@ -98,7 +98,7 @@ object ProotCommand {
     }
 
     internal fun defaultShell(rootfs: File): List<String> =
-        if (File(rootfs, "bin/bash").isFile) listOf("/bin/bash", "--login", "--interactive")
+        if (File(rootfs, "bin/bash").isFile) listOf("/bin/bash", "--login", "-i")
         else listOf("/bin/sh", "-l")
 
     /** Create user-editable Bash defaults only when the distro has no existing startup files. */
