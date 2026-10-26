@@ -35,7 +35,7 @@ object ProcessRunner {
             pb.directory(context.filesDir)
             val process = pb.start()
             val pidText = process.inputStream.bufferedReader().readText().trim()
-            val pid = pidText.toLongOrNull() ?: process.pid()
+            val pid = pidText.toLongOrNull() ?: System.currentTimeMillis()
             val job = BackgroundJob(pid, command, logFile, System.currentTimeMillis())
             jobs[pid] = job
             process.waitFor()
