@@ -365,7 +365,7 @@ public final class TerminalView extends View {
                 if (hasEnter) {
                     mShadowLine.reset();
                     InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.restartInput(this);
+                    imm.restartInput(TerminalView.this);
                 } else if (!sent.isEmpty()) {
                     mShadowLine.append(sent);
                 }
@@ -378,13 +378,14 @@ public final class TerminalView extends View {
                 if (TERMINAL_VIEW_KEY_LOGGING_ENABLED) {
                     mClient.logInfo(LOG_TAG, "IME: deleteSurroundingText(" + leftLength + ", " + rightLength + ")");
                 }
-                // The stock Samsung keyboard with 'Auto check spelling' enabled sends leftLength > 1.
+                // Shadow-driven delete: send one DEL per code point removed. A delete the shadow
+                // cannot account for (e.g. Samsung keyboard's multi-char backspace) triggers a reset.
                 KeyEvent deleteKey = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL);
                 int toDelete = mShadowLine.deleteBefore(leftLength);
                 if (toDelete < leftLength) {
                     mShadowLine.reset();
                     InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.restartInput(this);
+                    imm.restartInput(TerminalView.this);
                 }
                 for (int i = 0; i < toDelete; i++) sendKeyEvent(deleteKey);
                 return super.deleteSurroundingText(leftLength, rightLength);
