@@ -7,6 +7,7 @@ import android.media.AudioManager
 import android.util.Log
 import android.os.Handler
 import android.os.Looper
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.inputmethod.InputMethodManager
 import app.termx.terminal.view.TerminalView
