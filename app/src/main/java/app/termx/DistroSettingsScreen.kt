@@ -78,7 +78,7 @@ internal fun DistroSettingsScreen(
     var searchQuery by remember { mutableStateOf("") }
     val query = searchQuery.trim().lowercase()
     fun matches(vararg terms: String): Boolean = query.isBlank() || terms.any { it.contains(query, ignoreCase = true) }
-    Box(Modifier.fillMaxSize().background(if (wallpaperUri != null) Color.Transparent else base)) {
+    Box(Modifier.fillMaxSize().background(if (wallpaperUri != null) base.copy(alpha = 0.55f) else base)) {
         Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             Canvas(Modifier.fillMaxSize()) {
                 val center = Offset(size.width * 0.82f, size.height * 0.16f)
