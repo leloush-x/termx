@@ -41,7 +41,6 @@ import com.termux.terminal.KeyHandler;
 import com.termux.terminal.TerminalEmulator;
 import com.termux.terminal.TerminalSession;
 import app.termx.terminal.view.textselection.TextSelectionCursorController;
-import app.termx.terminal.ime.ShadowLine;
 
 /** View displaying and interacting with a {@link TerminalSession}. */
 public final class TerminalView extends View {
@@ -53,12 +52,6 @@ public final class TerminalView extends View {
     public TerminalSession mTermSession;
     /** Our terminal emulator whose session is {@link #mTermSession}. */
     public TerminalEmulator mEmulator;
-
-    /** Shadow line for IME sync (D20). */
-    private final ShadowLine mShadowLine = new ShadowLine();
-
-    /** Bracketed paste state (DECSET 2004). */
-    private boolean mBracketedPaste = false;
 
     public TerminalRenderer mRenderer;
 
@@ -319,16 +312,18 @@ public final class TerminalView extends View {
         // initially started with the alternate view or if activity is returned to from another app
         // and the alternate view was the one selected the last time.
         if (mClient.isTerminalViewSelected()) {
-            // One input path: TYPE_CLASS_TEXT with suggestions on, learning off.
-            // No TYPE_NULL, no VISIBLE_PASSWORD, no NO_SUGGESTIONS.
-            outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
+            // A normal text class keeps voice dictation available in common IMEs. The
+            // password variation and TYPE_NULL both hide or disable the microphone on
+            // several keyboards (see docs/VOICE_HANDOFF.md in wolfi-terminal).
+            outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
         } else {
-            outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
+            // Corresponds to android:inputType="text"
+            outAttrs.inputType =  InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_NORMAL;
         }
 
-        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
-            | EditorInfo.IME_FLAG_NO_FULLSCREEN
-            | EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+        // Note that IME_ACTION_NONE cannot be used as that makes it impossible to input newlines using the on-screen
+        // keyboard on Android TV (see https://github.com/termux/termux-app/issues/221).
+        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN | EditorInfo.IME_FLAG_NO_EXTRACT_UI;
 
         return new BaseInputConnection(this, true) {
 
@@ -336,22 +331,6 @@ public final class TerminalView extends View {
             public boolean finishComposingText() {
                 if (TERMINAL_VIEW_KEY_LOGGING_ENABLED) mClient.logInfo(LOG_TAG, "IME: finishComposingText()");
                 super.finishComposingText();
-
-                if (mEmulator == null) return true;
-
-                // If the session already finished, an Enter acknowledgement may arrive here.
-                if (mTermSession != null && !mTermSession.isRunning()) {
-                    Editable pending = getEditable();
-                    boolean hasEnter = false;
-                    for (int i = 0; i < pending.length(); i++) {
-                        if (pending.charAt(i) == '\n' || pending.charAt(i) == '\r') { hasEnter = true; break; }
-                    }
-                    if (hasEnter) {
-                        mClient.onKeyDown(KeyEvent.KEYCODE_ENTER, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER), mTermSession);
-                        getEditable().clear();
-                        return true;
-                    }
-                }
 
                 sendTextToTerminal(getEditable());
                 getEditable().clear();
@@ -367,48 +346,8 @@ public final class TerminalView extends View {
 
                 if (mEmulator == null) return true;
 
-                // A finished session can no longer accept input. When the IME sends Enter (as "\n"
-                // or "\r"), treat it as an acknowledgement so the "press Enter" prompt actually
-                // exits/closes the session instead of being swallowed.
-                if (mTermSession != null && !mTermSession.isRunning()) {
-                    CharSequence committed = text;
-                    if (committed.length() > 0 && (committed.charAt(0) == '\n' || committed.charAt(0) == '\r')) {
-                        mClient.onKeyDown(KeyEvent.KEYCODE_ENTER, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER), mTermSession);
-                        return true;
-                    }
-                }
-
                 Editable content = getEditable();
-                // Apply commit transform for multi-char commits.
-                String toSend = content.toString();
-                if (toSend.codePointCount(0, toSend.length()) > 1) {
-                    toSend = app.termx.terminal.ime.CommitTransform.transform(toSend, mBracketedPaste);
-                }
-                // Send to terminal.
-                if (!toSend.isEmpty()) {
-                    // Write the transformed text
-                    for (int i = 0; i < toSend.length();) {
-                        int cp = toSend.codePointAt(i);
-                        i += Character.charCount(cp);
-                        if (cp == '\n' || cp == '\r') {
-                            mTermSession.write("\r");
-                        } else {
-                            mTermSession.write(String.valueOf(Character.toChars(cp)));
-                        }
-                    }
-                }
-                // Reset shadow on Enter.
-                boolean hasEnter = false;
-                for (int i = 0; i < content.length(); i++) {
-                    if (content.charAt(i) == '\n' || content.charAt(i) == '\r') { hasEnter = true; break; }
-                }
-                if (hasEnter) {
-                    mShadowLine.reset();
-                    InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.restartInput(this);
-                } else {
-                    mShadowLine.append(toSend);
-                }
+                sendTextToTerminal(content);
                 content.clear();
                 return true;
             }
@@ -418,33 +357,13 @@ public final class TerminalView extends View {
                 if (TERMINAL_VIEW_KEY_LOGGING_ENABLED) {
                     mClient.logInfo(LOG_TAG, "IME: deleteSurroundingText(" + leftLength + ", " + rightLength + ")");
                 }
+                // The stock Samsung keyboard with 'Auto check spelling' enabled sends leftLength > 1.
                 KeyEvent deleteKey = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL);
-                // Use shadow to determine how many DELs to send.
-                int toDelete = mShadowLine.deleteBefore(leftLength);
-                if (toDelete < leftLength) {
-                    // Shadow can't account for all deletes — reset.
-                    mShadowLine.reset();
-                    InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.restartInput(this);
-                }
-                for (int i = 0; i < toDelete; i++) sendKeyEvent(deleteKey);
+                for (int i = 0; i < leftLength; i++) sendKeyEvent(deleteKey);
                 return super.deleteSurroundingText(leftLength, rightLength);
             }
 
-            @Override
-            public CharSequence getTextBeforeCursor(int n, int flags) {
-                return mShadowLine.tail(n);
-            }
-
-            @Override
-            public CharSequence getTextAfterCursor(int n, int flags) {
-                return "";
-            }
-
-            @Override
-            public CharSequence getSelectedText(int flags) {
-                return null;
-            }
+            void sendTextToTerminal(CharSequence text) {
                 stopTextSelectionMode();
                 final int textLengthInChars = text.length();
                 for (int i = 0; i < textLengthInChars; i++) {
@@ -835,29 +754,6 @@ public final class TerminalView extends View {
             stopTextSelectionMode();
         }
 
-        // Reset rules (D20): clear shadow + restartInput on these keys.
-        boolean shouldReset = false;
-        if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_TAB ||
-            keyCode == KeyEvent.KEYCODE_ESCAPE || keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-            keyCode == KeyEvent.KEYCODE_DPAD_DOWN || keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
-            keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_MOVE_HOME ||
-            keyCode == KeyEvent.KEYCODE_MOVE_END || keyCode == KeyEvent.KEYCODE_PAGE_UP ||
-            keyCode == KeyEvent.KEYCODE_PAGE_DOWN) {
-            shouldReset = true;
-        }
-        // Any Ctrl or Alt combination.
-        if (event.isCtrlPressed() || event.isAltPressed() || mClient.readControlKey() || mClient.readAltKey()) {
-            if (keyCode != KeyEvent.KEYCODE_CTRL_LEFT && keyCode != KeyEvent.KEYCODE_CTRL_RIGHT &&
-                keyCode != KeyEvent.KEYCODE_ALT_LEFT && keyCode != KeyEvent.KEYCODE_ALT_RIGHT) {
-                shouldReset = true;
-            }
-        }
-        if (shouldReset) {
-            mShadowLine.reset();
-            InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.restartInput(this);
-        }
-
         if (mClient.onKeyDown(keyCode, event, mTermSession)) {
             invalidate();
             return true;
@@ -1064,12 +960,7 @@ public final class TerminalView extends View {
         updateSize();
     }
 
-    /** Resets the shadow line (D20). */
-    public void resetShadow() {
-        mShadowLine.reset();
-        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.restartInput(this);
-    }
+    /** Check if the terminal size in rows and columns should be updated. */
     public void updateSize() {
         int viewWidth = getWidth();
         int viewHeight = getHeight();
