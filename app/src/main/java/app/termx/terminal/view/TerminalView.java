@@ -41,6 +41,7 @@ import com.termux.terminal.KeyHandler;
 import com.termux.terminal.TerminalEmulator;
 import com.termux.terminal.TerminalSession;
 import app.termx.terminal.view.textselection.TextSelectionCursorController;
+import app.termx.terminal.ime.ShadowLine;
 
 /** View displaying and interacting with a {@link TerminalSession}. */
 public final class TerminalView extends View {
@@ -50,8 +51,11 @@ public final class TerminalView extends View {
 
     /** The currently displayed terminal session, whose emulator is {@link #mEmulator}. */
     public TerminalSession mTermSession;
-    /** Our terminal emulator whose session is {@link #mTermSession}. */
-    public TerminalEmulator mEmulator;
+    /** Shadow line for IME sync (D20). */
+    private final ShadowLine mShadowLine = new ShadowLine();
+
+    /** Bracketed paste state (DECSET 2004). */
+    private boolean mBracketedPaste = false;
 
     public TerminalRenderer mRenderer;
 
@@ -348,6 +352,19 @@ public final class TerminalView extends View {
 
                 Editable content = getEditable();
                 sendTextToTerminal(content);
+                // Shadow sync (D20).
+                boolean hasEnter = false;
+                for (int i = 0; i < content.length(); i++) {
+                    if (content.charAt(i) == '\n' || content.charAt(i) == '\r') { hasEnter = true; break; }
+                }
+                String sent = content.toString();
+                if (hasEnter) {
+                    mShadowLine.reset();
+                    InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.restartInput(this);
+                } else if (!sent.isEmpty()) {
+                    mShadowLine.append(sent);
+                }
                 content.clear();
                 return true;
             }
@@ -359,8 +376,29 @@ public final class TerminalView extends View {
                 }
                 // The stock Samsung keyboard with 'Auto check spelling' enabled sends leftLength > 1.
                 KeyEvent deleteKey = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL);
-                for (int i = 0; i < leftLength; i++) sendKeyEvent(deleteKey);
+                int toDelete = mShadowLine.deleteBefore(leftLength);
+                if (toDelete < leftLength) {
+                    mShadowLine.reset();
+                    InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.restartInput(this);
+                }
+                for (int i = 0; i < toDelete; i++) sendKeyEvent(deleteKey);
                 return super.deleteSurroundingText(leftLength, rightLength);
+            }
+
+            @Override
+            public CharSequence getTextBeforeCursor(int n, int flags) {
+                return mShadowLine.tail(n);
+            }
+
+            @Override
+            public CharSequence getTextAfterCursor(int n, int flags) {
+                return "";
+            }
+
+            @Override
+            public CharSequence getSelectedText(int flags) {
+                return null;
             }
 
             void sendTextToTerminal(CharSequence text) {
@@ -752,6 +790,28 @@ public final class TerminalView extends View {
         if (mEmulator == null) return true;
         if (isSelectingText()) {
             stopTextSelectionMode();
+        }
+
+        // Reset rules (D20).
+        boolean shouldReset = false;
+        if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_TAB ||
+            keyCode == KeyEvent.KEYCODE_ESCAPE || keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+            keyCode == KeyEvent.KEYCODE_DPAD_DOWN || keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
+            keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_MOVE_HOME ||
+            keyCode == KeyEvent.KEYCODE_MOVE_END || keyCode == KeyEvent.KEYCODE_PAGE_UP ||
+            keyCode == KeyEvent.KEYCODE_PAGE_DOWN) {
+            shouldReset = true;
+        }
+        if (event.isCtrlPressed() || event.isAltPressed() || mClient.readControlKey() || mClient.readAltKey()) {
+            if (keyCode != KeyEvent.KEYCODE_CTRL_LEFT && keyCode != KeyEvent.KEYCODE_CTRL_RIGHT &&
+                keyCode != KeyEvent.KEYCODE_ALT_LEFT && keyCode != KeyEvent.KEYCODE_ALT_RIGHT) {
+                shouldReset = true;
+            }
+        }
+        if (shouldReset) {
+            mShadowLine.reset();
+            InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.restartInput(this);
         }
 
         if (mClient.onKeyDown(keyCode, event, mTermSession)) {
@@ -1369,6 +1429,13 @@ public final class TerminalView extends View {
     }
 
     /** Get the currently selected text if selecting. */
+    /** Resets the shadow line (D20). */
+    public void resetShadow() {
+        mShadowLine.reset();
+        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.restartInput(this);
+    }
+
     public String getSelectedText() {
         if (isSelectingText() && mTextSelectionCursorController != null)
             return mTextSelectionCursorController.getSelectedText();

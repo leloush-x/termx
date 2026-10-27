@@ -66,6 +66,12 @@ class TerminalBackend(
         terminalView = null
     }
 
+    /** Resets the IME shadow line (D20). */
+    fun resetShadow() {
+        terminalView?.resetShadow()
+    }
+
+    /** Focuses the terminal surface and shows the soft keyboard. */
     fun focus() {
         terminalView?.let { view ->
             view.requestFocus()
@@ -241,6 +247,7 @@ class TerminalBackend(
         val clip = clipboard().primaryClip ?: return
         val text = clip.getItemAt(0).coerceToText(context).toString()
         if (text.isNotEmpty()) terminalView?.mEmulator?.paste(text)
+        resetShadow()
     }
 
     override fun onBell(session: TerminalSession) {
