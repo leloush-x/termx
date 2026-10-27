@@ -53,14 +53,26 @@ object ProotCommand {
         installPromptHooks(rootfs, distroName)
         writeGuestHostname(rootfs, distroName)
         temporaryDirectory.mkdirs()
+        val sysdataDir = File(temporaryDirectory, "sysdata").apply { mkdirs() }
+        FakeProcfs.writeSysdata(sysdataDir)
         val binds = buildList {
             addAll(BindTable.build(storageTier, sharedDirectory, externalStorageRoot, dnsResolverFile))
-            // Wolfi-terminal style workaround: Android restricts /proc/stat (and /proc/vmstat)
-            // for non-system apps, so htop fails with "Cannot open /proc/stat: Permission denied".
-            // Snapshot the host values (readable by our own process on most devices) into files
-            // and bind those over the guest paths. The snapshot is static but keeps htop working.
-            snapshotProcFiles(temporaryDirectory)?.let { procBinds ->
-                addAll(procBinds)
+            // Termux-style: bind fake proc files only where the real ones are blocked.
+            val procFiles = listOf("stat", "vmstat", "meminfo", "uptime", "loadavg", "cpuinfo", "version")
+            for (name in procFiles) {
+                val real = File("/proc", name)
+                val fake = File(sysdataDir, name)
+                // bind_if_blocked: only bind if reading the real file fails
+                val realReadable = try { real.canRead() && real.readBytes().isNotEmpty() } catch (e: Exception) { false }
+                if (!realReadable && fake.exists() && fake.length() > 0) {
+                    // Hardening: source must be regular file, link count 1, path inside sysdataDir
+                    if (FakeProcfs.isRegularFile(fake) &&
+                        (FakeProcfs.linkCount(fake) == 1 || FakeProcfs.linkCount(fake) == -1) &&
+                        fake.absolutePath.startsWith(sysdataDir.absolutePath)
+                    ) {
+                        add(Bind(fake.absolutePath, "/proc/$name"))
+                    }
+                }
             }
         }.toMutableList()
         binds.filter { it.guest.startsWith("/root/") }.forEach { bind ->
@@ -240,23 +252,6 @@ unset __termx_host
     }
 
     private fun File.readTextOrNull(): String? = runCatching { readText() }.getOrNull()
-
-    /** Snapshot host /proc files so htop/top work under proot on Android. */
-    internal fun snapshotProcFiles(tempDir: File): List<Bind> {
-        val procDir = File(tempDir, "proc-snapshot").apply { mkdirs() }
-        val result = mutableListOf<Bind>()
-        val files = listOf("stat", "vmstat", "meminfo", "uptime", "loadavg", "cpuinfo", "version")
-        for (name in files) {
-            val source = File("/proc", name)
-            if (!source.canRead()) continue
-            val target = File(procDir, name)
-            runCatching { source.copyTo(target, overwrite = true) }
-            if (target.exists() && target.length() > 0) {
-                result.add(Bind(target.absolutePath, "/proc/$name"))
-            }
-        }
-        return result
-    }
 
     /** Keeps the guest's /etc/hostname in step so `hostname` and `\h` name the distro too. */
     internal fun writeGuestHostname(rootfs: File, distroName: String) {
