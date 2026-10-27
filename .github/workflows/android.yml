@@ -138,7 +138,7 @@ jobs:
           cp NOTICE licenses/GPL-2.0-or-later.txt licenses/LGPL-3.0-or-later.txt licenses/PROOT-SOURCE.txt dist/
           tar -czf "dist/TermX-proot-source-${VERSION}.tar.gz" app/src/main/cpp licenses/GPL-2.0-or-later.txt licenses/LGPL-3.0-or-later.txt licenses/PROOT-SOURCE.txt
 
-          if "$BT/apksigner" verify --verbose --print-certs "dist/$OUT" > "$RUNNER_TEMP/signer.txt" 2>&1; then
+          if "$BT/apksigner" verify --min-sdk-version 1 --verbose --print-certs "dist/$OUT" > "$RUNNER_TEMP/signer.txt" 2>&1; then
             echo "Signature: OK"
             cat "$RUNNER_TEMP/signer.txt"
             grep -q 'Verified using v1 scheme (JAR signing): true' "$RUNNER_TEMP/signer.txt"
