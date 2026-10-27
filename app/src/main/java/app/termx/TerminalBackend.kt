@@ -39,6 +39,20 @@ class TerminalBackend(
     private var ctrlPendingReset = false
     private val tapThresholdMs = 250L
 
+    // Tap-hold state for the physical Left Alt key.
+    private val altHandler = Handler(Looper.getMainLooper())
+    private var altDownTime = 0L
+    private var altIsHold = false
+    private var altOneShot = false
+    private var altPendingReset = false
+
+    // Tap-hold state for the physical Left Shift key.
+    private val shiftHandler = Handler(Looper.getMainLooper())
+    private var shiftDownTime = 0L
+    private var shiftIsHold = false
+    private var shiftOneShot = false
+    private var shiftPendingReset = false
+
     /** Palette to apply once the emulator is initialized (it is null until the first layout). */
     var theme: TermXTheme? = null
 
@@ -104,6 +118,28 @@ class TerminalBackend(
             return true
         }
 
+        // Tap-hold for physical Left Alt.
+        if (keyCode == KeyEvent.KEYCODE_ALT_LEFT) {
+            if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) {
+                altDownTime = System.currentTimeMillis()
+                altIsHold = false
+                altPressed = true
+                altHandler.postDelayed({ altIsHold = true }, tapThresholdMs)
+            }
+            return true
+        }
+
+        // Tap-hold for physical Left Shift.
+        if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) {
+            if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) {
+                shiftDownTime = System.currentTimeMillis()
+                shiftIsHold = false
+                shiftPressed = true
+                shiftHandler.postDelayed({ shiftIsHold = true }, tapThresholdMs)
+            }
+            return true
+        }
+
         return false
     }
 
@@ -118,10 +154,40 @@ class TerminalBackend(
             }
             return true
         }
+        if (keyCode == KeyEvent.KEYCODE_ALT_LEFT) {
+            altHandler.removeCallbacksAndMessages(null)
+            if (altIsHold) {
+                altPressed = false
+                altIsHold = false
+            } else {
+                altOneShot = true
+            }
+            return true
+        }
+        if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) {
+            shiftHandler.removeCallbacksAndMessages(null)
+            if (shiftIsHold) {
+                shiftPressed = false
+                shiftIsHold = false
+            } else {
+                shiftOneShot = true
+            }
+            return true
+        }
         if (ctrlPendingReset) {
             controlPressed = false
             ctrlPendingReset = false
             ctrlOneShot = false
+        }
+        if (altPendingReset) {
+            altPressed = false
+            altPendingReset = false
+            altOneShot = false
+        }
+        if (shiftPendingReset) {
+            shiftPressed = false
+            shiftPendingReset = false
+            shiftOneShot = false
         }
         return false
     }
@@ -134,8 +200,23 @@ class TerminalBackend(
         }
         return controlPressed
     }
-    override fun readAltKey() = altPressed
-    override fun readShiftKey() = shiftPressed
+    override fun readAltKey(): Boolean {
+        if (altOneShot) {
+            altOneShot = false
+            altPendingReset = true
+            return true
+        }
+        return altPressed
+    }
+
+    override fun readShiftKey(): Boolean {
+        if (shiftOneShot) {
+            shiftOneShot = false
+            shiftPendingReset = true
+            return true
+        }
+        return shiftPressed
+    }
     override fun readFnKey() = false
     override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession) = false
     override fun onEmulatorSet() {
