@@ -58,6 +58,8 @@ public interface TerminalViewClient {
 
     boolean readFnKey();
 
+    default void onModifierKeyUsed() {}
+
 
 
     boolean onCodePoint(int codePoint, boolean ctrlDown, TerminalSession session);

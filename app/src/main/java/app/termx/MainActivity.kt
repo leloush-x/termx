@@ -108,6 +108,7 @@ private data class CustomizationSnapshot(
     val wallpaperUri: String?,
     val wallpaperBlur: Float,
     val wallpaperDim: Float,
+    val settingsWallpaper: Boolean,
 )
 
 class MainActivity : ComponentActivity() {
@@ -134,6 +135,8 @@ class MainActivity : ComponentActivity() {
     private var showTerminalPanel by mutableStateOf(false)
     private var showSettings by mutableStateOf(false)
     private var amoledMode by mutableStateOf(true)
+    private var settingsWallpaper by mutableStateOf(true)
+    private var focusTick by mutableStateOf(0)
     private var terminalThemeJson by mutableStateOf<String?>(null)
     private var terminalKeyLayoutJson by mutableStateOf<String?>(null)
     private var terminalTypeface by mutableStateOf<Typeface?>(null)
@@ -215,7 +218,8 @@ class MainActivity : ComponentActivity() {
                     customizationStore.get("text_size", "16").toIntOrNull() ?: 16,
                     customizationStore.get("wallpaper_uri").takeIf { it.isNotBlank() },
                     customizationStore.get("wallpaper_blur", "12").toFloatOrNull() ?: 12f,
-                    customizationStore.get("wallpaper_dim", "0.35").toFloatOrNull() ?: 0.35f)
+                    customizationStore.get("wallpaper_dim", "0.35").toFloatOrNull() ?: 0.35f,
+                    customizationStore.get("settings_wallpaper", "true") != "false")
             } }
             runOnUiThread {
                 loaded.onSuccess { snapshot ->
@@ -226,6 +230,7 @@ class MainActivity : ComponentActivity() {
                     wallpaperUri = snapshot.wallpaperUri
                     wallpaperBlur = snapshot.wallpaperBlur.coerceIn(0f, 32f)
                     wallpaperDim = snapshot.wallpaperDim.coerceIn(0f, 1f)
+                    settingsWallpaper = snapshot.settingsWallpaper
                     if (snapshot.fontPath != null) fontRepository.loadImported(File(snapshot.fontPath)) { font ->
                         font.onSuccess { typeface -> runOnUiThread { terminalTypeface = typeface } }
                     }
@@ -449,6 +454,11 @@ class MainActivity : ComponentActivity() {
                             wallpaperUri = wallpaperUri,
                             wallpaperBlur = wallpaperBlur,
                             wallpaperDim = wallpaperDim,
+                            settingsWallpaper = settingsWallpaper,
+                            onSettingsWallpaper = { enabled ->
+                                settingsWallpaper = enabled
+                                Thread({ runCatching { kotlinx.coroutines.runBlocking { customizationStore.put("settings_wallpaper", enabled.toString()) } } }, "termx-wallpaper-save").start()
+                            },
                             onPickWallpaper = { wallpaperPickerLauncher.launch(arrayOf("image/*")) },
                             onWallpaperBlur = { value ->
                                 wallpaperBlur = value.coerceIn(0f, 32f)
@@ -482,8 +492,11 @@ class MainActivity : ComponentActivity() {
                                 showSettings = false
                             },
                             onKillBackgroundJobs = {
-                                val killed = ProcessRunner.stopAll()
-                                storageMessage = "Stopped $killed background job(s)"
+                                ProcessRunner.stopAll()
+                                Thread({
+                                    val killed = ProcessControl.stopAll(packageName, android.os.Process.myPid(), android.os.Process.myUid())
+                                    runOnUiThread { storageMessage = "Stopped $killed background process(es)" }
+                                }, "termx-process-stop").start()
                             },
                             onOpenBackgroundProcesses = {
                                 showSettings = false
@@ -571,6 +584,7 @@ class MainActivity : ComponentActivity() {
                         BackgroundProcessesScreen(
                             wallpaperUri = wallpaperUri,
                             amoledMode = amoledMode,
+                            showWallpaper = settingsWallpaper,
                             onBack = { showBackgroundProcesses = false },
                         )
                     } else if (showStorageHealth) {
@@ -685,6 +699,9 @@ class MainActivity : ComponentActivity() {
                                             style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                     }
                                     Box(Modifier.size(7.dp).background(terminalAccent, androidx.compose.foundation.shape.CircleShape))
+                                }
+                                LaunchedEffect(session, focusTick, showTerminalPanel) {
+                                    if (!showTerminalPanel) backend.focus()
                                 }
                                 key(session) {
                                     AndroidView(
@@ -1002,8 +1019,14 @@ class MainActivity : ComponentActivity() {
         }, "termx-storage-transfer").start()
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) focusTick++
+    }
+
     override fun onResume() {
         super.onResume()
+        focusTick++
         storageRevision++
         refreshSessions()
         if (terminalSession?.isRunning == false && !SessionService.hasSavedSessions(this)) terminalSession = null

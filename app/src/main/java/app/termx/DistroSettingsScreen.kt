@@ -59,6 +59,8 @@ internal fun DistroSettingsScreen(
     wallpaperUri: String?,
     wallpaperBlur: Float,
     wallpaperDim: Float,
+    settingsWallpaper: Boolean,
+    onSettingsWallpaper: (Boolean) -> Unit,
     onPickWallpaper: () -> Unit,
     onWallpaperBlur: (Float) -> Unit,
     onWallpaperDim: (Float) -> Unit,
@@ -79,9 +81,9 @@ internal fun DistroSettingsScreen(
     var searchQuery by remember { mutableStateOf("") }
     val query = searchQuery.trim().lowercase()
     fun matches(vararg terms: String): Boolean = query.isBlank() || terms.any { it.contains(query, ignoreCase = true) }
-    Box(Modifier.fillMaxSize().background(if (wallpaperUri != null) base.copy(alpha = 0.55f) else base)) {
+    Box(Modifier.fillMaxSize().then(settingsPageFill(amoledMode, wallpaperUri, settingsWallpaper))) {
         Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
-            Canvas(Modifier.fillMaxSize()) {
+            if (!showsWallpaperBehindPage(wallpaperUri, settingsWallpaper)) Canvas(Modifier.fillMaxSize()) {
                 val center = Offset(size.width * 0.82f, size.height * 0.16f)
                 drawRect(base)
                 drawCircle(
@@ -154,6 +156,13 @@ internal fun DistroSettingsScreen(
             SettingsAction(if (wallpaperUri == null) "Choose background image" else "Change background image", onPickWallpaper)
             if (wallpaperUri != null) {
                 SettingsAction("Remove background image", onClearWallpaper)
+                Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Show wallpaper on this page", color = Color.White, style = MaterialTheme.typography.titleSmall)
+                        Text("Turn off to keep the solid black background behind settings", color = Color.White.copy(alpha = .62f), style = MaterialTheme.typography.bodySmall)
+                    }
+                    Switch(checked = settingsWallpaper, onCheckedChange = onSettingsWallpaper)
+                }
                 Text("Blur · ${wallpaperBlur.toInt()}dp", Modifier.padding(top = 10.dp),
                     color = Color.White.copy(alpha = 0.62f), style = MaterialTheme.typography.bodySmall)
                 Slider(
@@ -184,12 +193,11 @@ internal fun DistroSettingsScreen(
             Text("PROCESSES", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 1.25.sp)
             Spacer(Modifier.height(8.dp))
-            val bgCount = remember { ProcessRunner.list().size }
-            Text(if (bgCount == 0) "No background jobs running" else "$bgCount background job(s) running",
+            Text("Lists every process TermX can see, such as Codex, daemons and commands, grouped by name.",
                 color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(12.dp))
             SettingsAction("View background processes", onOpenBackgroundProcesses)
-            SettingsAction("Stop all background jobs", onKillBackgroundJobs)
+            SettingsAction("Stop all background processes", onKillBackgroundJobs)
         }
 
         Column(
@@ -313,6 +321,14 @@ internal fun DistroSettingsScreen(
         }
         }
     }
+}
+
+internal fun showsWallpaperBehindPage(wallpaperUri: String?, showWallpaper: Boolean): Boolean = wallpaperUri != null && showWallpaper
+
+internal fun settingsPageFill(amoledMode: Boolean, wallpaperUri: String?, showWallpaper: Boolean): Modifier {
+    if (showsWallpaperBehindPage(wallpaperUri, showWallpaper)) return Modifier
+    val base = if (amoledMode) Color.Black else Color(0xFF0D0F10)
+    return Modifier.background(if (wallpaperUri != null) base.copy(alpha = .55f) else base)
 }
 
 @Composable

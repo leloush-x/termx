@@ -57,6 +57,7 @@ public final class TerminalView extends View {
 
     /** Shadow line for IME sync (D20). */
     private final ShadowLine mShadowLine = new ShadowLine();
+    private String mComposingSent = "";
 
     /** Bracketed paste state (DECSET 2004). */
     private boolean mBracketedPaste = false;
@@ -323,7 +324,7 @@ public final class TerminalView extends View {
             // A normal text class keeps voice dictation available in common IMEs. The
             // password variation and TYPE_NULL both hide or disable the microphone on
             // several keyboards (see docs/VOICE_HANDOFF.md in wolfi-terminal).
-            outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+            outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
         } else {
             // Corresponds to android:inputType="text"
             outAttrs.inputType =  InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_NORMAL;
@@ -331,17 +332,17 @@ public final class TerminalView extends View {
 
         // Note that IME_ACTION_NONE cannot be used as that makes it impossible to input newlines using the on-screen
         // keyboard on Android TV (see https://github.com/termux/termux-app/issues/221).
-        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN | EditorInfo.IME_FLAG_NO_EXTRACT_UI;
+        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN | EditorInfo.IME_FLAG_NO_EXTRACT_UI
+            | EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING;
 
         return new BaseInputConnection(this, true) {
 
             @Override
-            public boolean finishComposingText() {
-                if (TERMINAL_VIEW_KEY_LOGGING_ENABLED) mClient.logInfo(LOG_TAG, "IME: finishComposingText()");
-                super.finishComposingText();
-
-                sendTextToTerminal(getEditable());
-                getEditable().clear();
+            public boolean setComposingText(CharSequence text, int newCursorPosition) {
+                super.setComposingText(text, newCursorPosition);
+                if (mClient.readControlKey() || mClient.readAltKey()) return true;
+                String next = isPrintable(text) ? text.toString() : "";
+                if (!next.equals(mComposingSent)) { eraseSentComposing(); mComposingSent = writeCommitted(next); }
                 return true;
             }
 
@@ -352,24 +353,21 @@ public final class TerminalView extends View {
                 }
                 super.commitText(text, newCursorPosition);
 
-                if (mEmulator == null) return true;
+                if (!text.toString().equals(mComposingSent)) { eraseSentComposing(); writeCommitted(text); }
+                mComposingSent = "";
+                getEditable().clear();
+                mClient.onModifierKeyUsed();
+                return true;
+            }
 
-                Editable content = getEditable();
-                sendTextToTerminal(content);
-                // Shadow sync (D20).
-                boolean hasEnter = false;
-                for (int i = 0; i < content.length(); i++) {
-                    if (content.charAt(i) == '\n' || content.charAt(i) == '\r') { hasEnter = true; break; }
-                }
-                String sent = content.toString();
-                if (hasEnter) {
-                    mShadowLine.reset();
-                    InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.restartInput(TerminalView.this);
-                } else if (!sent.isEmpty()) {
-                    mShadowLine.append(sent);
-                }
-                content.clear();
+            @Override
+            public boolean finishComposingText() {
+                super.finishComposingText();
+                String pending = getEditable().toString();
+                if (!pending.isEmpty() && !pending.equals(mComposingSent)) { eraseSentComposing(); writeCommitted(pending); }
+                mComposingSent = "";
+                getEditable().clear();
+                mClient.onModifierKeyUsed();
                 return true;
             }
 
@@ -378,17 +376,14 @@ public final class TerminalView extends View {
                 if (TERMINAL_VIEW_KEY_LOGGING_ENABLED) {
                     mClient.logInfo(LOG_TAG, "IME: deleteSurroundingText(" + leftLength + ", " + rightLength + ")");
                 }
-                // Shadow-driven delete: send one DEL per code point removed. A delete the shadow
-                // cannot account for (e.g. Samsung keyboard's multi-char backspace) triggers a reset.
-                KeyEvent deleteKey = new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL);
-                int toDelete = mShadowLine.deleteBefore(leftLength);
-                if (toDelete < leftLength) {
-                    mShadowLine.reset();
-                    InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.restartInput(TerminalView.this);
-                }
-                for (int i = 0; i < toDelete; i++) sendKeyEvent(deleteKey);
-                return super.deleteSurroundingText(leftLength, rightLength);
+                super.deleteSurroundingText(leftLength, rightLength);
+                eraseBeforeCursor(leftLength);
+                return true;
+            }
+
+            @Override public boolean deleteSurroundingTextInCodePoints(int beforeLength, int afterLength) {
+                int units = mShadowLine.tail(beforeLength).length();
+                return deleteSurroundingText(units, 0);
             }
 
             @Override
@@ -406,63 +401,49 @@ public final class TerminalView extends View {
                 return null;
             }
 
-            void sendTextToTerminal(CharSequence text) {
-                stopTextSelectionMode();
-                final int textLengthInChars = text.length();
-                for (int i = 0; i < textLengthInChars; i++) {
-                    char firstChar = text.charAt(i);
-                    int codePoint;
-                    if (Character.isHighSurrogate(firstChar)) {
-                        if (++i < textLengthInChars) {
-                            codePoint = Character.toCodePoint(firstChar, text.charAt(i));
-                        } else {
-                            // At end of string, with no low surrogate following the high:
-                            codePoint = TerminalEmulator.UNICODE_REPLACEMENT_CHAR;
-                        }
-                    } else {
-                        codePoint = firstChar;
-                    }
 
-                    // Check onKeyDown() for details.
-                    if (mClient.readShiftKey())
-                        codePoint = Character.toUpperCase(codePoint);
-
-                    boolean ctrlHeld = false;
-                    if (codePoint <= 31 && codePoint != 27) {
-                        if (codePoint == '\n') {
-                            // The AOSP keyboard and descendants seems to send \n as text when the enter key is pressed,
-                            // instead of a key event like most other keyboard apps. A terminal expects \r for the enter
-                            // key (although when icrnl is enabled this doesn't make a difference - run 'stty -icrnl' to
-                            // check the behaviour).
-                            codePoint = '\r';
-                        }
-
-                        // E.g. penti keyboard for ctrl input.
-                        ctrlHeld = true;
-                        switch (codePoint) {
-                            case 31:
-                                codePoint = '_';
-                                break;
-                            case 30:
-                                codePoint = '^';
-                                break;
-                            case 29:
-                                codePoint = ']';
-                                break;
-                            case 28:
-                                codePoint = '\\';
-                                break;
-                            default:
-                                codePoint += 96;
-                                break;
-                        }
-                    }
-
-                    inputCodePoint(KEY_EVENT_SOURCE_SOFT_KEYBOARD, codePoint, ctrlHeld, false);
-                }
-            }
 
         };
+    }
+
+    private String writeCommitted(CharSequence text) {
+        if (mEmulator == null || mTermSession == null || text.length() == 0) return "";
+        String raw = text.toString();
+        String sent = raw.codePointCount(0, raw.length()) == 1 ? raw : app.termx.terminal.ime.CommitTransform.INSTANCE.transform(raw, mBracketedPaste);
+        stopTextSelectionMode();
+        for (int i = 0; i < sent.length(); ) {
+            int cp = sent.codePointAt(i);
+            if (cp == '\n') cp = '\r';
+            inputCodePoint(KEY_EVENT_SOURCE_SOFT_KEYBOARD, cp, cp < 32 && cp != 27, false);
+            i += Character.charCount(sent.codePointAt(i));
+            mClient.onModifierKeyUsed();
+        }
+        if (sent.indexOf('\u001B') >= 0) resetShadowLine();
+        else if (isPrintable(sent)) mShadowLine.append(sent);
+        else resetShadowLine();
+        return sent;
+    }
+
+    private void eraseBeforeCursor(int units) {
+        if (units <= 0 || mTermSession == null) return;
+        boolean covered = mShadowLine.hasUnits(units);
+        int removed = mShadowLine.deleteBeforeUnits(units);
+        for (int i = 0; i < removed; i++) mTermSession.write("\u007f");
+        mComposingSent = mComposingSent.substring(0, Math.max(0, mComposingSent.length() - units));
+        if (!covered) { mComposingSent = ""; resetShadow(); }
+    }
+
+    private void eraseSentComposing() { eraseBeforeCursor(mComposingSent.length()); mComposingSent = ""; }
+
+    private void resetShadowLine() { if (!mShadowLine.isEmpty()) resetShadow(); }
+
+    private static boolean isPrintable(CharSequence text) {
+        for (int i = 0; i < text.length(); ) {
+            int cp = Character.codePointAt(text, i);
+            if (cp < 0x20 || cp == 0x7f || cp >= 0x80 && cp <= 0x9f) return false;
+            i += Character.charCount(cp);
+        }
+        return true;
     }
 
     @Override
@@ -825,7 +806,9 @@ public final class TerminalView extends View {
         } else if (event.isSystem() && (!mClient.shouldBackButtonBeMappedToEscape() || keyCode != KeyEvent.KEYCODE_BACK)) {
             return super.onKeyDown(keyCode, event);
         } else if (event.getAction() == KeyEvent.ACTION_MULTIPLE && keyCode == KeyEvent.KEYCODE_UNKNOWN) {
-            mTermSession.write(event.getCharacters());
+            CharSequence typed = event.getCharacters();
+            if (typed != null) writeCommitted(typed);
+            mClient.onModifierKeyUsed();
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_LANGUAGE_SWITCH) {
             return super.onKeyDown(keyCode, event);
@@ -842,9 +825,11 @@ public final class TerminalView extends View {
         if (event.isAltPressed() || leftAltDown) keyMod |= KeyHandler.KEYMOD_ALT;
         if (shiftDown) keyMod |= KeyHandler.KEYMOD_SHIFT;
         if (event.isNumLockOn()) keyMod |= KeyHandler.KEYMOD_NUM_LOCK;
+        if (keyCode == KeyEvent.KEYCODE_DEL && !controlDown && !leftAltDown) mShadowLine.deleteBefore(1);
         // https://github.com/termux/termux-app/issues/731
         if (!event.isFunctionPressed() && handleKeyCode(keyCode, keyMod)) {
             if (TERMINAL_VIEW_KEY_LOGGING_ENABLED) mClient.logInfo(LOG_TAG, "handleKeyCode() took key event");
+            mClient.onModifierKeyUsed();
             return true;
         }
 
@@ -885,6 +870,7 @@ public final class TerminalView extends View {
 
         if (mCombiningAccent != oldCombiningAccent) invalidate();
 
+        mClient.onModifierKeyUsed();
         return true;
     }
 
@@ -948,6 +934,8 @@ public final class TerminalView extends View {
                 }
             }
 
+            if (controlDown || altDown || codePoint < 32 || codePoint == 127) resetShadowLine();
+            else if (Character.isValidCodePoint(codePoint)) mShadowLine.append(new String(Character.toChars(codePoint)));
             // If left alt, send escape before the code point to make e.g. Alt+B and Alt+F work in readline:
             mTermSession.writeCodePoint(altDown, codePoint);
         }

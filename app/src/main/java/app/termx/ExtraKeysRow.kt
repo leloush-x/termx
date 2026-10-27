@@ -17,10 +17,8 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
@@ -29,14 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.termux.terminal.TerminalSession
 import app.termx.customization.KeyLayoutValidator
-
-/** US-keyboard shift map for the extra-keys row, so SHIFT + "/" types "?" like a hardware keyboard. */
-private val shiftSymbols = mapOf(
-    "/" to "?", "-" to "_", "." to "<", "," to ">", "=" to "+", ";" to ":",
-    "'" to "\"", "[" to "{", "]" to "}", "\\" to "|", "`" to "~",
-    "1" to "!", "2" to "@", "3" to "#", "4" to "$", "5" to "%",
-    "6" to "^", "7" to "&", "8" to "*", "9" to "(", "0" to ")",
-)
+import app.termx.terminal.input.ModKey
+import app.termx.terminal.input.ModMode
+import app.termx.terminal.input.ModifierKeys
 
 /** Extra terminal keys adapted from wolfi-terminal's VirtualKeysListener. */
 @Composable
@@ -47,9 +40,7 @@ fun ExtraKeysRow(
     keyLayoutJson: String? = null,
     accent: Color = Color(0xFF83C7FF),
 ) {
-    var ctrlEnabled by remember { mutableStateOf(false) }
-    var altEnabled by remember { mutableStateOf(false) }
-    var shiftEnabled by remember { mutableStateOf(false) }
+    val mods = backend.modifiers
     val defaultKeys = listOf(
         KeyLayoutValidator.KeyButton("ESC", "\u001B", null, emptyList()),
         KeyLayoutValidator.KeyButton("TAB", "\t", null, emptyList()),
@@ -67,7 +58,7 @@ fun ExtraKeysRow(
             ?: defaultKeys
     }
 
-    Row(
+    key(backend.modifierRevision.intValue) { Row(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
@@ -76,44 +67,21 @@ fun ExtraKeysRow(
     ) {
         keys.forEach { key ->
             val label = key.label
-            val active = (key.modifier == "ctrl" && ctrlEnabled) ||
-                (key.modifier == "alt" && altEnabled) ||
-                (key.modifier == "shift" && shiftEnabled)
+            val mod = ModKey.fromLayout(key.modifier)
+            val mode = mod?.let(mods::mode) ?: ModMode.OFF
+            val active = mode != ModMode.OFF
             Box(
                 modifier = Modifier.padding(horizontal = 3.dp, vertical = 2.dp)
                     .sizeIn(minWidth = 38.dp, minHeight = 34.dp)
-                    .background(if (active) accent.copy(alpha = 0.24f) else Color.White.copy(alpha = 0.075f), CircleShape)
+                    .background(if (mode == ModMode.LOCKED) accent.copy(alpha = .42f) else if (active) accent.copy(alpha = .24f) else Color.White.copy(alpha = .075f), CircleShape)
                     .combinedClickable(onClick = {
-                        when (key.modifier) {
-                            "ctrl" -> {
-                                ctrlEnabled = !ctrlEnabled
-                                backend.controlPressed = ctrlEnabled
-                            }
-                            "alt" -> {
-                                altEnabled = !altEnabled
-                                backend.altPressed = altEnabled
-                            }
-                            "shift" -> {
-                                shiftEnabled = !shiftEnabled
-                                backend.shiftPressed = shiftEnabled
-                            }
-                            else -> {
-                                val send = key.send
-                                val outgoing = when {
-                                    send == null -> null
-                                    shiftEnabled && send in shiftSymbols -> shiftSymbols.getValue(send)
-                                    shiftEnabled && send.length == 1 && send[0].isLowerCase() -> send.uppercase()
-                                    else -> send
-                                }
-                                outgoing?.let(session::write)
-                                // SHIFT acts on the next key, then releases itself.
-                                shiftEnabled = false
-                                backend.shiftPressed = false
-                            }
+                        if (mod != null) mods.tap(mod) else key.send?.let { send ->
+                            session.write(ModifierKeys.apply(send, mods.isActive(ModKey.CTRL), mods.isActive(ModKey.ALT), mods.isActive(ModKey.SHIFT)))
+                            mods.consumeOneShots()
                         }
-                    }, onLongClick = { key.long.firstOrNull()?.let(session::write) }),
+                    }, onLongClick = { if (mod != null) mods.longPress(mod) else key.long.firstOrNull()?.let(session::write) }),
                 contentAlignment = Alignment.Center,
-            ) { Text(label, Modifier.padding(horizontal = 9.dp), color = if (active) accent else Color.White.copy(alpha = 0.78f), fontSize = 11.sp) }
+            ) { Text(if (mode == ModMode.LOCKED) "$label 🔒" else label, Modifier.padding(horizontal = 9.dp), color = if (active) accent else Color.White.copy(alpha = 0.78f), fontSize = 11.sp) }
         }
-    }
+    } }
 }

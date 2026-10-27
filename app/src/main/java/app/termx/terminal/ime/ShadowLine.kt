@@ -27,6 +27,17 @@ class ShadowLine {
         return toRemove
     }
 
+    fun hasUnits(units: Int): Boolean = units <= text.length
+
+    fun deleteBeforeUnits(units: Int): Int {
+        if (units <= 0 || text.isEmpty()) return 0
+        var start = text.length - units.coerceAtMost(text.length)
+        if (start > 0 && Character.isLowSurrogate(text[start]) && Character.isHighSurrogate(text[start - 1])) start--
+        val removed = text.codePointCount(start, text.length)
+        text.setLength(start)
+        return removed
+    }
+
     /** Clears the shadow. */
     fun reset() {
         text.setLength(0)

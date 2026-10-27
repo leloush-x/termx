@@ -5,15 +5,17 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
-import android.os.Handler
-import android.os.Looper
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.view.inputmethod.InputMethodManager
+import androidx.compose.runtime.mutableIntStateOf
+import app.termx.terminal.input.ModifierState
 import app.termx.terminal.view.TerminalView
 import app.termx.terminal.view.TerminalViewClient
 import app.termx.customization.TermXTheme
 import app.termx.customization.TerminalTheme
+import app.termx.terminal.input.ModKey
 import com.termux.terminal.TerminalEmulator
 import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
@@ -27,31 +29,11 @@ class TerminalBackend(
     private var terminalView: TerminalView? = null
     private var fontSize = 16
 
-    var controlPressed = false
-    var altPressed = false
-    var shiftPressed = false
+    val modifierRevision = mutableIntStateOf(0)
+    val modifiers = ModifierState { modifierRevision.intValue++ }
 
-    // Tap-hold state for the physical Left Ctrl key.
-    private val ctrlHandler = Handler(Looper.getMainLooper())
-    private var ctrlDownTime = 0L
-    private var ctrlIsHold = false
-    private var ctrlOneShot = false
-    private var ctrlPendingReset = false
-    private val tapThresholdMs = 250L
-
-    // Tap-hold state for the physical Left Alt key.
-    private val altHandler = Handler(Looper.getMainLooper())
-    private var altDownTime = 0L
-    private var altIsHold = false
-    private var altOneShot = false
-    private var altPendingReset = false
-
-    // Tap-hold state for the physical Left Shift key.
-    private val shiftHandler = Handler(Looper.getMainLooper())
-    private var shiftDownTime = 0L
-    private var shiftIsHold = false
-    private var shiftOneShot = false
-    private var shiftPendingReset = false
+    private class PhysicalHold(val downAt: Long = System.currentTimeMillis()) { var usedAsChord = false }
+    private val physicalHolds = mutableMapOf<ModKey, PhysicalHold>()
 
     /** Palette to apply once the emulator is initialized (it is null until the first layout). */
     var theme: TermXTheme? = null
@@ -71,13 +53,14 @@ class TerminalBackend(
         terminalView?.resetShadow()
     }
 
-    /** Focuses the terminal surface and shows the soft keyboard. */
+    /** Focuses on the next frame so recreated views can take focus too. */
     fun focus() {
-        terminalView?.let { view ->
-            view.requestFocus()
-            (context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-                .showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
-        }
+        terminalView?.post { terminalView?.let(::showKeyboardFor) }
+    }
+
+    private fun showKeyboardFor(view: TerminalView) {
+        view.requestFocus()
+        (context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
     }
 
     /** Inserts text into the active terminal without sending Enter. */
@@ -92,11 +75,7 @@ class TerminalBackend(
     }
 
     override fun onSingleTapUp(e: MotionEvent) {
-        terminalView?.let { view ->
-            view.requestFocus()
-            (context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-                .showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
-        }
+        terminalView?.let(::showKeyboardFor)
     }
 
     override fun shouldBackButtonBeMappedToEscape() = false
@@ -112,117 +91,30 @@ class TerminalBackend(
             return true
         }
 
-        // Tap-hold for physical Left Ctrl: tap = one-shot latch, hold = standard modifier.
-        if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT) {
-            if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) {
-                ctrlDownTime = System.currentTimeMillis()
-                ctrlIsHold = false
-                controlPressed = true
-                ctrlHandler.postDelayed({ ctrlIsHold = true }, tapThresholdMs)
-            }
-            return true
-        }
-
-        // Tap-hold for physical Left Alt.
-        if (keyCode == KeyEvent.KEYCODE_ALT_LEFT) {
-            if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) {
-                altDownTime = System.currentTimeMillis()
-                altIsHold = false
-                altPressed = true
-                altHandler.postDelayed({ altIsHold = true }, tapThresholdMs)
-            }
-            return true
-        }
-
-        // Tap-hold for physical Left Shift.
-        if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) {
-            if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) {
-                shiftDownTime = System.currentTimeMillis()
-                shiftIsHold = false
-                shiftPressed = true
-                shiftHandler.postDelayed({ shiftIsHold = true }, tapThresholdMs)
-            }
-            return true
-        }
-
+        val mod = physicalModifier(keyCode)
+        if (mod != null) { if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0 && physicalHolds[mod] == null) physicalHolds[mod] = PhysicalHold(); return true }
+        physicalHolds.values.forEach { it.usedAsChord = true }
         return false
     }
 
     override fun onKeyUp(keyCode: Int, e: KeyEvent): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT) {
-            ctrlHandler.removeCallbacksAndMessages(null)
-            if (ctrlIsHold) {
-                controlPressed = false
-                ctrlIsHold = false
-            } else {
-                ctrlOneShot = true
-            }
-            return true
-        }
-        if (keyCode == KeyEvent.KEYCODE_ALT_LEFT) {
-            altHandler.removeCallbacksAndMessages(null)
-            if (altIsHold) {
-                altPressed = false
-                altIsHold = false
-            } else {
-                altOneShot = true
-            }
-            return true
-        }
-        if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT) {
-            shiftHandler.removeCallbacksAndMessages(null)
-            if (shiftIsHold) {
-                shiftPressed = false
-                shiftIsHold = false
-            } else {
-                shiftOneShot = true
-            }
-            return true
-        }
-        if (ctrlPendingReset) {
-            controlPressed = false
-            ctrlPendingReset = false
-            ctrlOneShot = false
-        }
-        if (altPendingReset) {
-            altPressed = false
-            altPendingReset = false
-            altOneShot = false
-        }
-        if (shiftPendingReset) {
-            shiftPressed = false
-            shiftPendingReset = false
-            shiftOneShot = false
-        }
-        return false
+        val mod = physicalModifier(keyCode) ?: return false
+        val hold = physicalHolds.remove(mod) ?: return true
+        when { hold.usedAsChord -> Unit; System.currentTimeMillis() - hold.downAt >= ViewConfiguration.getLongPressTimeout() -> modifiers.longPress(mod); else -> modifiers.tap(mod) }
+        return true
+    }
+    private fun physicalModifier(keyCode: Int): ModKey? = when (keyCode) {
+        KeyEvent.KEYCODE_CTRL_LEFT, KeyEvent.KEYCODE_CTRL_RIGHT -> ModKey.CTRL
+        KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT -> ModKey.SHIFT
+        KeyEvent.KEYCODE_ALT_LEFT -> ModKey.ALT
+        else -> null
     }
     override fun onLongPress(event: MotionEvent) = false
-    override fun readControlKey(): Boolean {
-        if (ctrlOneShot) {
-            ctrlOneShot = false
-            ctrlPendingReset = true
-            return true
-        }
-        return controlPressed
-    }
-    override fun readAltKey(): Boolean {
-        if (altOneShot) {
-            altOneShot = false
-            altPendingReset = true
-            return true
-        }
-        return altPressed
-    }
-
-    override fun readShiftKey(): Boolean {
-        if (shiftOneShot) {
-            shiftOneShot = false
-            shiftPendingReset = true
-            return true
-        }
-        return shiftPressed
-    }
+    override fun readControlKey() = modifiers.isActive(ModKey.CTRL)
+    override fun readAltKey() = modifiers.isActive(ModKey.ALT)
+    override fun readShiftKey() = modifiers.isActive(ModKey.SHIFT)
     override fun readFnKey() = false
+    override fun onModifierKeyUsed() = modifiers.consumeOneShots()
     override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession) = false
     override fun onEmulatorSet() {
         terminalView?.let { view ->
