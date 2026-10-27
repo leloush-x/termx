@@ -726,6 +726,7 @@ class MainActivity : ComponentActivity() {
                                             view.setBackgroundColor(terminalViewBackground)
                                             view.invalidate()
                                         },
+                                        onRelease = backend::detach,
                                     )
                                 }
                                 ExtraKeysRow(session = session, backend = backend, keyLayoutJson = terminalKeyLayoutJson)
@@ -779,7 +780,6 @@ class MainActivity : ComponentActivity() {
                                             .onFailure { storageMessage = it.message ?: "Could not start ${pkg.distroName}" }
                                     },
                                     onSettings = {
-                                        backend.detach()
                                         showTerminalPanel = false
                                         showSettings = true
                                     },

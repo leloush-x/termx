@@ -43,8 +43,13 @@ class TerminalBackend(
         view.setTerminalViewClient(this)
     }
 
-    fun detach() {
-        terminalView?.setTerminalViewClient(null)
+    /**
+     * Releases the view reference without clearing its client. TerminalView assumes the client is
+     * non-null in input and lifecycle callbacks, which can still arrive while Compose removes it.
+     */
+    fun detach(view: TerminalView? = null) {
+        val attached = terminalView ?: return
+        if (view != null && attached !== view) return
         terminalView = null
     }
 
