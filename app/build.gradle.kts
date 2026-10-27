@@ -47,6 +47,10 @@ android {
         // Created only when a keystore is supplied. Without it, release builds are unsigned.
         if (releaseKeystore != null) {
             create("release") {
+                // Ship both schemes. V2 is required for current Android integrity checks;
+                // V1 keeps older Android package installers and APK verifiers compatible.
+                enableV1Signing = true
+                enableV2Signing = true
                 storeFile = file(releaseKeystore)
                 storePassword = System.getenv("TERMX_KEYSTORE_PASSWORD")
                     ?: error("TERMX_KEYSTORE_PASSWORD is required when TERMX_KEYSTORE_FILE is set")
