@@ -1,7 +1,6 @@
 package app.termx
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,14 +33,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.termx.runtime.RootfsPackage
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 
 @Composable
 internal fun DistroSettingsScreen(
@@ -76,27 +71,10 @@ internal fun DistroSettingsScreen(
     onOpenStorage: () -> Unit,
 ) {
     val panel = RoundedCornerShape(24.dp)
-    val backdrop = rememberLayerBackdrop()
-    val base = if (amoledMode) Color.Black else Color(0xFF0D0F10)
     var searchQuery by remember { mutableStateOf("") }
     val query = searchQuery.trim().lowercase()
     fun matches(vararg terms: String): Boolean = query.isBlank() || terms.any { it.contains(query, ignoreCase = true) }
     Box(Modifier.fillMaxSize().then(settingsPageFill(amoledMode, wallpaperUri, settingsWallpaper))) {
-        Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
-            // Keep a drawing node as the backdrop source even when the page is transparent. Removing
-            // the Canvas entirely left consumers of this backdrop without a source on wallpaper pages.
-            Canvas(Modifier.fillMaxSize()) {
-                if (!showsWallpaperBehindPage(wallpaperUri, settingsWallpaper)) {
-                    val center = Offset(size.width * 0.82f, size.height * 0.16f)
-                    drawRect(base)
-                    drawCircle(
-                        Brush.radialGradient(listOf(Color(0xFF7D3050).copy(alpha = 0.38f), Color.Transparent), center, size.minDimension * 0.72f),
-                        radius = size.minDimension * 0.72f,
-                        center = center,
-                    )
-                }
-            }
-        }
         Column(
             Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 14.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -130,7 +108,7 @@ internal fun DistroSettingsScreen(
 
         Column(
             Modifier.fillMaxWidth().clip(panel)
-                .termxLiquidGlass(backdrop, panel, Color.White.copy(alpha = 0.075f))
+                .background(Color(0xD9131619))
                 .padding(18.dp),
         ) {
             Text("APPEARANCE & INPUT", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
@@ -191,7 +169,7 @@ internal fun DistroSettingsScreen(
 
         Column(
             Modifier.fillMaxWidth().clip(panel)
-                .termxLiquidGlass(backdrop, panel, Color.White.copy(alpha = 0.075f))
+                .background(Color(0xD9131619))
                 .padding(18.dp),
         ) {
             Text("PROCESSES", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
@@ -206,7 +184,7 @@ internal fun DistroSettingsScreen(
 
         Column(
             Modifier.fillMaxWidth().clip(panel)
-                .termxLiquidGlass(backdrop, panel, Color.White.copy(alpha = 0.075f))
+                .background(Color(0xD9131619))
                 .padding(18.dp),
         ) {
             Text("GITHUB", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
@@ -235,7 +213,7 @@ internal fun DistroSettingsScreen(
 
         Column(
             Modifier.fillMaxWidth().clip(panel)
-                .termxLiquidGlass(backdrop, panel, Color.White.copy(alpha = 0.075f))
+                .background(Color(0xD9131619))
                 .padding(18.dp),
         ) {
             Text("DEFAULT DISTRO", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
@@ -269,7 +247,7 @@ internal fun DistroSettingsScreen(
 
         Column(
             Modifier.fillMaxWidth().clip(panel)
-                .termxLiquidGlass(backdrop, panel, Color.White.copy(alpha = 0.075f))
+                .background(Color(0xD9131619))
                 .padding(18.dp),
         ) {
             Text("LINUX WORLDS", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
@@ -315,7 +293,7 @@ internal fun DistroSettingsScreen(
         }
         Column(
             Modifier.fillMaxWidth().clip(panel)
-                .termxLiquidGlass(backdrop, panel, Color.White.copy(alpha = 0.075f))
+                .background(Color(0xD9131619))
                 .clickable(onClick = onOpenStorage)
                 .padding(horizontal = 18.dp, vertical = 15.dp),
         ) {
