@@ -38,12 +38,12 @@ object CommitTransform {
             i += Character.charCount(cp)
             when {
                 cp == 0x09 -> sb.append('\t') // tab kept
-                cp < 0x20 -> { /* strip control chars */ }
-                cp == 0x1B -> { /* strip ESC */ }
-                cp in 0x80..0x9F -> { /* strip C1 range */ }
                 cp == '\n'.code || cp == '\r'.code -> {
                     if (bracketedPaste) sb.append('\n') else sb.append(' ')
                 }
+                cp < 0x20 -> { /* strip control chars */ }
+                cp == 0x1B -> { /* strip ESC */ }
+                cp in 0x80..0x9F -> { /* strip C1 range */ }
                 else -> {
                     sb.appendCodePoint(cp)
                 }
