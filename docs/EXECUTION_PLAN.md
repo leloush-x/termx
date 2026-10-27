@@ -32,7 +32,7 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 
 - [x] Vendor termux `terminal-view` (Apache-2.0) under `app.termx.terminal.view`. Keep license headers, add NOTICE entries
 - [x] `TerminalSession` runs `/system/bin/sh` through the JitPack emulator
-- [x] Soft keyboard input uses a voice-friendly text type (wolfi VOICE_HANDOFF fix)
+- [ ] Shadow-line IME input (D20) — implemented, pending device test
 - [x] Extra-keys row: ESC, TAB, CTRL, ALT, arrows (adapt from wolfi)
 - [x] Hardware key handling for Ctrl, Alt, arrows, Home, End, PgUp, PgDn (provided by the vendored view)
 

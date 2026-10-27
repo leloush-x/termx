@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.provider.Settings
 import android.os.Build
 import android.os.Environment
 import android.os.IBinder
@@ -150,6 +151,7 @@ class MainActivity : ComponentActivity() {
     private var pendingNewSession = false
     private var serviceBound = false
     private var notificationPermissionRequester: (() -> Unit)? = null
+    private var storagePermissionRequested = false
 
     private val sessionConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -313,6 +315,31 @@ class MainActivity : ComponentActivity() {
                     SideEffect {
                         notificationPermissionRequester = {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        // Request storage (all-files) access on first launch, like notification permission.
+                        if (!storagePermissionRequested && BuildConfig.HAS_ALL_FILES) {
+                            storagePermissionRequested = true
+                            val needsAllFiles = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                                !Environment.isExternalStorageManager()
+                            val needsLegacy = Build.VERSION.SDK_INT in 26..28 && (
+                                checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+                                checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+                            )
+                            if (needsAllFiles) {
+                                try {
+                                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                        Uri.parse("package:$packageName"))
+                                    startActivity(intent)
+                                } catch (e: Exception) {
+                                    val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                                    startActivity(intent)
+                                }
+                            } else if (needsLegacy) {
+                                permissionLauncher.launch(arrayOf(
+                                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                                ))
+                            }
                         }
                         WindowCompat.getInsetsController(window, window.decorView).apply {
                             val useDarkIcons = !sessionIsDarkScreen() && !darkTheme
@@ -859,7 +886,10 @@ class MainActivity : ComponentActivity() {
         activeLaunch = record?.launch ?: sessionBinder?.activeLaunch()
         sessionBinds = activeLaunch?.binds ?: sessionBinder?.sessionBinds()
         // Auto-focus the terminal and show the keyboard when switching/creating sessions.
-        if (::backend.isInitialized) backend.focus()
+        if (::backend.isInitialized) {
+            backend.focus()
+            backend.resetShadow()
+        }
     }
 
     private fun refreshSessions() {

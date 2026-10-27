@@ -500,6 +500,7 @@ Extra binds such as `/system` and `/apex` needed by some guest tools are added b
 ### 7.3 Input
 
 - **IME:** text input type without suggestions as the default. Mic-friendly mode when voice is enabled. Test each keyboard in the matrix.
+  > Superseded by D20: one text input path, TYPE_CLASS_TEXT with suggestions on and IME_FLAG_NO_PERSONALIZED_LEARNING. See docs/IME_MATRIX.md.
 - **Extra keys row:** JSON layout (appendix), with long-press alternates, sticky modifiers, and a collapsible second layer.
 - **Gestures:** two-finger swipe to switch sessions. Pinch to zoom font size (live, persisted). Long-press to select.
 - **Hardware keyboard:** remappable shortcuts (new session, close, next and previous, palette, copy, paste).
