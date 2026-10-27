@@ -83,14 +83,18 @@ internal fun DistroSettingsScreen(
     fun matches(vararg terms: String): Boolean = query.isBlank() || terms.any { it.contains(query, ignoreCase = true) }
     Box(Modifier.fillMaxSize().then(settingsPageFill(amoledMode, wallpaperUri, settingsWallpaper))) {
         Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
-            if (!showsWallpaperBehindPage(wallpaperUri, settingsWallpaper)) Canvas(Modifier.fillMaxSize()) {
-                val center = Offset(size.width * 0.82f, size.height * 0.16f)
-                drawRect(base)
-                drawCircle(
-                    Brush.radialGradient(listOf(Color(0xFF7D3050).copy(alpha = 0.38f), Color.Transparent), center, size.minDimension * 0.72f),
-                    radius = size.minDimension * 0.72f,
-                    center = center,
-                )
+            // Keep a drawing node as the backdrop source even when the page is transparent. Removing
+            // the Canvas entirely left consumers of this backdrop without a source on wallpaper pages.
+            Canvas(Modifier.fillMaxSize()) {
+                if (!showsWallpaperBehindPage(wallpaperUri, settingsWallpaper)) {
+                    val center = Offset(size.width * 0.82f, size.height * 0.16f)
+                    drawRect(base)
+                    drawCircle(
+                        Brush.radialGradient(listOf(Color(0xFF7D3050).copy(alpha = 0.38f), Color.Transparent), center, size.minDimension * 0.72f),
+                        radius = size.minDimension * 0.72f,
+                        center = center,
+                    )
+                }
             }
         }
         Column(
