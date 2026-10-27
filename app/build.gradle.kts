@@ -4,10 +4,6 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Release signing comes only from CI secrets (exported as TERMX_KEYSTORE_FILE and
-// friends). The repo never contains a keystore or a password. See README.md.
-val releaseKeystore: String? = System.getenv("TERMX_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
-
 android {
     namespace = "app.termx"
     compileSdk = 37
@@ -43,32 +39,11 @@ android {
         }
     }
 
-    signingConfigs {
-        // Created only when a keystore is supplied. Without it, release builds are unsigned.
-        if (releaseKeystore != null) {
-            create("release") {
-                // Ship both schemes. V2 is required for current Android integrity checks;
-                // V1 keeps older Android package installers and APK verifiers compatible.
-                enableV1Signing = true
-                enableV2Signing = true
-                storeFile = file(releaseKeystore)
-                storePassword = System.getenv("TERMX_KEYSTORE_PASSWORD")
-                    ?: error("TERMX_KEYSTORE_PASSWORD is required when TERMX_KEYSTORE_FILE is set")
-                keyAlias = System.getenv("TERMX_KEY_ALIAS")
-                    ?: error("TERMX_KEY_ALIAS is required when TERMX_KEYSTORE_FILE is set")
-                keyPassword = System.getenv("TERMX_KEY_PASSWORD")
-                    ?: error("TERMX_KEY_PASSWORD is required when TERMX_KEYSTORE_FILE is set")
-            }
-        }
-    }
-
     buildTypes {
         release {
-            // R8 stays off until a release-device smoke test exists (DECISIONS.md D13).
-            // wolfi-terminal v1.3.1 crashed on launch after shrinking.
+            // CI signs the aligned APK with apksigner using both V1 and V2 schemes.
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = signingConfigs.findByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         debug {

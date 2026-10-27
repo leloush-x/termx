@@ -72,19 +72,31 @@ jobs:
           echo "TERMX_KEYSTORE_FILE=$KS" >> "$GITHUB_ENV"
 
       - name: Build direct release APK
+        run: ./gradlew assembleDirectRelease --stacktrace
+
+      - name: Check 16 KB ZIP and ELF alignment, report signature, stage APK
         env:
           TERMX_KEYSTORE_PASSWORD: ${{ secrets.TERMX_KEYSTORE_PASSWORD }}
           TERMX_KEY_ALIAS: ${{ secrets.TERMX_KEY_ALIAS }}
           TERMX_KEY_PASSWORD: ${{ secrets.TERMX_KEY_PASSWORD }}
-        run: ./gradlew assembleDirectRelease --stacktrace
-
-      - name: Check 16 KB ZIP and ELF alignment, report signature, stage APK
         run: |
           set -euo pipefail
           APK="$(find app/build/outputs/apk/direct/release -name '*.apk' -print -quit)"
           test -n "$APK"
           BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           READELF="$ANDROID_HOME/ndk/29.0.13846066/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+
+          if [ -n "${TERMX_KEYSTORE_FILE:-}" ]; then
+            "$BT/apksigner" sign \
+              --ks "$TERMX_KEYSTORE_FILE" \
+              --ks-key-alias "$TERMX_KEY_ALIAS" \
+              --ks-pass env:TERMX_KEYSTORE_PASSWORD \
+              --key-pass env:TERMX_KEY_PASSWORD \
+              --v1-signing-enabled true \
+              --v2-signing-enabled true \
+              --out "$RUNNER_TEMP/TermX-signed.apk" "$APK"
+            cp "$RUNNER_TEMP/TermX-signed.apk" "$APK"
+          fi
 
           "$BT/zipalign" -c -P 16 -v 4 "$APK" >/dev/null
           python3 - "$APK" "$READELF" <<'PY'
