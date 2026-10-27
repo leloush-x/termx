@@ -1,7 +1,7 @@
 package app.termx.runtime
 
 import java.io.File
-import app.termx.storage.StorageTier
+import app.termx.FakeProcfs
 
 data class Bind(val host: String, val guest: String)
 
