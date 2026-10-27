@@ -59,9 +59,8 @@ object ProotCommand {
             // for non-system apps, so htop fails with "Cannot open /proc/stat: Permission denied".
             // Snapshot the host values (readable by our own process on most devices) into files
             // and bind those over the guest paths. The snapshot is static but keeps htop working.
-            snapshotProcFiles(temporaryDirectory)?.let { (statFile, vmstatFile) ->
-                add(Bind(statFile.absolutePath, "/proc/stat"))
-                add(Bind(vmstatFile.absolutePath, "/proc/vmstat"))
+            snapshotProcFiles(temporaryDirectory)?.let { procBinds ->
+                addAll(procBinds)
             }
         }.toMutableList()
         binds.filter { it.guest.startsWith("/root/") }.forEach { bind ->
@@ -242,22 +241,21 @@ unset __termx_host
 
     private fun File.readTextOrNull(): String? = runCatching { readText() }.getOrNull()
 
-    /** Snapshot host /proc/stat and /proc/vmstat so htop works under proot on Android. */
-    internal fun snapshotProcFiles(tempDir: File): Pair<File, File>? {
-        val statSource = File("/proc/stat")
-        val vmstatSource = File("/proc/vmstat")
-        if (!statSource.canRead()) return null
-        val statFile = File(tempDir, "proc-stat").apply {
-            parentFile?.mkdirs()
-            runCatching { statSource.copyTo(this, overwrite = true) }
+    /** Snapshot host /proc files so htop/top work under proot on Android. */
+    internal fun snapshotProcFiles(tempDir: File): List<Bind> {
+        val procDir = File(tempDir, "proc-snapshot").apply { mkdirs() }
+        val result = mutableListOf<Bind>()
+        val files = listOf("stat", "vmstat", "meminfo", "uptime", "loadavg", "cpuinfo", "version")
+        for (name in files) {
+            val source = File("/proc", name)
+            if (!source.canRead()) continue
+            val target = File(procDir, name)
+            runCatching { source.copyTo(target, overwrite = true) }
+            if (target.exists() && target.length() > 0) {
+                result.add(Bind(target.absolutePath, "/proc/$name"))
+            }
         }
-        val vmstatFile = File(tempDir, "proc-vmstat").apply {
-            parentFile?.mkdirs()
-            runCatching { if (vmstatSource.canRead()) vmstatSource.copyTo(this, overwrite = true) }
-        }
-        if (!statFile.exists() || statFile.length() == 0L) return null
-        if (!vmstatFile.exists()) vmstatFile.writeText("")
-        return statFile to vmstatFile
+        return result
     }
 
     /** Keeps the guest's /etc/hostname in step so `hostname` and `\h` name the distro too. */

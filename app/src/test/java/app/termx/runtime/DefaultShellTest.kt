@@ -69,8 +69,9 @@ class DefaultShellTest {
         // The host part comes from $TERMX_DISTRO at prompt time, so it names the running distro.
         assertTrue(snippet.contains("TERMX_DISTRO"))
         assertTrue(snippet.contains("🐙"))
-        // A user- or distro-defined prompt is left alone.
-        assertTrue(!File(home, ".bashrc").readText().contains(".termx/prompt.sh"))
+        // The TermX prompt is now sourced even when the distro ships its own PS1, so the
+        // host part names the running distro instead of "localhost".
+        assertTrue(File(home, ".bashrc").readText().contains(".termx/prompt.sh"))
     }
 
     @Test
