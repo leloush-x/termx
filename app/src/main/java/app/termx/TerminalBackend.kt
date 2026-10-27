@@ -47,6 +47,11 @@ class TerminalBackend(
         view.setTerminalViewClient(this)
     }
 
+    fun detach() {
+        terminalView?.setTerminalViewClient(null)
+        terminalView = null
+    }
+
     /** Focuses the terminal surface and shows the soft keyboard. */
     fun focus() {
         terminalView?.let { view ->
