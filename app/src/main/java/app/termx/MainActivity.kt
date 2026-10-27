@@ -858,6 +858,8 @@ class MainActivity : ComponentActivity() {
         val record = sessionRecords.firstOrNull { it.terminal === session }
         activeLaunch = record?.launch ?: sessionBinder?.activeLaunch()
         sessionBinds = activeLaunch?.binds ?: sessionBinder?.sessionBinds()
+        // Auto-focus the terminal and show the keyboard when switching/creating sessions.
+        if (::backend.isInitialized) backend.focus()
     }
 
     private fun refreshSessions() {

@@ -5,7 +5,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.media.AudioManager
 import android.util.Log
-import android.view.KeyEvent
+import android.os.Handler
+import android.os.Looper
 import android.view.MotionEvent
 import android.view.inputmethod.InputMethodManager
 import app.termx.terminal.view.TerminalView
@@ -29,6 +30,14 @@ class TerminalBackend(
     var altPressed = false
     var shiftPressed = false
 
+    // Tap-hold state for the physical Left Ctrl key.
+    private val ctrlHandler = Handler(Looper.getMainLooper())
+    private var ctrlDownTime = 0L
+    private var ctrlIsHold = false
+    private var ctrlOneShot = false
+    private var ctrlPendingReset = false
+    private val tapThresholdMs = 250L
+
     /** Palette to apply once the emulator is initialized (it is null until the first layout). */
     var theme: TermXTheme? = null
 
@@ -37,9 +46,13 @@ class TerminalBackend(
         view.setTerminalViewClient(this)
     }
 
-    fun detach() {
-        terminalView?.setTerminalViewClient(null)
-        terminalView = null
+    /** Focuses the terminal surface and shows the soft keyboard. */
+    fun focus() {
+        terminalView?.let { view ->
+            view.requestFocus()
+            (context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
+                .showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
+        }
     }
 
     /** Inserts text into the active terminal without sending Enter. */
@@ -73,11 +86,48 @@ class TerminalBackend(
             onFinished(session)
             return true
         }
+
+        // Tap-hold for physical Left Ctrl: tap = one-shot latch, hold = standard modifier.
+        if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT) {
+            if (e.action == KeyEvent.ACTION_DOWN && e.repeatCount == 0) {
+                ctrlDownTime = System.currentTimeMillis()
+                ctrlIsHold = false
+                controlPressed = true
+                ctrlHandler.postDelayed({ ctrlIsHold = true }, tapThresholdMs)
+            }
+            return true
+        }
+
         return false
     }
-    override fun onKeyUp(keyCode: Int, e: KeyEvent) = false
+
+    override fun onKeyUp(keyCode: Int, e: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT) {
+            ctrlHandler.removeCallbacksAndMessages(null)
+            if (ctrlIsHold) {
+                controlPressed = false
+                ctrlIsHold = false
+            } else {
+                ctrlOneShot = true
+            }
+            return true
+        }
+        if (ctrlPendingReset) {
+            controlPressed = false
+            ctrlPendingReset = false
+            ctrlOneShot = false
+        }
+        return false
+    }
     override fun onLongPress(event: MotionEvent) = false
-    override fun readControlKey() = controlPressed
+    override fun readControlKey(): Boolean {
+        if (ctrlOneShot) {
+            ctrlOneShot = false
+            ctrlPendingReset = true
+            return true
+        }
+        return controlPressed
+    }
     override fun readAltKey() = altPressed
     override fun readShiftKey() = shiftPressed
     override fun readFnKey() = false
