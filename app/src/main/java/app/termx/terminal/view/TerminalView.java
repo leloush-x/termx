@@ -51,6 +51,9 @@ public final class TerminalView extends View {
 
     /** The currently displayed terminal session, whose emulator is {@link #mEmulator}. */
     public TerminalSession mTermSession;
+    /** Our terminal emulator whose session is {@link #mTermSession}. */
+    public TerminalEmulator mEmulator;
+
     /** Shadow line for IME sync (D20). */
     private final ShadowLine mShadowLine = new ShadowLine();
 
