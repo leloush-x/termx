@@ -53,7 +53,17 @@ object ProotCommand {
         installPromptHooks(rootfs, distroName)
         writeGuestHostname(rootfs, distroName)
         temporaryDirectory.mkdirs()
-        val binds = BindTable.build(storageTier, sharedDirectory, externalStorageRoot, dnsResolverFile)
+        val binds = buildList {
+            addAll(BindTable.build(storageTier, sharedDirectory, externalStorageRoot, dnsResolverFile))
+            // Wolfi-terminal style workaround: Android restricts /proc/stat (and /proc/vmstat)
+            // for non-system apps, so htop fails with "Cannot open /proc/stat: Permission denied".
+            // Snapshot the host values (readable by our own process on most devices) into files
+            // and bind those over the guest paths. The snapshot is static but keeps htop working.
+            snapshotProcFiles(temporaryDirectory)?.let { (statFile, vmstatFile) ->
+                add(Bind(statFile.absolutePath, "/proc/stat"))
+                add(Bind(vmstatFile.absolutePath, "/proc/vmstat"))
+            }
+        }.toMutableList()
         binds.filter { it.guest.startsWith("/root/") }.forEach { bind ->
             val mountPoint = File(rootfs, bind.guest.removePrefix("/"))
             require((mountPoint.isDirectory || mountPoint.mkdirs()) && mountPoint.isDirectory) {
@@ -217,8 +227,7 @@ unset __termx_host
                 rc.writeText("# TermX defaults.\n$marker\n$sourceLine\n")
             } else {
                 val text = rc.readText()
-                val definesPrompt = Regex("(^|\\n)\\s*(export\\s+)?(PS1|PROMPT)\\s*=").containsMatchIn(text)
-                if (!definesPrompt && !text.contains(".termx/prompt.sh")) {
+                if (!text.contains(".termx/prompt.sh")) {
                     rc.appendText("\n$marker\n$sourceLine\n")
                 }
             }
@@ -231,6 +240,26 @@ unset __termx_host
         ensureSourced(File(home, ".zshrc"), "PROMPT")
     }
 
+    private fun File.readTextOrNull(): String? = runCatching { readText() }.getOrNull()
+
+    /** Snapshot host /proc/stat and /proc/vmstat so htop works under proot on Android. */
+    internal fun snapshotProcFiles(tempDir: File): Pair<File, File>? {
+        val statSource = File("/proc/stat")
+        val vmstatSource = File("/proc/vmstat")
+        if (!statSource.canRead()) return null
+        val statFile = File(tempDir, "proc-stat").apply {
+            parentFile?.mkdirs()
+            runCatching { statSource.copyTo(this, overwrite = true) }
+        }
+        val vmstatFile = File(tempDir, "proc-vmstat").apply {
+            parentFile?.mkdirs()
+            runCatching { if (vmstatSource.canRead()) vmstatSource.copyTo(this, overwrite = true) }
+        }
+        if (!statFile.exists() || statFile.length() == 0L) return null
+        if (!vmstatFile.exists()) vmstatFile.writeText("")
+        return statFile to vmstatFile
+    }
+
     /** Keeps the guest's /etc/hostname in step so `hostname` and `\h` name the distro too. */
     internal fun writeGuestHostname(rootfs: File, distroName: String) {
         val safe = distroName.lowercase().replace(Regex("[^a-z0-9-]"), "-").take(64).ifBlank { "localhost" }
@@ -239,8 +268,6 @@ unset __termx_host
         hostname.parentFile?.mkdirs()
         if (hostname.readTextOrNull()?.trim() != safe) hostname.writeText("$safe\n")
     }
-
-    private fun File.readTextOrNull(): String? = runCatching { readText() }.getOrNull()
 }
 
 /** The only place where host storage paths become PRoot binds. */
