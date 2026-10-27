@@ -63,7 +63,7 @@ internal fun DistroSettingsScreen(
     onWallpaperBlur: (Float) -> Unit,
     onWallpaperDim: (Float) -> Unit,
     onClearWallpaper: () -> Unit,
-    onGitHubLogin: () -> Unit,
+    onGitHubLogin: (String) -> Unit,
     onGitHubLogout: () -> Unit,
     onKillBackgroundJobs: () -> Unit,
     customizationMessage: String?,
@@ -78,7 +78,7 @@ internal fun DistroSettingsScreen(
     var searchQuery by remember { mutableStateOf("") }
     val query = searchQuery.trim().lowercase()
     fun matches(vararg terms: String): Boolean = query.isBlank() || terms.any { it.contains(query, ignoreCase = true) }
-    Box(Modifier.fillMaxSize().background(base)) {
+    Box(Modifier.fillMaxSize().background(if (wallpaperUri != null) Color.Transparent else base)) {
         Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             Canvas(Modifier.fillMaxSize()) {
                 val center = Offset(size.width * 0.82f, size.height * 0.16f)
@@ -196,9 +196,24 @@ internal fun DistroSettingsScreen(
             Text("GITHUB", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 1.25.sp)
             Spacer(Modifier.height(8.dp))
-            Text("Authenticate gh in the active terminal", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
+            Text("Paste a GitHub token and login in the current terminal", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(12.dp))
-            SettingsAction("Login with GitHub (gh auth login)", onGitHubLogin)
+            var ghToken by remember { mutableStateOf("") }
+            OutlinedTextField(
+                value = ghToken,
+                onValueChange = { ghToken = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = { Text("GitHub token (ghp_...)", color = Color.White.copy(alpha = 0.5f)) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = Color.White.copy(alpha = 0.4f),
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                ),
+            )
+            Spacer(Modifier.height(12.dp))
+            SettingsAction("Login with GitHub", { onGitHubLogin(ghToken) })
             SettingsAction("Logout from GitHub", onGitHubLogout)
         }
 

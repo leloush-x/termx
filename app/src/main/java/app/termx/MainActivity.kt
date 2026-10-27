@@ -278,6 +278,7 @@ class MainActivity : ComponentActivity() {
             }
             MaterialTheme(colorScheme = colors) {
                 val rootSurfaceColor = when {
+                    wallpaper != null -> Color.Transparent
                     sessionIsDarkScreen() -> Color.Black
                     terminalSession != null && productivityPage == null && !showStorageHealth -> MaterialTheme.colorScheme.surface
                     else -> MaterialTheme.colorScheme.background
@@ -438,8 +439,12 @@ class MainActivity : ComponentActivity() {
                                     customizationStore.put("wallpaper_uri", "")
                                 } } }, "termx-wallpaper-save").start()
                             },
-                            onGitHubLogin = {
-                                val command = "if command -v gh >/dev/null 2>&1; then gh auth login; else echo 'gh not found - install: apk add github-cli'; fi"
+                            onGitHubLogin = { token ->
+                                val command = if (token.isBlank()) {
+                                    "if command -v gh >/dev/null 2>&1; then gh auth login; else echo 'gh not found - install: apk add github-cli'; fi"
+                                } else {
+                                    "echo '$token' | (if command -v gh >/dev/null 2>&1; then gh auth login --with-token && gh auth setup-git 2>/dev/null && echo 'GitHub login OK'; else echo 'gh not found - install: apk add github-cli'; fi)"
+                                }
                                 terminalSession?.let { it.write(command + "\n") } ?: run { storageMessage = "Open a terminal first" }
                                 showSettings = false
                             },
@@ -578,6 +583,7 @@ class MainActivity : ComponentActivity() {
                             selectedDistroId = selectedDistroId,
                             installingDistroId = installingDistroId,
                             amoled = amoledMode,
+                            wallpaperUri = wallpaperUri,
                             onSelectDistro = { id ->
                                 selectedDistroId = id
                                 getSharedPreferences("landing", MODE_PRIVATE).edit().putString("selected_distro", id).apply()

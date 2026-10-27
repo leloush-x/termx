@@ -56,6 +56,7 @@ fun DistroLandingScreen(
     selectedDistroId: String,
     installingDistroId: String?,
     amoled: Boolean,
+    wallpaperUri: String? = null,
     onSelectDistro: (String) -> Unit,
     onSettings: () -> Unit,
     progress: Float,
@@ -80,9 +81,10 @@ fun DistroLandingScreen(
     val anotherDownload = installingDistroId != null && !downloading
     val backdrop = rememberLayerBackdrop()
     val base = if (amoled) Color.Black else INK
-    Box(Modifier.fillMaxSize().background(base)) {
+    val transparentBase = wallpaperUri != null
+    Box(Modifier.fillMaxSize().background(if (transparentBase) Color.Transparent else base)) {
         Box(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
-            Box(Modifier.fillMaxSize().background(base)) {
+            Box(Modifier.fillMaxSize().background(if (transparentBase) Color.Transparent else base)) {
                 Canvas(Modifier.fillMaxSize()) {
                     val glowCenter = Offset(size.width * 0.5f, size.height * 0.26f)
                     val glowRadius = size.minDimension * 0.78f
