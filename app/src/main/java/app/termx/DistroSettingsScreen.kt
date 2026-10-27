@@ -66,6 +66,7 @@ internal fun DistroSettingsScreen(
     onGitHubLogin: (String) -> Unit,
     onGitHubLogout: () -> Unit,
     onKillBackgroundJobs: () -> Unit,
+    onOpenBackgroundProcesses: () -> Unit,
     customizationMessage: String?,
     onBack: () -> Unit,
     onSetDefault: (String) -> Unit,
@@ -183,8 +184,11 @@ internal fun DistroSettingsScreen(
             Text("PROCESSES", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 1.25.sp)
             Spacer(Modifier.height(8.dp))
-            Text("Background jobs tracked by TermX", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
+            val bgCount = remember { ProcessRunner.list().size }
+            Text(if (bgCount == 0) "No background jobs running" else "$bgCount background job(s) running",
+                color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(12.dp))
+            SettingsAction("View background processes", onOpenBackgroundProcesses)
             SettingsAction("Stop all background jobs", onKillBackgroundJobs)
         }
 

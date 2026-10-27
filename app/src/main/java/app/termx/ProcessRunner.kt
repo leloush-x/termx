@@ -55,6 +55,34 @@ object ProcessRunner {
         }
     }
 
+    /**
+     * Force-kills (SIGKILL) every job whose command name (first token, basename) matches
+     * [groupName], and stops tracking them. Returns how many jobs were killed.
+     */
+    fun stopGroup(groupName: String): Int {
+        var count = 0
+        jobs.entries.toList().forEach { (pid, job) ->
+            val name = commandName(job.command)
+            if (name == groupName) {
+                runCatching {
+                    java.lang.ProcessBuilder("kill", "-9", pid.toString()).start().waitFor()
+                }
+                jobs.remove(pid)
+                count++
+            }
+        }
+        return count
+    }
+
+    /** The basename of the first token of a command line — the group key shown in the UI. */
+    fun commandName(command: String): String =
+        command.trim().split(Regex("\\s+")).firstOrNull()
+            ?.substringAfterLast('/')?.ifBlank { "unknown" } ?: "unknown"
+
+    /** Groups tracked jobs by [commandName], sorted by process name. */
+    fun grouped(): Map<String, List<BackgroundJob>> =
+        jobs.values.groupBy { commandName(it.command) }.toSortedMap()
+
     /** Stops every tracked background job. */
     fun stopAll(): Int {
         var count = 0

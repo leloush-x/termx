@@ -120,6 +120,7 @@ class MainActivity : ComponentActivity() {
     private var sessionRecords by mutableStateOf<List<SessionRecord>>(emptyList())
     private var storageRevision by mutableIntStateOf(0)
     private var showStorageHealth by mutableStateOf(false)
+    private var showBackgroundProcesses by mutableStateOf(false)
     private var productivityPage by mutableStateOf<ProductivityPage?>(null)
     private var historyItems by mutableStateOf<List<HistoryEntry>>(emptyList())
     private var historyQuery by mutableStateOf("")
@@ -353,6 +354,7 @@ class MainActivity : ComponentActivity() {
                             showSettings -> showSettings = false
                             productivityPage != null -> { productivityPage = null; storageMessage = null }
                             showStorageHealth -> showStorageHealth = false
+                            showBackgroundProcesses -> showBackgroundProcesses = false
                             terminalSession != null -> showTerminalPanel = true
                             restoringSavedSession -> Unit
                             else -> Unit
@@ -483,6 +485,10 @@ class MainActivity : ComponentActivity() {
                                 val killed = ProcessRunner.stopAll()
                                 storageMessage = "Stopped $killed background job(s)"
                             },
+                            onOpenBackgroundProcesses = {
+                                showSettings = false
+                                showBackgroundProcesses = true
+                            },
                             customizationMessage = customizationMessage,
                             onBack = { showSettings = false },
                             onSetDefault = { id ->
@@ -560,6 +566,12 @@ class MainActivity : ComponentActivity() {
                                 profileRevision++
                             },
                             onRemoveProfile = { id -> ProfileStore.remove(context, id); profileRevision++ },
+                        )
+                    } else if (showBackgroundProcesses) {
+                        BackgroundProcessesScreen(
+                            wallpaperUri = wallpaperUri,
+                            amoledMode = amoledMode,
+                            onBack = { showBackgroundProcesses = false },
                         )
                     } else if (showStorageHealth) {
                         StorageHealthScreen(
