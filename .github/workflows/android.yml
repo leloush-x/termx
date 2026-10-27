@@ -92,6 +92,7 @@ jobs:
               --ks-key-alias "$TERMX_KEY_ALIAS" \
               --ks-pass env:TERMX_KEYSTORE_PASSWORD \
               --key-pass env:TERMX_KEY_PASSWORD \
+              --min-sdk-version 1 \
               --v1-signing-enabled true \
               --v2-signing-enabled true \
               --out "$RUNNER_TEMP/TermX-signed.apk" "$APK"
