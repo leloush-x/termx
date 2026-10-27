@@ -63,7 +63,7 @@ TermX also generates a restricted fake `/proc` sysdata view for tools such as `h
 ### Settings and appearance
 
 - Material 3 dynamic color and AMOLED mode.
-- Wallpaper picker with readable dark blending on settings and process screens.
+- Wallpaper picker with readable dark blending on settings.
 - Bundled JetBrains Mono and imported TTF fonts.
 - JSON themes, keymaps, and extra-key layouts.
 - Profiles with distro, working directory, and environment settings.

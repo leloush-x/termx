@@ -121,7 +121,6 @@ class MainActivity : ComponentActivity() {
     private var sessionRecords by mutableStateOf<List<SessionRecord>>(emptyList())
     private var storageRevision by mutableIntStateOf(0)
     private var showStorageHealth by mutableStateOf(false)
-    private var showBackgroundProcesses by mutableStateOf(false)
     private var productivityPage by mutableStateOf<ProductivityPage?>(null)
     private var historyItems by mutableStateOf<List<HistoryEntry>>(emptyList())
     private var historyQuery by mutableStateOf("")
@@ -359,7 +358,6 @@ class MainActivity : ComponentActivity() {
                             showSettings -> showSettings = false
                             productivityPage != null -> { productivityPage = null; storageMessage = null }
                             showStorageHealth -> showStorageHealth = false
-                            showBackgroundProcesses -> showBackgroundProcesses = false
                             terminalSession != null -> showTerminalPanel = true
                             restoringSavedSession -> Unit
                             else -> Unit
@@ -491,17 +489,6 @@ class MainActivity : ComponentActivity() {
                                 terminalSession?.let { it.write("gh auth logout 2>/dev/null; echo 'gh logged out'\n") } ?: run { storageMessage = "Open a terminal first" }
                                 showSettings = false
                             },
-                            onKillBackgroundJobs = {
-                                ProcessRunner.stopAll()
-                                Thread({
-                                    val killed = ProcessControl.stopAll(packageName, android.os.Process.myPid(), android.os.Process.myUid())
-                                    runOnUiThread { storageMessage = "Stopped $killed background process(es)" }
-                                }, "termx-process-stop").start()
-                            },
-                            onOpenBackgroundProcesses = {
-                                showSettings = false
-                                showBackgroundProcesses = true
-                            },
                             customizationMessage = customizationMessage,
                             onBack = { showSettings = false },
                             onSetDefault = { id ->
@@ -579,13 +566,6 @@ class MainActivity : ComponentActivity() {
                                 profileRevision++
                             },
                             onRemoveProfile = { id -> ProfileStore.remove(context, id); profileRevision++ },
-                        )
-                    } else if (showBackgroundProcesses) {
-                        BackgroundProcessesScreen(
-                            wallpaperUri = wallpaperUri,
-                            amoledMode = amoledMode,
-                            showWallpaper = settingsWallpaper,
-                            onBack = { showBackgroundProcesses = false },
                         )
                     } else if (showStorageHealth) {
                         StorageHealthScreen(

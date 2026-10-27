@@ -62,8 +62,6 @@ internal fun DistroSettingsScreen(
     onClearWallpaper: () -> Unit,
     onGitHubLogin: (String) -> Unit,
     onGitHubLogout: () -> Unit,
-    onKillBackgroundJobs: () -> Unit,
-    onOpenBackgroundProcesses: () -> Unit,
     customizationMessage: String?,
     onBack: () -> Unit,
     onSetDefault: (String) -> Unit,
@@ -165,21 +163,6 @@ internal fun DistroSettingsScreen(
             SettingsAction("Import TTF font", onImportFont)
             customizationMessage?.let { Text(it, Modifier.padding(top = 8.dp), color = Color.White.copy(alpha = 0.75f),
                 style = MaterialTheme.typography.bodySmall) }
-        }
-
-        Column(
-            Modifier.fillMaxWidth().clip(panel)
-                .background(Color(0xD9131619))
-                .padding(18.dp),
-        ) {
-            Text("PROCESSES", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
-                letterSpacing = 1.25.sp)
-            Spacer(Modifier.height(8.dp))
-            Text("Lists every process TermX can see, such as Codex, daemons and commands, grouped by name.",
-                color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(12.dp))
-            SettingsAction("View background processes", onOpenBackgroundProcesses)
-            SettingsAction("Stop all background processes", onKillBackgroundJobs)
         }
 
         Column(
