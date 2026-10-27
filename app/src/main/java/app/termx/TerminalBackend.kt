@@ -66,10 +66,6 @@ class TerminalBackend(
         terminalView = null
     }
 
-    /** Resets the IME shadow line (D20). */
-    fun resetShadow() {
-        terminalView?.resetShadow()
-    }
     fun focus() {
         terminalView?.let { view ->
             view.requestFocus()
@@ -245,8 +241,6 @@ class TerminalBackend(
         val clip = clipboard().primaryClip ?: return
         val text = clip.getItemAt(0).coerceToText(context).toString()
         if (text.isNotEmpty()) terminalView?.mEmulator?.paste(text)
-        // Paste resets the shadow (D20).
-        resetShadow()
     }
 
     override fun onBell(session: TerminalSession) {

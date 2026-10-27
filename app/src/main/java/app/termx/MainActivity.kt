@@ -888,7 +888,6 @@ class MainActivity : ComponentActivity() {
         // Auto-focus the terminal and show the keyboard when switching/creating sessions.
         if (::backend.isInitialized) {
             backend.focus()
-            backend.resetShadow()
         }
     }
 
