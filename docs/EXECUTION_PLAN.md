@@ -1,6 +1,7 @@
 # TermX execution plan
 
 Status: `[ ]` todo · `[~]` in progress · `[x]` done with green CI.
+Current shipped release: **v0.7.15**. Its tagged workflow (run `40455967971`) completed successfully.
 The AI build prompt (`docs/AI_BUILD_PROMPT.md`) drives this plan. Design details are in `docs/ARCHITECTURE.md`. Choices are in `docs/DECISIONS.md`.
 
 ## Owner actions (blocking)
@@ -32,7 +33,7 @@ Every phase ends with a green CI run, a version bump (`0.<n+1>.0`), a merge into
 
 - [x] Vendor termux `terminal-view` (Apache-2.0) under `app.termx.terminal.view`. Keep license headers, add NOTICE entries
 - [x] `TerminalSession` runs `/system/bin/sh` through the JitPack emulator
-- [ ] Shadow-line IME input (D20) — implemented, pending device test
+- [x] Shadow-line IME input (D20) — implemented and covered by unit tests; OEM/device testing remains pending
 - [x] Extra-keys row: ESC, TAB, CTRL, ALT, arrows (adapt from wolfi)
 - [x] Hardware key handling for Ctrl, Alt, arrows, Home, End, PgUp, PgDn (provided by the vendored view)
 
@@ -142,7 +143,7 @@ The checklist is intentionally recorded with evidence instead of being marked pa
 | Process death during a session, then reconnect | Not run | `adb` force-stop/relaunch log with the restored cwd/environment |
 | Android 8 (API 26), newest Android (API 37), x86_64 and arm64 where available | Not run | Device/emulator identifiers and smoke-test logs |
 
-Phase 7 and Phase 8 are intentionally not started, per the owner's instruction. No Phase 7/8 code or release tag is being made.
+Phase 7 and Phase 8 are intentionally not started. No Phase 7/8 code is included in v0.7.15.
 
 ## Unverified claims (check before relying on them)
 

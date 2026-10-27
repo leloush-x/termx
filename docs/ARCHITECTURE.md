@@ -4,7 +4,7 @@
 
 Working name: **TermX** (placeholder, rename freely). Package placeholder: `app.termx`.
 Date: 2026-10-26
-Status: plan only. No code has been built or run. Reference code in the appendix needs a compile check during implementation.
+Status: implemented incrementally through **v0.7.15**. This document remains the design reference; the repository and green CI are authoritative for current behavior.
 
 ---
 
