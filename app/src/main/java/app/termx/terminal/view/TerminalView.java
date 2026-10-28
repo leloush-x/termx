@@ -365,7 +365,7 @@ public final class TerminalView extends View {
 
                 // Send whatever the IME has accumulated (the whole composed string) once,
                 // then clear the editable buffer, mirroring wolfi-terminal's approach.
-                CharSequence content = getEditable();
+                Editable content = getEditable();
                 if (content.length() > 0) {
                     writeCommitted(content);
                     content.clear();
@@ -381,7 +381,7 @@ public final class TerminalView extends View {
             public boolean finishComposingText() {
                 super.finishComposingText();
                 if (mEmulator == null) return true;
-                CharSequence content = getEditable();
+                Editable content = getEditable();
                 if (content.length() > 0) {
                     writeCommitted(content);
                     content.clear();
