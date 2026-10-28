@@ -348,10 +348,10 @@ public final class TerminalView extends View {
 
             @Override
             public boolean setComposingText(CharSequence text, int newCursorPosition) {
+                // Do not send composing text to the terminal while the IME is still composing.
+                // Sending it incrementally caused duplicated characters on some keyboards
+                // (e.g. Xiaomi/HyperOS). The composed result is delivered by commitText().
                 super.setComposingText(text, newCursorPosition);
-                if (mClient.readControlKey() || mClient.readAltKey()) return true;
-                String next = isPrintable(text) ? text.toString() : "";
-                if (!next.equals(mComposingSent)) { eraseSentComposing(); mComposingSent = writeCommitted(next); }
                 return true;
             }
 
@@ -362,9 +362,18 @@ public final class TerminalView extends View {
                 }
                 super.commitText(text, newCursorPosition);
 
-                if (!text.toString().equals(mComposingSent)) { eraseSentComposing(); writeCommitted(text); }
+                if (mEmulator == null) return true;
+
+                // Send whatever the IME has accumulated (the whole composed string) once,
+                // then clear the editable buffer, mirroring wolfi-terminal's approach.
+                CharSequence content = getEditable();
+                if (content.length() > 0) {
+                    writeCommitted(content);
+                    content.clear();
+                } else if (text.length() > 0) {
+                    writeCommitted(text);
+                }
                 mComposingSent = "";
-                getEditable().clear();
                 mClient.onModifierKeyUsed();
                 return true;
             }
@@ -372,10 +381,13 @@ public final class TerminalView extends View {
             @Override
             public boolean finishComposingText() {
                 super.finishComposingText();
-                String pending = getEditable().toString();
-                if (!pending.isEmpty() && !pending.equals(mComposingSent)) { eraseSentComposing(); writeCommitted(pending); }
+                if (mEmulator == null) return true;
+                CharSequence content = getEditable();
+                if (content.length() > 0) {
+                    writeCommitted(content);
+                    content.clear();
+                }
                 mComposingSent = "";
-                getEditable().clear();
                 mClient.onModifierKeyUsed();
                 return true;
             }
