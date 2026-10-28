@@ -331,7 +331,7 @@ public final class TerminalView extends View {
                     outAttrs.inputType = InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
                     break;
                 default:
-                    outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+                    outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
                     break;
             }
         } else {
@@ -341,8 +341,7 @@ public final class TerminalView extends View {
 
         // Note that IME_ACTION_NONE cannot be used as that makes it impossible to input newlines using the on-screen
         // keyboard on Android TV (see https://github.com/termux/termux-app/issues/221).
-        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN | EditorInfo.IME_FLAG_NO_EXTRACT_UI
-            | EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING;
+        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN | EditorInfo.IME_FLAG_NO_EXTRACT_UI;
 
         return new BaseInputConnection(this, true) {
 
