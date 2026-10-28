@@ -80,6 +80,27 @@ public final class TerminalView extends View {
     int[] mDefaultSelectors = new int[]{-1,-1,-1,-1};
 
     float mScaleFactor = 1.f;
+
+    // Smooth cursor / trail state (opt-in, default off).
+    boolean mSmoothCursorEnabled = true;
+    boolean mCursorTrailEnabled = true;
+    float mSmoothCursorSpeed = 0.30f;
+    int mTrailLength = 8;
+    float mTrailDecay = 0.25f;
+
+    float mAnimCursorCol = 0.f;
+    float mAnimCursorRow = 0.f;
+    int mTargetCursorCol = 0;
+    int mTargetCursorRow = 0;
+    long mLastCursorFrameTime = 0L;
+    boolean mCursorAnimInitialized = false;
+
+    // Trail ring buffer (float positions + nano timestamps).
+    float[] mTrailCols = new float[16];
+    float[] mTrailRows = new float[16];
+    long[] mTrailTimes = new long[16];
+    int mTrailHead = 0;
+    int mTrailCount = 0;
     final GestureAndScaleRecognizer mGestureRecognizer;
 
     /** Keep track of where mouse touch event started which we report as mouse scroll. */
@@ -538,6 +559,22 @@ public final class TerminalView extends View {
     public void setTextSize(int textSize) {
         mRenderer = new TerminalRenderer(textSize, mRenderer == null ? Typeface.MONOSPACE : mRenderer.mTypeface);
         updateSize();
+    }
+
+    public void setSmoothCursorEnabled(boolean enabled) {
+        mSmoothCursorEnabled = enabled;
+        if (!enabled) mCursorAnimInitialized = false;
+        invalidate();
+    }
+
+    public void setCursorTrailEnabled(boolean enabled) {
+        mCursorTrailEnabled = enabled;
+        if (!enabled) { mTrailCount = 0; mTrailHead = 0; }
+        invalidate();
+    }
+
+    public void setSmoothCursorSpeed(float speed) {
+        mSmoothCursorSpeed = speed <= 0 ? 0.30f : speed;
     }
 
     public void setTypeface(Typeface newTypeface) {
@@ -1068,18 +1105,88 @@ public final class TerminalView extends View {
     protected void onDraw(Canvas canvas) {
         if (mEmulator == null) {
             canvas.drawColor(0XFF000000);
-        } else {
-            // render the terminal view and highlight any selected text
-            int[] sel = mDefaultSelectors;
-            if (mTextSelectionCursorController != null) {
-                mTextSelectionCursorController.getSelectors(sel);
+            return;
+        }
+
+        // render the terminal view and highlight any selected text
+        int[] sel = mDefaultSelectors;
+        if (mTextSelectionCursorController != null) {
+            mTextSelectionCursorController.getSelectors(sel);
+        }
+
+        // Advance smooth-cursor animation when enabled.
+        int cursorOverrideCol = -2; // -2 means "use emulator cursor"
+        int cursorOverrideRow = -2;
+        if (mSmoothCursorEnabled) {
+            int tc = mEmulator.getCursorCol();
+            int tr = mEmulator.getCursorRow();
+            if (!mCursorAnimInitialized) {
+                mAnimCursorCol = tc;
+                mAnimCursorRow = tr;
+                mTargetCursorCol = tc;
+                mTargetCursorRow = tr;
+                mCursorAnimInitialized = true;
+            }
+            if (tc != mTargetCursorCol || tr != mTargetCursorRow) {
+                mTargetCursorCol = tc;
+                mTargetCursorRow = tr;
             }
 
-            mRenderer.render(mEmulator, canvas, mTopRow, sel[0], sel[1], sel[2], sel[3]);
+            long now = System.nanoTime();
+            if (mLastCursorFrameTime == 0L) mLastCursorFrameTime = now;
+            float dt = (now - mLastCursorFrameTime) / 1_000_000_000f;
+            if (dt < 0f) dt = 0f;
+            if (dt > 0.1f) dt = 0.1f;
+            mLastCursorFrameTime = now;
 
-            // render the text selection handles
-            renderTextSelection();
+            float prevCol = mAnimCursorCol;
+            float prevRow = mAnimCursorRow;
+            float k = 1f - (float) Math.exp(-mSmoothCursorSpeed * 60f * dt);
+            mAnimCursorCol += (mTargetCursorCol - mAnimCursorCol) * k;
+            mAnimCursorRow += (mTargetCursorRow - mAnimCursorRow) * k;
+            if (Math.abs(mTargetCursorCol - mAnimCursorCol) < 0.05f) mAnimCursorCol = mTargetCursorCol;
+            if (Math.abs(mTargetCursorRow - mAnimCursorRow) < 0.05f) mAnimCursorRow = mTargetCursorRow;
+
+            // Sample trail while moving.
+            if (mCursorTrailEnabled && (Math.abs(mAnimCursorCol - prevCol) > 0.01f || Math.abs(mAnimCursorRow - prevRow) > 0.01f)) {
+                mTrailCols[mTrailHead] = mAnimCursorCol;
+                mTrailRows[mTrailHead] = mAnimCursorRow;
+                mTrailTimes[mTrailHead] = now;
+                mTrailHead = (mTrailHead + 1) % mTrailCols.length;
+                if (mTrailCount < mTrailCols.length) mTrailCount++;
+            }
+
+            boolean animating = (mAnimCursorCol != mTargetCursorCol) || (mAnimCursorRow != mTargetCursorRow);
+            if (animating || mCursorTrailEnabled) postInvalidateOnAnimation();
+
+            // Use rounded animated cell for cursor inversion/rect.
+            cursorOverrideCol = Math.round(mAnimCursorCol);
+            cursorOverrideRow = Math.round(mAnimCursorRow);
         }
+
+        if (cursorOverrideCol >= 0) {
+            mRenderer.render(mEmulator, canvas, mTopRow, sel[0], sel[1], sel[2], sel[3], cursorOverrideCol, cursorOverrideRow);
+        } else {
+            mRenderer.render(mEmulator, canvas, mTopRow, sel[0], sel[1], sel[2], sel[3]);
+        }
+
+        // Draw cursor trail ghosts.
+        if (mSmoothCursorEnabled && mCursorTrailEnabled && mTrailCount > 0 && mEmulator.shouldCursorBeVisible()) {
+            long now = System.nanoTime();
+            int cursorColor = mEmulator.mColors.mCurrentColors[com.termux.terminal.TextStyle.COLOR_INDEX_CURSOR];
+            for (int i = 0; i < mTrailCount; i++) {
+                int idx = (mTrailHead - 1 - i + mTrailCols.length) % mTrailCols.length;
+                long age = now - mTrailTimes[idx];
+                float ageSec = age / 1_000_000_000f;
+                if (ageSec >= mTrailDecay) continue;
+                float alpha = 1f - (ageSec / mTrailDecay);
+                if (alpha <= 0f) continue;
+                mRenderer.drawCursorRect(canvas, mTrailCols[idx], mTrailRows[idx], mTopRow, cursorColor, alpha * 0.4f);
+            }
+        }
+
+        // render the text selection handles
+        renderTextSelection();
     }
 
     public TerminalSession getCurrentSession() {

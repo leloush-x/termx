@@ -56,11 +56,18 @@ public final class TerminalRenderer {
     /** Render the terminal to a canvas with at a specified row scroll, and an optional rectangular selection. */
     public final void render(TerminalEmulator mEmulator, Canvas canvas, int topRow,
                              int selectionY1, int selectionY2, int selectionX1, int selectionX2) {
+        render(mEmulator, canvas, topRow, selectionY1, selectionY2, selectionX1, selectionX2, -1, -1);
+    }
+
+    /** Render with an optional cursor override (>=0) for smooth-cursor animation. */
+    public final void render(TerminalEmulator mEmulator, Canvas canvas, int topRow,
+                             int selectionY1, int selectionY2, int selectionX1, int selectionX2,
+                             int cursorColOverride, int cursorRowOverride) {
         final boolean reverseVideo = mEmulator.isReverseVideo();
         final int endRow = topRow + mEmulator.mRows;
         final int columns = mEmulator.mColumns;
-        final int cursorCol = mEmulator.getCursorCol();
-        final int cursorRow = mEmulator.getCursorRow();
+        final int cursorCol = (cursorColOverride >= 0) ? cursorColOverride : mEmulator.getCursorCol();
+        final int cursorRow = (cursorRowOverride >= 0) ? cursorRowOverride : mEmulator.getCursorRow();
         final boolean cursorVisible = mEmulator.shouldCursorBeVisible();
         final TerminalBuffer screen = mEmulator.getScreen();
         final int[] palette = mEmulator.mColors.mCurrentColors;
@@ -237,6 +244,23 @@ public final class TerminalRenderer {
         }
 
         if (savedMatrix) canvas.restore();
+    }
+
+    /** Draw a cursor rectangle at a (possibly fractional) cell position, used for smooth-cursor trail. */
+    public void drawCursorRect(Canvas canvas, float col, float row, int topRow, int color, float alpha) {
+        if (alpha <= 0f) return;
+        float fw = mFontWidth;
+        float fls = mFontLineSpacing;
+        float left = col * fw;
+        float right = left + fw;
+        float heightOffset = mFontLineSpacingAndAscent + (row - topRow + 1) * fls;
+        float top = heightOffset - mFontLineSpacingAndAscent + mFontAscent;
+        float bottom = heightOffset;
+        int prevAlpha = mTextPaint.getAlpha();
+        mTextPaint.setColor(color);
+        mTextPaint.setAlpha((int) (alpha * 255f));
+        canvas.drawRect(left, top, right, bottom, mTextPaint);
+        mTextPaint.setAlpha(prevAlpha);
     }
 
     public float getFontWidth() {
