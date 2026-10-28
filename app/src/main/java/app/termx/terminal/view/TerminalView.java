@@ -368,10 +368,10 @@ public final class TerminalView extends View {
 
             @Override
             public boolean setComposingText(CharSequence text, int newCursorPosition) {
-                // Do not send composing text to the terminal while the IME is still composing.
-                // Sending it incrementally caused duplicated characters on some keyboards
-                // (e.g. Xiaomi/HyperOS). The composed result is delivered by commitText().
                 super.setComposingText(text, newCursorPosition);
+                if (mClient.readControlKey() || mClient.readAltKey()) return true;
+                String next = isPrintable(text) ? text.toString() : "";
+                if (!next.equals(mComposingSent)) { eraseSentComposing(); mComposingSent = writeCommitted(next); }
                 return true;
             }
 
@@ -382,18 +382,9 @@ public final class TerminalView extends View {
                 }
                 super.commitText(text, newCursorPosition);
 
-                if (mEmulator == null) return true;
-
-                // Send whatever the IME has accumulated (the whole composed string) once,
-                // then clear the editable buffer, mirroring wolfi-terminal's approach.
-                Editable content = getEditable();
-                if (content.length() > 0) {
-                    writeCommitted(content);
-                    content.clear();
-                } else if (text.length() > 0) {
-                    writeCommitted(text);
-                }
+                if (!text.toString().equals(mComposingSent)) { eraseSentComposing(); writeCommitted(text); }
                 mComposingSent = "";
+                getEditable().clear();
                 mClient.onModifierKeyUsed();
                 return true;
             }
@@ -401,13 +392,10 @@ public final class TerminalView extends View {
             @Override
             public boolean finishComposingText() {
                 super.finishComposingText();
-                if (mEmulator == null) return true;
-                Editable content = getEditable();
-                if (content.length() > 0) {
-                    writeCommitted(content);
-                    content.clear();
-                }
+                String pending = getEditable().toString();
+                if (!pending.isEmpty() && !pending.equals(mComposingSent)) { eraseSentComposing(); writeCommitted(pending); }
                 mComposingSent = "";
+                getEditable().clear();
                 mClient.onModifierKeyUsed();
                 return true;
             }
@@ -474,7 +462,16 @@ public final class TerminalView extends View {
         if (!covered) { mComposingSent = ""; resetShadow(); }
     }
 
-    private void eraseSentComposing() { eraseBeforeCursor(mComposingSent.length()); mComposingSent = ""; }
+    private void eraseSentComposing() {
+        if (mComposingSent.isEmpty()) return;
+        // Erase by code point count, not UTF-16 char count, so multi-char code points
+        // (emoji, CJK) are fully removed instead of leaving a partial surrogate behind,
+        // which was causing duplicated characters on Xiaomi/HyperOS keyboards.
+        int codePoints = mComposingSent.codePointCount(0, mComposingSent.length());
+        int removed = mShadowLine.deleteBefore(codePoints);
+        for (int i = 0; i < removed; i++) mTermSession.write("\u007f");
+        mComposingSent = "";
+    }
 
     private void resetShadowLine() { if (!mShadowLine.isEmpty()) resetShadow(); }
 
