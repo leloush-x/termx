@@ -135,6 +135,7 @@ class MainActivity : ComponentActivity() {
     private var showSettings by mutableStateOf(false)
     private var amoledMode by mutableStateOf(true)
     private var settingsWallpaper by mutableStateOf(true)
+    private var legacyKeyboard by mutableStateOf(true)
     private var focusTick by mutableStateOf(0)
     private var terminalThemeJson by mutableStateOf<String?>(null)
     private var terminalKeyLayoutJson by mutableStateOf<String?>(null)
@@ -208,6 +209,7 @@ class MainActivity : ComponentActivity() {
         selectedDistroId = defaultDistroId
         restoringSavedSession = SessionService.hasSavedSessions(this) || intent.getBooleanExtra(EXTRA_NEW_SESSION, false)
         redactionText = HistoryRedactions.text(this)
+        legacyKeyboard = getSharedPreferences("termx", MODE_PRIVATE).getBoolean("legacy_keyboard", true)
         Thread({
             val loaded = runCatching { kotlinx.coroutines.runBlocking {
                 CustomizationSnapshot(customizationStore.get("amoled_mode", "true") != "false",
@@ -456,6 +458,13 @@ class MainActivity : ComponentActivity() {
                             onSettingsWallpaper = { enabled ->
                                 settingsWallpaper = enabled
                                 Thread({ runCatching { kotlinx.coroutines.runBlocking { customizationStore.put("settings_wallpaper", enabled.toString()) } } }, "termx-wallpaper-save").start()
+                            },
+                            legacyKeyboard = legacyKeyboard,
+                            onLegacyKeyboard = { enabled ->
+                                legacyKeyboard = enabled
+                                getSharedPreferences("termx", MODE_PRIVATE).edit()
+                                    .putBoolean("legacy_keyboard", enabled)
+                                    .putInt("input_mode", if (enabled) 2 else 0).apply()
                             },
                             onPickWallpaper = { wallpaperPickerLauncher.launch(arrayOf("image/*")) },
                             onWallpaperBlur = { value ->

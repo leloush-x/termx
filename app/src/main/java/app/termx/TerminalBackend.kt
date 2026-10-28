@@ -85,6 +85,8 @@ class TerminalBackend(
 
     override fun shouldBackButtonBeMappedToEscape() = false
     override fun shouldEnforceCharBasedInput() = false
+    override fun getInputMode(): Int =
+        context.getSharedPreferences("termx", Context.MODE_PRIVATE).getInt("input_mode", 2)
     override fun shouldUseCtrlSpaceWorkaround() = true
     override fun isTerminalViewSelected() = true
     override fun copyModeChanged(copyMode: Boolean) = Unit
@@ -137,6 +139,7 @@ class TerminalBackend(
     override fun onSessionFinished(finishedSession: TerminalSession) = onFinished(finishedSession)
 
     override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
+        if (text.isEmpty()) return
         clipboard().setPrimaryClip(ClipData.newPlainText("TermX terminal", text))
     }
 

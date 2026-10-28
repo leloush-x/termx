@@ -56,6 +56,8 @@ internal fun DistroSettingsScreen(
     wallpaperDim: Float,
     settingsWallpaper: Boolean,
     onSettingsWallpaper: (Boolean) -> Unit,
+    legacyKeyboard: Boolean,
+    onLegacyKeyboard: (Boolean) -> Unit,
     onPickWallpaper: () -> Unit,
     onWallpaperBlur: (Float) -> Unit,
     onWallpaperDim: (Float) -> Unit,
@@ -118,6 +120,14 @@ internal fun DistroSettingsScreen(
                         style = MaterialTheme.typography.bodySmall)
                 }
                 Switch(checked = amoledMode, onCheckedChange = onAmoledMode)
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Legacy keyboard workaround", color = Color.White, style = MaterialTheme.typography.titleSmall)
+                    Text("Use visible-password input type (fixes Xiaomi/Samsung glitches)", color = Color.White.copy(alpha = 0.62f),
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(checked = legacyKeyboard, onCheckedChange = onLegacyKeyboard)
             }
             Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {

@@ -321,10 +321,19 @@ public final class TerminalView extends View {
         // initially started with the alternate view or if activity is returned to from another app
         // and the alternate view was the one selected the last time.
         if (mClient.isTerminalViewSelected()) {
-            // A normal text class keeps voice dictation available in common IMEs. The
-            // password variation and TYPE_NULL both hide or disable the microphone on
-            // several keyboards (see docs/VOICE_HANDOFF.md in wolfi-terminal).
-            outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
+            int inputMode = 0;
+            try { inputMode = mClient.getInputMode(); } catch (Throwable ignored) { inputMode = 0; }
+            switch (inputMode) {
+                case 1:
+                    outAttrs.inputType = InputType.TYPE_NULL;
+                    break;
+                case 2:
+                    outAttrs.inputType = InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+                    break;
+                default:
+                    outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+                    break;
+            }
         } else {
             // Corresponds to android:inputType="text"
             outAttrs.inputType =  InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_NORMAL;

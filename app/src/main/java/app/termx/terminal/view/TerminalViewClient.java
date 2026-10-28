@@ -32,6 +32,9 @@ public interface TerminalViewClient {
 
     boolean shouldEnforceCharBasedInput();
 
+    /** Soft-keyboard input type: 0 default, 1 TYPE_NULL, 2 legacy visible-password. */
+    default int getInputMode() { return 0; }
+
     boolean shouldUseCtrlSpaceWorkaround();
 
     boolean isTerminalViewSelected();
