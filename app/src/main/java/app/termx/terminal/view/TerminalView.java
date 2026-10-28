@@ -1041,13 +1041,14 @@ public final class TerminalView extends View {
             if (mTerminalCursorBlinkerRunnable != null)
                 mTerminalCursorBlinkerRunnable.setEmulator(mEmulator);
 
-            // Restore cached top row value if session/emulator was switched back from a
-            // different session or after activity restart. The top row value also needs to be
-            // maintained after opening/closing soft keyboard.
-            // The v0.118.3 emulator does not keep scroll position; the view owns it.
-            setTopRow(0, false);
+            // Preserve the scroll position across resizes (pinch zoom, keyboard open/close)
+            // instead of snapping back to the top, which made zoom feel janky.
+            if (mEmulator != null) {
+                int rowsInHistory = mEmulator.getScreen().getActiveTranscriptRows();
+                if (mTopRow < -rowsInHistory) mTopRow = -rowsInHistory;
+                if (mTopRow > 0) mTopRow = 0;
+            }
 
-            scrollTo(0, 0);
             invalidate();
         }
     }

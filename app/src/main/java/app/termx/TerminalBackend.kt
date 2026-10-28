@@ -74,9 +74,12 @@ class TerminalBackend(
     }
 
     override fun onScale(scale: Float): Float {
+        // `scale` is the accumulated gesture factor since the last reset. Apply it once,
+        // then reset the accumulator to 1 so the next pinch event is incremental instead of
+        // compounding (which caused runaway font sizes and janky reflows).
         fontSize = (fontSize * scale).toInt().coerceIn(8, 48)
         terminalView?.setTextSize(fontSize)
-        return scale
+        return 1f
     }
 
     override fun onSingleTapUp(e: MotionEvent) {
