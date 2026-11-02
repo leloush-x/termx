@@ -751,16 +751,13 @@ class MainActivity : ComponentActivity() {
                                         showTerminalPanel = false
                                     },
                                     onDeleteSession = { id ->
+                                        val wasCurrent = sessionRecords.firstOrNull { it.id == id }?.terminal === terminalSession
                                         val newActive = sessionBinder?.closeSession(id)
                                         sessionRecords = sessionBinder?.allSessions() ?: emptyList()
-                                        if (terminalSession?.isRunning == false || terminalSession == null) {
+                                        if (wasCurrent) {
                                             terminalSession = newActive ?: sessionBinder?.activeSession()
-                                        }
-                                        if (terminalSession != null) {
-                                            setActiveSession(terminalSession!!)
-                                        } else {
-                                            activeLaunch = null
-                                            sessionBinds = null
+                                            if (terminalSession != null) setActiveSession(terminalSession!!)
+                                            else { activeLaunch = null; sessionBinds = null }
                                         }
                                         showTerminalPanel = false
                                     },
