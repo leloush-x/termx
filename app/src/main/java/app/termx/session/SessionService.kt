@@ -136,6 +136,7 @@ class SessionService : Service() {
         sessions.clear()
         if (clearSaved) preferences().edit().remove(KEY_SESSIONS).apply()
         else saveSessions()
+        terminalBackend.detach()
         active.forEach { it.terminal.finishIfRunning() }
         updateNotification()
     }
