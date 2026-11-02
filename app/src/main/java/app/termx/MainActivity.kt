@@ -41,7 +41,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
@@ -155,6 +157,7 @@ class MainActivity : ComponentActivity() {
     private var serviceBound = false
     private var notificationPermissionRequester: (() -> Unit)? = null
     private var storagePermissionRequested = false
+    private var storagePermissionPromptVisible by mutableStateOf(false)
 
     private val sessionConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -330,20 +333,8 @@ class MainActivity : ComponentActivity() {
                                 checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
                                 checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
                             )
-                            if (needsAllFiles) {
-                                try {
-                                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                                        Uri.parse("package:$packageName"))
-                                    startActivity(intent)
-                                } catch (e: Exception) {
-                                    val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                                    startActivity(intent)
-                                }
-                            } else if (needsLegacy) {
-                                permissionLauncher.launch(arrayOf(
-                                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                ))
+                            if (needsAllFiles || needsLegacy) {
+                                storagePermissionPromptVisible = true
                             }
                         }
                         WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -413,6 +404,26 @@ class MainActivity : ComponentActivity() {
                                 customizationStore.put("wallpaper_uri", wallpaperUri.orEmpty())
                             } }.onFailure { runOnUiThread { customizationMessage = it.message } } }, "termx-wallpaper-save").start()
                         }
+                    }
+                    if (storagePermissionPromptVisible) {
+                        AlertDialog(
+                            onDismissRequest = { storagePermissionPromptVisible = false },
+                            title = { Text("Storage access for TermX") },
+                            text = { Text("TermX can optionally access shared device storage so Linux tools can read your files. This is not required to use the terminal; you can enable it later in Storage Health. Granting it lets distros read shared files under /root/storage/shared.") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    storagePermissionPromptVisible = false
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) openAllFilesSettings()
+                                    else permissionLauncher.launch(arrayOf(
+                                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                    ))
+                                }) { Text("Allow") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { storagePermissionPromptVisible = false }) { Text("Not now") }
+                            },
+                        )
                     }
                     val session = terminalSession
                     val installedDistros = remember(installedRevision) {
