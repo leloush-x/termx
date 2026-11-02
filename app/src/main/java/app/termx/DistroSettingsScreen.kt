@@ -48,8 +48,6 @@ internal fun DistroSettingsScreen(
     installStatus: String?,
     amoledMode: Boolean,
     onAmoledMode: (Boolean) -> Unit,
-    legacyKeyboardWorkaround: Boolean,
-    onLegacyKeyboardWorkaround: (Boolean) -> Unit,
     terminalFontSize: Int,
     onFontSize: (Int) -> Unit,
     onImportFont: () -> Unit,
@@ -120,14 +118,6 @@ internal fun DistroSettingsScreen(
                         style = MaterialTheme.typography.bodySmall)
                 }
                 Switch(checked = amoledMode, onCheckedChange = onAmoledMode)
-            }
-            Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Legacy keyboard workaround", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                    Text("For Xiaomi/MIUI and other keyboards that auto-generate words; disables suggestions", color = Color.White.copy(alpha = 0.62f),
-                        style = MaterialTheme.typography.bodySmall)
-                }
-                Switch(checked = legacyKeyboardWorkaround, onCheckedChange = onLegacyKeyboardWorkaround)
             }
             Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
