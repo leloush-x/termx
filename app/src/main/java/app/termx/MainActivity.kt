@@ -349,6 +349,7 @@ class MainActivity : ComponentActivity() {
                             showSettings -> showSettings = false
                             productivityPage != null -> { productivityPage = null; storageMessage = null }
                             showStorageHealth -> showStorageHealth = false
+                            terminalSession != null && !showTerminalPanel -> finish()
                             terminalSession != null -> showTerminalPanel = true
                             restoringSavedSession -> Unit
                             else -> Unit

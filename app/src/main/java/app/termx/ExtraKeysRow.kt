@@ -76,7 +76,12 @@ fun ExtraKeysRow(
                     .background(if (mode == ModMode.LOCKED) accent.copy(alpha = .42f) else if (active) accent.copy(alpha = .24f) else Color.White.copy(alpha = .075f), CircleShape)
                     .combinedClickable(onClick = {
                         if (mod != null) mods.tap(mod) else key.send?.let { send ->
-                            session.write(ModifierKeys.apply(send, mods.isActive(ModKey.CTRL), mods.isActive(ModKey.ALT), mods.isActive(ModKey.SHIFT)))
+                            val payload = ModifierKeys.apply(send, mods.isActive(ModKey.CTRL), mods.isActive(ModKey.ALT), mods.isActive(ModKey.SHIFT))
+                            if (!session.isRunning && (payload == "\n" || payload == "\r")) {
+                                backend.onKeyDown(android.view.KeyEvent.KEYCODE_ENTER, android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER), session)
+                            } else {
+                                session.write(payload)
+                            }
                             mods.consumeOneShots()
                         }
                     }, onLongClick = { if (mod != null) mods.longPress(mod) else key.long.firstOrNull()?.let(session::write) }),
