@@ -52,6 +52,7 @@ object ProotCommand {
             installHistoryHooks(rootfs)
         }
         installPromptHooks(rootfs, distroName)
+        installInitrcSupport(rootfs)
         writeGuestHostname(rootfs, distroName)
         temporaryDirectory.mkdirs()
         val sysdataDir = File(temporaryDirectory, "sysdata").apply { mkdirs() }
@@ -253,6 +254,25 @@ unset __termx_host
     }
 
     private fun File.readTextOrNull(): String? = runCatching { readText() }.getOrNull()
+
+    /** Sources a user-provided /initrc (guest root) from shell startup files when present. */
+    internal fun installInitrcSupport(rootfs: File) {
+        val home = File(rootfs, "root").apply { mkdirs() }
+        val sourceLine = "[ -r /initrc ] && . /initrc"
+        val marker = "# TermX initrc"
+        fun ensure(rc: File) {
+            if (!rc.exists()) {
+                rc.parentFile?.mkdirs()
+                rc.writeText("# TermX defaults.\n$marker\n$sourceLine\n")
+            } else {
+                val text = runCatching { rc.readText() }.getOrNull() ?: return
+                if (!text.contains("/initrc")) rc.appendText("\n$marker\n$sourceLine\n")
+            }
+        }
+        ensure(File(home, ".bashrc"))
+        ensure(File(home, ".profile"))
+        ensure(File(home, ".zshrc"))
+    }
 
     /** Keeps the guest's /etc/hostname in step so `hostname` and `\h` name the distro too. */
     internal fun writeGuestHostname(rootfs: File, distroName: String) {
