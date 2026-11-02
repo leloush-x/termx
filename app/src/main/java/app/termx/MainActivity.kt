@@ -635,6 +635,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onSettings = {
                                 if (::backend.isInitialized) backend.detach()
+                                hideKeyboard()
                                 showSettings = true
                             },
                             progress = installProgress[selectedDistroId] ?: 0f,
@@ -771,6 +772,7 @@ class MainActivity : ComponentActivity() {
                                     onSettings = {
                                         showTerminalPanel = false
                                         showSettings = true
+                                        hideKeyboard()
                                     },
                                     onClose = { showTerminalPanel = false },
                                 )
@@ -831,6 +833,11 @@ class MainActivity : ComponentActivity() {
             }
             startActivity(Intent.createChooser(send, "Share ${file.name}"))
         }.onFailure { storageMessage = it.message ?: "Could not share this file" }
+    }
+
+    private fun hideKeyboard() {
+        val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+        currentFocus?.windowToken?.let { imm.hideSoftInputFromWindow(it, 0) }
     }
 
     private fun startTerminal(pkg: RootfsPackage) {
