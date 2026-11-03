@@ -80,6 +80,7 @@ class SessionService : Service() {
             finishAllSessions(clearSaved = true)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf(startId)
+            android.os.Process.killProcess(android.os.Process.myPid())
             return START_NOT_STICKY
         }
         if (sessions.isEmpty()) restoreSessions()
