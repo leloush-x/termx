@@ -89,7 +89,7 @@ class TerminalBackend(
     override fun shouldBackButtonBeMappedToEscape() = false
     override fun shouldEnforceCharBasedInput() = false
     override fun getInputMode(): Int =
-        context.getSharedPreferences("termx", Context.MODE_PRIVATE).getInt("input_mode", 0)
+        context.getSharedPreferences("termx", Context.MODE_PRIVATE).getInt("input_mode", 0).coerceIn(0, 2)
     override fun shouldUseCtrlSpaceWorkaround() = true
     override fun isTerminalViewSelected() = true
     override fun copyModeChanged(copyMode: Boolean) = Unit

@@ -158,6 +158,7 @@ class MainActivity : ComponentActivity() {
     private var notificationPermissionRequester: (() -> Unit)? = null
     private var storagePermissionRequested = false
     private var storagePermissionPromptVisible by mutableStateOf(false)
+    private var inputMode by mutableIntStateOf(0)
 
     private val sessionConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -211,6 +212,7 @@ class MainActivity : ComponentActivity() {
         selectedDistroId = defaultDistroId
         restoringSavedSession = SessionService.hasSavedSessions(this) || intent.getBooleanExtra(EXTRA_NEW_SESSION, false)
         redactionText = HistoryRedactions.text(this)
+        inputMode = getSharedPreferences("termx", MODE_PRIVATE).getInt("input_mode", 0).coerceIn(0, 2)
         Thread({
             val loaded = runCatching { kotlinx.coroutines.runBlocking {
                 CustomizationSnapshot(customizationStore.get("amoled_mode", "true") != "false",
@@ -449,6 +451,12 @@ class MainActivity : ComponentActivity() {
                             installProgress = installingDistroId?.let(installProgress::get) ?: 0f,
                             installStatus = installingDistroId?.let(installStatuses::get),
                             amoledMode = amoledMode,
+                            inputMode = inputMode,
+                            onInputMode = { mode ->
+                                inputMode = mode
+                                getSharedPreferences("termx", MODE_PRIVATE).edit()
+                                    .putInt("input_mode", mode).apply()
+                            },
                             onAmoledMode = { enabled ->
                                 amoledMode = enabled
                                 Thread({ runCatching { kotlinx.coroutines.runBlocking { customizationStore.put("amoled_mode", enabled.toString()) } } },

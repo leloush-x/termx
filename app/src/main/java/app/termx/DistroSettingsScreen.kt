@@ -48,6 +48,8 @@ internal fun DistroSettingsScreen(
     installStatus: String?,
     amoledMode: Boolean,
     onAmoledMode: (Boolean) -> Unit,
+    inputMode: Int,
+    onInputMode: (Int) -> Unit,
     terminalFontSize: Int,
     onFontSize: (Int) -> Unit,
     onImportFont: () -> Unit,
@@ -118,6 +120,14 @@ internal fun DistroSettingsScreen(
                         style = MaterialTheme.typography.bodySmall)
                 }
                 Switch(checked = amoledMode, onCheckedChange = onAmoledMode)
+            }
+            Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
+                Text("Keyboard input mode", color = Color.White, style = MaterialTheme.typography.titleSmall)
+                Text("If letters glitch or duplicate in your keyboard, change this", color = Color.White.copy(alpha = 0.62f),
+                    style = MaterialTheme.typography.bodySmall)
+                InputModeOptionRow("Default (Recommended)", "Compatible with all keyboards, including CJK", 0, inputMode, onInputMode)
+                InputModeOptionRow("Strict Terminal", "TYPE_NULL; may break some IMEs", 1, inputMode, onInputMode)
+                InputModeOptionRow("Legacy Workaround", "Fixes Samsung/Xiaomi echo and duplicated words", 2, inputMode, onInputMode)
             }
             Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -294,6 +304,19 @@ internal fun settingsPageFill(amoledMode: Boolean, wallpaperUri: String?, showWa
     if (showsWallpaperBehindPage(wallpaperUri, showWallpaper)) return Modifier
     val base = if (amoledMode) Color.Black else Color(0xFF0D0F10)
     return Modifier.background(if (wallpaperUri != null) base.copy(alpha = .55f) else base)
+}
+
+@Composable
+private fun InputModeOptionRow(title: String, description: String, mode: Int, selected: Int, onSelect: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onSelect(mode) }
+        .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(18.dp).clip(CircleShape)
+            .background(if (selected == mode) Color(0xFF83C7FF) else Color.White.copy(alpha = 0.18f)))
+        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+            Text(title, color = Color.White, style = MaterialTheme.typography.bodyMedium)
+            Text(description, color = Color.White.copy(alpha = 0.62f), style = MaterialTheme.typography.bodySmall)
+        }
+    }
 }
 
 @Composable
