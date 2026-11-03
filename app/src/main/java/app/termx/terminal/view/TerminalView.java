@@ -370,8 +370,10 @@ public final class TerminalView extends View {
             public boolean setComposingText(CharSequence text, int newCursorPosition) {
                 super.setComposingText(text, newCursorPosition);
                 if (mClient.readControlKey() || mClient.readAltKey()) return true;
-                String next = isPrintable(text) ? text.toString() : "";
-                if (!next.equals(mComposingSent)) { eraseSentComposing(); mComposingSent = writeCommitted(next); }
+                // Do NOT write composing text to the PTY. Xiaomi/HyperOS and other keyboards
+                // revise the whole word on every keystroke (auto-generated words), which caused
+                // duplicated characters when each revision was erased and rewritten. The PTY only
+                // receives the final committed text in commitText() / finishComposingText().
                 return true;
             }
 
@@ -382,7 +384,7 @@ public final class TerminalView extends View {
                 }
                 super.commitText(text, newCursorPosition);
 
-                if (!text.toString().equals(mComposingSent)) { eraseSentComposing(); writeCommitted(text); }
+                writeCommitted(text);
                 mComposingSent = "";
                 getEditable().clear();
                 mClient.onModifierKeyUsed();
@@ -393,7 +395,7 @@ public final class TerminalView extends View {
             public boolean finishComposingText() {
                 super.finishComposingText();
                 String pending = getEditable().toString();
-                if (!pending.isEmpty() && !pending.equals(mComposingSent)) { eraseSentComposing(); writeCommitted(pending); }
+                if (!pending.isEmpty()) writeCommitted(pending);
                 mComposingSent = "";
                 getEditable().clear();
                 mClient.onModifierKeyUsed();
