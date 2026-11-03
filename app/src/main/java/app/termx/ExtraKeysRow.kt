@@ -20,6 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.shape.CircleShape
@@ -70,10 +73,32 @@ fun ExtraKeysRow(
             val mod = ModKey.fromLayout(key.modifier)
             val mode = mod?.let(mods::mode) ?: ModMode.OFF
             val active = mode != ModMode.OFF
+            var pressed by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+            androidx.compose.runtime.LaunchedEffect(pressed, key.send) {
+                if (pressed && mod == null && key.send != null) {
+                    kotlinx.coroutines.delay(300)
+                    while (pressed) {
+                        val payload = ModifierKeys.apply(key.send, mods.isActive(ModKey.CTRL), mods.isActive(ModKey.ALT), mods.isActive(ModKey.SHIFT))
+                        session.write(payload)
+                        kotlinx.coroutines.delay(80)
+                    }
+                }
+            }
             Box(
                 modifier = Modifier.padding(horizontal = 3.dp, vertical = 2.dp)
                     .sizeIn(minWidth = 38.dp, minHeight = 34.dp)
                     .background(if (mode == ModMode.LOCKED) accent.copy(alpha = .42f) else if (active) accent.copy(alpha = .24f) else Color.White.copy(alpha = .075f), CircleShape)
+                    .pointerInput(key) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                when (event.type) {
+                                    PointerEventType.Press -> pressed = true
+                                    PointerEventType.Release, PointerEventType.Exit -> pressed = false
+                                }
+                            }
+                        }
+                    }
                     .combinedClickable(onClick = {
                         if (mod != null) mods.tap(mod) else key.send?.let { send ->
                             val payload = ModifierKeys.apply(send, mods.isActive(ModKey.CTRL), mods.isActive(ModKey.ALT), mods.isActive(ModKey.SHIFT))
