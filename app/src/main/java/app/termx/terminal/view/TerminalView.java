@@ -447,8 +447,8 @@ public final class TerminalView extends View {
             if (cp == '\n') cp = '\r';
             inputCodePoint(KEY_EVENT_SOURCE_SOFT_KEYBOARD, cp, cp < 32 && cp != 27, false);
             i += Character.charCount(sent.codePointAt(i));
-            mClient.onModifierKeyUsed();
         }
+        if (sent.length() > 0) mClient.onModifierKeyUsed();
         if (sent.indexOf('\u001B') >= 0) resetShadowLine();
         else if (isPrintable(sent)) mShadowLine.append(sent);
         else resetShadowLine();
@@ -614,6 +614,10 @@ public final class TerminalView extends View {
 
     /** Send a single mouse event code to the terminal. */
     void sendMouseEventCode(MotionEvent e, int button, boolean pressed) {
+        // Mouse escape sequences must only be sent when the running program has enabled mouse
+        // tracking. Otherwise a tap at the shell prompt leaked raw SGR-like fragments
+        // ("0;80;47M...") into the terminal, corrupting the command line.
+        if (mEmulator == null || !mEmulator.isMouseTrackingActive()) return;
         int[] columnAndRow = getColumnAndRow(e, false);
         int x = columnAndRow[0] + 1;
         int y = columnAndRow[1] + 1;
