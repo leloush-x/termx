@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -85,9 +86,9 @@ internal fun DistroSettingsScreen(
                 color = Color.White, fontSize = 30.sp)
             Spacer(Modifier.width(8.dp))
             Column {
-                Text("Settings", color = Color.White, style = MaterialTheme.typography.headlineSmall,
+                Text(stringResource(R.string.settings_title), color = Color.White, style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold)
-                Text("Make your Linux space yours", color = Color.White.copy(alpha = 0.62f),
+                Text(stringResource(R.string.settings_subtitle), color = Color.White.copy(alpha = 0.62f),
                     style = MaterialTheme.typography.bodySmall)
             }
         }
@@ -97,7 +98,7 @@ internal fun DistroSettingsScreen(
             onValueChange = { searchQuery = it },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            placeholder = { Text("Search settings", color = Color.White.copy(alpha = 0.5f)) },
+            placeholder = { Text(stringResource(R.string.settings_search), color = Color.White.copy(alpha = 0.5f)) },
             leadingIcon = { Text("🔍", color = Color.White.copy(alpha = 0.6f)) },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = Color.White,
@@ -112,28 +113,28 @@ internal fun DistroSettingsScreen(
                 .background(Color(0xD9131619))
                 .padding(18.dp),
         ) {
-            Text("APPEARANCE & INPUT", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
+            Text(stringResource(R.string.settings_section_appearance), color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 1.25.sp)
             Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("AMOLED black", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                    Text("Use a true black app and terminal surface", color = Color.White.copy(alpha = 0.62f),
+                    Text(stringResource(R.string.settings_amoled), color = Color.White, style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.settings_amoled_desc), color = Color.White.copy(alpha = 0.62f),
                         style = MaterialTheme.typography.bodySmall)
                 }
                 Switch(checked = amoledMode, onCheckedChange = onAmoledMode)
             }
             Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
-                Text("Keyboard input mode", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                Text("If letters glitch or duplicate in your keyboard, change this", color = Color.White.copy(alpha = 0.62f),
+                Text(stringResource(R.string.settings_keyboard_mode), color = Color.White, style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.settings_keyboard_mode_desc), color = Color.White.copy(alpha = 0.62f),
                     style = MaterialTheme.typography.bodySmall)
-                InputModeOptionRow("Default (Recommended)", "Compatible with all keyboards, including CJK", 0, inputMode, onInputMode)
-                InputModeOptionRow("Strict Terminal", "TYPE_NULL; may break some IMEs", 1, inputMode, onInputMode)
-                InputModeOptionRow("Legacy Workaround", "Fixes Samsung/Xiaomi echo and duplicated words", 2, inputMode, onInputMode)
+                InputModeOptionRow(stringResource(R.string.settings_input_default), stringResource(R.string.settings_input_default_desc), 0, inputMode, onInputMode)
+                InputModeOptionRow(stringResource(R.string.settings_input_strict), stringResource(R.string.settings_input_strict_desc), 1, inputMode, onInputMode)
+                InputModeOptionRow(stringResource(R.string.settings_input_legacy), stringResource(R.string.settings_input_legacy_desc), 2, inputMode, onInputMode)
             }
             Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Text size", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                    Text("Terminal font size · ${terminalFontSize}sp", color = Color.White.copy(alpha = 0.62f),
+                    Text(stringResource(R.string.settings_text_size), color = Color.White, style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.settings_terminal_font_size, terminalFontSize), color = Color.White.copy(alpha = 0.62f),
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -144,17 +145,17 @@ internal fun DistroSettingsScreen(
                 steps = 15,
                 modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
             )
-            SettingsAction(if (wallpaperUri == null) "Choose background image" else "Change background image", onPickWallpaper)
+            SettingsAction(stringResource(if (wallpaperUri == null) R.string.settings_choose_bg else R.string.settings_change_bg), onPickWallpaper)
             if (wallpaperUri != null) {
-                SettingsAction("Remove background image", onClearWallpaper)
+                SettingsAction(stringResource(R.string.settings_remove_bg), onClearWallpaper)
                 Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("Show wallpaper on this page", color = Color.White, style = MaterialTheme.typography.titleSmall)
-                        Text("Turn off to keep the solid black background behind settings", color = Color.White.copy(alpha = .62f), style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.settings_show_wallpaper), color = Color.White, style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.settings_show_wallpaper_desc), color = Color.White.copy(alpha = .62f), style = MaterialTheme.typography.bodySmall)
                     }
                     Switch(checked = settingsWallpaper, onCheckedChange = onSettingsWallpaper)
                 }
-                Text("Blur · ${wallpaperBlur.toInt()}dp", Modifier.padding(top = 10.dp),
+                Text(stringResource(R.string.settings_blur, wallpaperBlur.toInt()), Modifier.padding(top = 10.dp),
                     color = Color.White.copy(alpha = 0.62f), style = MaterialTheme.typography.bodySmall)
                 Slider(
                     value = wallpaperBlur,
@@ -162,7 +163,7 @@ internal fun DistroSettingsScreen(
                     valueRange = 0f..32f,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text("Dim · ${(wallpaperDim * 100).toInt()}%", Modifier.padding(top = 4.dp),
+                Text(stringResource(R.string.settings_dim, (wallpaperDim * 100).toInt()), Modifier.padding(top = 4.dp),
                     color = Color.White.copy(alpha = 0.62f), style = MaterialTheme.typography.bodySmall)
                 Slider(
                     value = wallpaperDim,
@@ -171,7 +172,7 @@ internal fun DistroSettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            SettingsAction("Import TTF font", onImportFont)
+            SettingsAction(stringResource(R.string.settings_import_font), onImportFont)
             customizationMessage?.let { Text(it, Modifier.padding(top = 8.dp), color = Color.White.copy(alpha = 0.75f),
                 style = MaterialTheme.typography.bodySmall) }
         }
@@ -181,10 +182,10 @@ internal fun DistroSettingsScreen(
                 .background(Color(0xD9131619))
                 .padding(18.dp),
         ) {
-            Text("GITHUB", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
+            Text(stringResource(R.string.settings_section_github), color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 1.25.sp)
             Spacer(Modifier.height(8.dp))
-            Text("Paste a GitHub token and login in the current terminal", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.settings_github_desc), color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(12.dp))
             var ghToken by remember { mutableStateOf("") }
             OutlinedTextField(
@@ -192,7 +193,7 @@ internal fun DistroSettingsScreen(
                 onValueChange = { ghToken = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("GitHub token (ghp_...)", color = Color.White.copy(alpha = 0.5f)) },
+                placeholder = { Text(stringResource(R.string.settings_github_token), color = Color.White.copy(alpha = 0.5f)) },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
@@ -201,8 +202,8 @@ internal fun DistroSettingsScreen(
                 ),
             )
             Spacer(Modifier.height(12.dp))
-            SettingsAction("Login with GitHub", { onGitHubLogin(ghToken) })
-            SettingsAction("Logout from GitHub", onGitHubLogout)
+            SettingsAction(stringResource(R.string.settings_github_login), { onGitHubLogin(ghToken) })
+            SettingsAction(stringResource(R.string.settings_github_logout), onGitHubLogout)
         }
 
         Column(
@@ -210,10 +211,10 @@ internal fun DistroSettingsScreen(
                 .background(Color(0xD9131619))
                 .padding(18.dp),
         ) {
-            Text("DEFAULT DISTRO", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
+            Text(stringResource(R.string.settings_section_default_distro), color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 1.25.sp)
             Spacer(Modifier.height(8.dp))
-            Text("Opens when you start TermX", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.settings_default_distro_desc), color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(12.dp))
             distros.forEach { distro ->
                 val isDefault = distro.distroId == defaultDistroId
@@ -227,11 +228,11 @@ internal fun DistroSettingsScreen(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(distro.distroName, color = Color.White, style = MaterialTheme.typography.titleSmall)
-                        Text(if (isInstalled) distro.version else "Download to use",
+                        Text(if (isInstalled) distro.version else stringResource(R.string.settings_download_to_use),
                             color = Color.White.copy(alpha = 0.58f), style = MaterialTheme.typography.bodySmall)
                     }
                     Text(
-                        if (isDefault) "DEFAULT" else if (isInstalled) "SET" else "",
+                        if (isDefault) stringResource(R.string.settings_badge_default) else if (isInstalled) stringResource(R.string.settings_badge_set) else "",
                         color = if (isDefault) Color(0xFFFFA5C2) else Color.White.copy(alpha = 0.62f),
                         style = MaterialTheme.typography.labelSmall,
                     )
@@ -244,10 +245,10 @@ internal fun DistroSettingsScreen(
                 .background(Color(0xD9131619))
                 .padding(18.dp),
         ) {
-            Text("LINUX WORLDS", color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
+            Text(stringResource(R.string.settings_section_worlds), color = Color.White.copy(alpha = 0.54f), style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 1.25.sp)
             Spacer(Modifier.height(5.dp))
-            Text("Choose what to install", color = Color.White, style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.settings_worlds_desc), color = Color.White, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(10.dp))
             distros.forEach { distro ->
                 val installed = distro.distroId in installedDistros
@@ -261,11 +262,11 @@ internal fun DistroSettingsScreen(
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(distro.distroName, color = Color.White, style = MaterialTheme.typography.titleSmall)
-                        Text(if (installed) "Installed" else distro.version, color = Color.White.copy(alpha = 0.58f),
+                        Text(if (installed) stringResource(R.string.landing_installed) else distro.version, color = Color.White.copy(alpha = 0.58f),
                             style = MaterialTheme.typography.bodySmall)
                     }
                     if (!installed && !installing) {
-                        Text("Download", Modifier.clip(CircleShape).clickable { onInstall(distro) }
+                        Text(stringResource(R.string.settings_download), Modifier.clip(CircleShape).clickable { onInstall(distro) }
                             .border(1.dp, accent.copy(alpha = 0.55f), CircleShape)
                             .padding(horizontal = 13.dp, vertical = 8.dp), color = accent,
                             style = MaterialTheme.typography.labelMedium)
@@ -291,8 +292,8 @@ internal fun DistroSettingsScreen(
                 .clickable(onClick = onOpenStorage)
                 .padding(horizontal = 18.dp, vertical = 15.dp),
         ) {
-            Text("Storage health", color = Color.White, style = MaterialTheme.typography.titleSmall)
-            Text("Manage shared folders and access", color = Color.White.copy(alpha = 0.6f),
+            Text(stringResource(R.string.settings_storage_health), color = Color.White, style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.settings_storage_health_desc), color = Color.White.copy(alpha = 0.6f),
                 style = MaterialTheme.typography.bodySmall)
         }
         }

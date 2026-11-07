@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TermX</string>
+
+    <!-- 选择系统 -->
+    <string name="landing_settings">设置</string>
+    <string name="landing_choose_distro">选择系统</string>
+    <string name="landing_choose_distro_desc">打开已安装的系统，或下载新的系统。</string>
+    <string name="landing_installed">已安装</string>
+    <string name="landing_not_installed">未安装</string>
+    <string name="landing_preparing">正在准备 %1$s…</string>
+    <string name="landing_open_terminal">打开终端</string>
+    <string name="landing_another_download">另一个下载正在进行</string>
+    <string name="landing_install">安装 %1$s</string>
+    <string name="landing_downloading_line">%1$s 正在下载。</string>
+    <string name="landing_a_distro">一个系统</string>
+    <string name="landing_selected">已选中</string>
+    <string name="landing_commands">命令</string>
+    <string name="landing_files">文件</string>
+    <string name="landing_profiles">配置</string>
+    <string name="landing_storage">存储</string>
+
+    <!-- 设置页 -->
+    <string name="settings_title">设置</string>
+    <string name="settings_subtitle">把 Linux 空间调成你喜欢的样子</string>
+    <string name="settings_search">搜索设置</string>
+    <string name="settings_section_appearance">外观与输入</string>
+    <string name="settings_amoled">AMOLED 纯黑</string>
+    <string name="settings_amoled_desc">应用与终端背景使用纯黑</string>
+    <string name="settings_keyboard_mode">键盘输入模式</string>
+    <string name="settings_keyboard_mode_desc">如果键盘输入错乱或重复，请改这里</string>
+    <string name="settings_input_default">默认（推荐）</string>
+    <string name="settings_input_default_desc">兼容所有键盘，包括中文输入法</string>
+    <string name="settings_input_strict">严格终端</string>
+    <string name="settings_input_strict_desc">TYPE_NULL；可能影响部分输入法</string>
+    <string name="settings_input_legacy">兼容旧模式</string>
+    <string name="settings_input_legacy_desc">修复三星/小米的输入回显与重复字词</string>
+    <string name="settings_text_size">文字大小</string>
+    <string name="settings_terminal_font_size">终端字号 · %1$dsp</string>
+    <string name="settings_choose_bg">选择背景图片</string>
+    <string name="settings_change_bg">更换背景图片</string>
+    <string name="settings_remove_bg">移除背景图片</string>
+    <string name="settings_show_wallpaper">在此页面显示壁纸</string>
+    <string name="settings_show_wallpaper_desc">关闭后设置页保持纯黑背景</string>
+    <string name="settings_blur">模糊 · %1$ddp</string>
+    <string name="settings_dim">变暗 · %1$d%%</string>
+    <string name="settings_import_font">导入 TTF 字体</string>
+    <string name="settings_section_github">GITHUB</string>
+    <string name="settings_github_desc">粘贴 GitHub 令牌，在当前终端里登录</string>
+    <string name="settings_github_token">GitHub 令牌（ghp_...）</string>
+    <string name="settings_github_login">使用 GitHub 登录</string>
+    <string name="settings_github_logout">退出 GitHub 登录</string>
+    <string name="settings_section_default_distro">默认系统</string>
+    <string name="settings_default_distro_desc">启动 TermX 时打开</string>
+    <string name="settings_download_to_use">下载后可用</string>
+    <string name="settings_badge_default">默认</string>
+    <string name="settings_badge_set">设为默认</string>
+    <string name="settings_section_worlds">LINUX 系统</string>
+    <string name="settings_worlds_desc">选择要安装的系统</string>
+    <string name="settings_download">下载</string>
+    <string name="settings_storage_health">存储状态</string>
+    <string name="settings_storage_health_desc">管理共享文件夹与访问权限</string>
+
+    <!-- 侧边栏 -->
+    <string name="panel_sessions">会话</string>
+    <string name="panel_live">运行中</string>
+    <string name="panel_new_terminal">新建终端</string>
+    <string name="panel_no_distro">还没有安装系统</string>
+    <string name="panel_pick_distro">选择系统</string>
+    <string name="panel_distros_installed">已安装 %1$d 个系统</string>
+    <string name="panel_current">当前</string>
+    <string name="panel_footer">Linux 会话在本机运行。</string>
+
+    <!-- 存储状态 -->
+    <string name="storage_title">存储状态</string>
+    <string name="storage_back">返回</string>
+    <string name="storage_current_selection">当前选择：%1$s。改动将在下一个终端会话生效。</string>
+    <string name="storage_using_tier">正在使用 %1$s</string>
+    <string name="storage_use_tier">使用 %1$s</string>
+    <string name="storage_grant_access">授予访问权限</string>
+    <string name="storage_add_workspace">添加工作区</string>
+    <string name="storage_saf_workspaces">SAF 工作区</string>
+    <string name="storage_no_folders">还没有选择文件夹。添加工作区即可导入或导出文件。</string>
+    <string name="storage_copy_in">复制到共享目录</string>
+    <string name="storage_copy_out">导出共享文件</string>
+    <string name="storage_forget">移除</string>
+    <string name="storage_app_folder">应用共享目录：%1$s</string>
+    <string name="storage_available">可用</string>
+    <string name="storage_unavailable">不可用</string>
+    <string name="storage_import_file">导入文件</string>
+    <string name="storage_export_downloads">导出到下载目录</string>
+    <string name="storage_exact_binds">当前会话的挂载点</string>
+    <string name="storage_no_session">当前没有运行中的会话。会话启动后，所选层级的挂载点会显示在这里。</string>
+    <string name="storage_no_binds">该会话没有挂载点。</string>
+    <string name="storage_tier_t0_active">应用自有的共享目录，无需存储权限。</string>
+    <string name="storage_tier_t0_unavailable">此存储卷上无法使用应用共享目录。</string>
+    <string name="storage_tier_direct_only">仅在 direct 版本可用。</string>
+    <string name="storage_tier_android10">Android 10 上此目标不支持全部文件访问，请改用 SAF 工作区。</string>
+    <string name="storage_tier_legacy_granted">已获得旧版共享存储访问权限。</string>
+    <string name="storage_tier_legacy_needed">选择使用共享存储时再授予存储权限。</string>
+    <string name="storage_tier_all_files_granted">direct 版本已获得全部文件访问权限。</string>
+    <string name="storage_tier_all_files_needed">授予全部文件访问权限，才能把共享存储挂载进会话。</string>
+    <string name="storage_tier_unsupported">此 Android 版本不支持 T1。</string>
+    <string name="storage_tier_workspaces_saved">已保存 %1$d 个 SAF 工作区，文件通过显式复制传输。</string>
+    <string name="storage_tier_pick_folder">用系统选择器选择一个文件夹，无需宽泛的存储权限。</string>
+    <string name="storage_blocked_hint">存储访问被拒绝。打开“存储状态”授予权限，或改用 SAF 工作区。</string>
+
+    <!-- 命令面板 -->
+    <string name="hub_back">返回终端</string>
+    <string name="hub_palette">命令面板</string>
+    <string name="hub_palette_desc">只有选择后才会执行操作。</string>
+    <string name="hub_find_action">查找操作</string>
+    <string name="hub_action_history">搜索历史</string>
+    <string name="hub_action_history_desc">查找以前运行过的命令</string>
+    <string name="hub_action_files">打开文件浏览器</string>
+    <string name="hub_action_files_desc">浏览共享文件、SAF 工作区与下载目录</string>
+    <string name="hub_action_snippets">代码片段</string>
+    <string name="hub_action_snippets_desc">插入命令模板</string>
+    <string name="hub_action_profiles">配置</string>
+    <string name="hub_action_profiles_desc">管理配置与工作区</string>
+    <string name="hub_action_storage">存储状态</string>
+    <string name="hub_action_storage_desc">查看存储层级与访问权限</string>
+    <string name="hub_history_title">命令历史</string>
+    <string name="hub_search_commands">搜索命令</string>
+    <string name="hub_search">搜索</string>
+    <string name="hub_redaction_label">敏感信息过滤正则，每行一条</string>
+    <string name="hub_save_privacy">保存隐私规则</string>
+    <string name="hub_clear_history">清空历史</string>
+    <string name="hub_clear_history_title">清空命令历史？</string>
+    <string name="hub_clear_history_text">这会删除所有配置在本机保存的命令历史。</string>
+    <string name="hub_clear">清空</string>
+    <string name="hub_cancel">取消</string>
+    <string name="hub_history_empty">搜索本机历史。命中敏感规则的模式会被跳过。</string>
+    <string name="hub_history_line">%1$s · 退出码 %2$d</string>
+    <string name="hub_profiles_title">配置与工作区</string>
+    <string name="hub_profiles_desc">一个配置会把系统与起始目录组合在一起，SAF 工作区仍然是显式复制。</string>
+    <string name="hub_delete">删除</string>
+    <string name="hub_new_profile_name">新配置名称</string>
+    <string name="hub_create_profile">创建配置</string>
+    <string name="hub_edit_profile">编辑所选配置</string>
+    <string name="hub_name">名称</string>
+    <string name="hub_distro_id">系统 ID</string>
+    <string name="hub_guest_cwd">系统内工作目录</string>
+    <string name="hub_env_label">环境变量（每行 KEY=VALUE）</string>
+    <string name="hub_env_error">每行环境变量都要写成 KEY=VALUE。</string>
+    <string name="hub_save_profile">保存配置</string>
+    <string name="hub_manage_workspaces">管理 SAF 工作区</string>
+    <string name="hub_snippets_title">代码片段</string>
+    <string name="hub_snippets_desc">选择“插入”把模板放进终端；“运行”会先显示最终命令。</string>
+    <string name="hub_snippet_find_files">查找文件</string>
+    <string name="hub_snippet_git_status">Git 状态</string>
+    <string name="hub_snippet_python_server">Python 服务器</string>
+    <string name="hub_insert">插入</string>
+    <string name="hub_run_ellipsis">运行…</string>
+    <string name="hub_run_named">运行 %1$s？</string>
+    <string name="hub_run">运行</string>
+    <string name="hub_files_title">文件</string>
+    <string name="hub_shared">共享</string>
+    <string name="hub_workspaces">工作区</string>
+    <string name="hub_downloads">下载</string>
+    <string name="hub_up">上一级</string>
+    <string name="hub_add_workspace_hint">在“存储状态”里添加 SAF 工作区。</string>
+    <string name="hub_downloads_requires">浏览下载目录需要 Android 10 或更高版本。</string>
+
+    <!-- 主界面 -->
+    <string name="dialog_storage_title">授予 TermX 存储访问权限</string>
+    <string name="dialog_storage_text">TermX 可以选择访问设备共享存储，让你的 Linux 工具读取文件。使用终端并不需要这一权限，之后也可以在“存储状态”里开启。授予后，各系统可以读取 /root/storage/shared 下的共享文件。</string>
+    <string name="action_allow">允许</string>
+    <string name="action_not_now">稍后再说</string>
+    <string name="reconnecting">正在重新连接终端…</string>
+    <string name="msg_start_distro_first">请先启动一个系统，再新建会话。</string>
+    <string name="msg_storage_not_granted">未授予存储访问权限。T0 与 SAF 工作区仍然可用。</string>
+    <string name="msg_notifications_off">通知已关闭，Android 可能会隐藏会话通知和它的按钮。</string>
+    <string name="msg_workspace_saved">工作区已保存。文件通过显式复制传输，SAF 文件夹不会被挂载。</string>
+    <string name="msg_wallpaper_applied">壁纸已应用。</string>
+    <string name="msg_open_terminal_first">请先打开终端</string>
+    <string name="msg_history_cleared">命令历史已清空。</string>
+    <string name="msg_history_clear_failed">清空历史失败：%1$s</string>
+    <string name="msg_privacy_saved">历史隐私规则已保存。</string>
+    <string name="msg_privacy_invalid">过滤正则无效：%1$s</string>
+    <string name="msg_start_session_first">请先启动终端会话，再插入或运行命令。</string>
+    <string name="msg_profile_saved">配置已保存。</string>
+    <string name="msg_profile_create_failed">无法创建配置</string>
+    <string name="msg_profile_save_failed">无法保存配置</string>
+    <string name="msg_t1_unavailable">Android 10 上 T1 不可用，请为共享文件选择 SAF 工作区。</string>
+    <string name="msg_workspace_remove_failed">无法移除工作区</string>
+    <string name="msg_could_not_save_workspace">无法保存工作区</string>
+    <string name="msg_appearance_load_failed">无法加载外观设置</string>
+
+    <string name="msg_font_imported">字体已导入。</string>
+    <string name="msg_no_readable_file">共享的内容里没有可读取的文件。</string>
+    <string name="msg_import_failed">无法导入共享文件</string>
+    <string name="msg_share_failed">无法分享这个文件</string>
+    <string name="msg_tier_not_active">%1$s 当前不可用，本次会话将使用 T0；请到“存储状态”修复访问权限。</string>
+    <string name="msg_allow_notifications">允许通知后，才能显示会话状态以及“打开”“新建会话”“全部停止”按钮。</string>
+    <string name="msg_history_unavailable">历史不可用：%1$s</string>
+    <string name="msg_history_db_error">数据库错误</string>
+    <string name="msg_service_connect_failed">无法连接终端会话服务，请再点一次开始。</string>
+    <string name="msg_all_files_settings_failed">无法打开全部文件访问设置</string>
+    <string name="msg_start_distro_failed">无法启动 %1$s</string>
+    <plurals name="msg_imported_files">
+        <item quantity="other">已导入 %1$d 个共享文件到 TermX 共享存储。</item>
+    </plurals>
+
+    <!-- 会话通知 -->
+    <string name="notif_title">TermX 终端</string>
+    <string name="notif_channel_name">终端会话</string>
+    <string name="notif_open">打开</string>
+    <string name="notif_new_session">新建会话</string>
+    <string name="notif_stop_all">全部停止</string>
+    <plurals name="notif_sessions_running">
+        <item quantity="other">%1$d 个 Linux 会话正在运行</item>
+    </plurals>
+</resources>

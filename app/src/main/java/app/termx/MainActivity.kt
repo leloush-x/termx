@@ -62,6 +62,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -184,7 +185,7 @@ class MainActivity : ComponentActivity() {
                 pendingNewSession -> {
                     val newSession = binder.createSessionFromLastLaunch()
                     if (newSession != null) setActiveSession(newSession)
-                    else storageMessage = "Start a distro before creating another session."
+                    else storageMessage = getString(R.string.msg_start_distro_first)
                 }
                 else -> binder.activeSession()?.let(::setActiveSession)
             }
@@ -239,7 +240,7 @@ class MainActivity : ComponentActivity() {
                         font.onSuccess { typeface -> runOnUiThread { terminalTypeface = typeface } }
                     }
                 }
-                    .onFailure { customizationMessage = it.message ?: "Could not load appearance settings" }
+                    .onFailure { customizationMessage = it.message ?: getString(R.string.msg_appearance_load_failed) }
             }
         }, "termx-settings-load").start()
         fontRepository.loadBundled { result -> result.onSuccess { runOnUiThread { terminalTypeface = it } } }
@@ -313,13 +314,13 @@ class MainActivity : ComponentActivity() {
                     ) { granted ->
                         storageRevision++
                         if (granted.values.any { !it }) {
-                            storageMessage = "Storage access was not granted. T0 and SAF workspaces remain available."
+                            storageMessage = getString(R.string.msg_storage_not_granted)
                         }
                     }
                     val notificationPermissionLauncher = rememberLauncherForActivityResult(
                         ActivityResultContracts.RequestPermission(),
                     ) { granted ->
-                        if (!granted) storageMessage = "Notifications are off; Android may hide the session notification and its controls."
+                        if (!granted) storageMessage = getString(R.string.msg_notifications_off)
                         connectSessionService(pendingLaunch, pendingNewSession)
                     }
                     SideEffect {
@@ -364,9 +365,9 @@ class MainActivity : ComponentActivity() {
                             runCatching { StoragePreferences.addWorkspace(context, uri) }
                                 .onSuccess {
                                     StoragePreferences.selectTier(context, StorageTier.T2)
-                                    storageMessage = "Workspace saved. Files are copied explicitly; SAF folders are not bind-mounted."
+                                    storageMessage = getString(R.string.msg_workspace_saved)
                                 }
-                                .onFailure { storageMessage = StorageAccess.permissionHint(it) ?: (it.message ?: "Could not save workspace") }
+                                .onFailure { storageMessage = StorageAccess.permissionHint(context, it) ?: (it.message ?: getString(R.string.msg_could_not_save_workspace)) }
                         }
                         storageRevision++
                     }
@@ -386,7 +387,7 @@ class MainActivity : ComponentActivity() {
                                     Thread({ runCatching { kotlinx.coroutines.runBlocking {
                                         customizationStore.put("font_path", file.absolutePath)
                                     } }.onFailure { runOnUiThread { customizationMessage = it.message } } }, "termx-font-save").start()
-                                    runOnUiThread { terminalTypeface = typeface; customizationMessage = "Font imported." }
+                                    runOnUiThread { terminalTypeface = typeface; customizationMessage = getString(R.string.msg_font_imported) }
                                 }.onFailure { runOnUiThread { customizationMessage = it.message } }
                             } }.onFailure { runOnUiThread { customizationMessage = it.message } }
                         }
@@ -402,7 +403,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             wallpaperUri = uri.toString()
-                            customizationMessage = "Wallpaper applied."
+                            customizationMessage = getString(R.string.msg_wallpaper_applied)
                             Thread({ runCatching { kotlinx.coroutines.runBlocking {
                                 customizationStore.put("wallpaper_uri", wallpaperUri.orEmpty())
                             } }.onFailure { runOnUiThread { customizationMessage = it.message } } }, "termx-wallpaper-save").start()
@@ -411,8 +412,8 @@ class MainActivity : ComponentActivity() {
                     if (storagePermissionPromptVisible) {
                         AlertDialog(
                             onDismissRequest = { storagePermissionPromptVisible = false },
-                            title = { Text("Storage access for TermX") },
-                            text = { Text("TermX can optionally access shared device storage so Linux tools can read your files. This is not required to use the terminal; you can enable it later in Storage Health. Granting it lets distros read shared files under /root/storage/shared.") },
+                            title = { Text(stringResource(R.string.dialog_storage_title)) },
+                            text = { Text(stringResource(R.string.dialog_storage_text)) },
                             confirmButton = {
                                 TextButton(onClick = {
                                     storagePermissionPromptVisible = false
@@ -421,10 +422,10 @@ class MainActivity : ComponentActivity() {
                                         Manifest.permission.READ_EXTERNAL_STORAGE,
                                         Manifest.permission.WRITE_EXTERNAL_STORAGE,
                                     ))
-                                }) { Text("Allow") }
+                                }) { Text(stringResource(R.string.action_allow)) }
                             },
                             dismissButton = {
-                                TextButton(onClick = { storagePermissionPromptVisible = false }) { Text("Not now") }
+                                TextButton(onClick = { storagePermissionPromptVisible = false }) { Text(stringResource(R.string.action_not_now)) }
                             },
                         )
                     }
@@ -440,7 +441,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             Text("TERM X", color = Color.White.copy(alpha = 0.72f), style = MaterialTheme.typography.labelLarge)
                             androidx.compose.foundation.layout.Spacer(Modifier.padding(12.dp))
-                            Text("Reconnecting to your terminal…", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.reconnecting), color = Color.White, style = MaterialTheme.typography.titleMedium)
                         }
                     } else if (showSettings) {
                         DistroSettingsScreen(
@@ -502,11 +503,11 @@ class MainActivity : ComponentActivity() {
                                 } else {
                                     "echo '$token' | (if command -v gh >/dev/null 2>&1; then gh auth login --with-token && gh auth setup-git 2>/dev/null && echo 'GitHub login OK'; else echo 'gh not found - install: apk add github-cli'; fi)"
                                 }
-                                terminalSession?.let { it.write(command + "\n") } ?: run { storageMessage = "Open a terminal first" }
+                                terminalSession?.let { it.write(command + "\n") } ?: run { storageMessage = getString(R.string.msg_open_terminal_first) }
                                 showSettings = false
                             },
                             onGitHubLogout = {
-                                terminalSession?.let { it.write("gh auth logout 2>/dev/null; echo 'gh logged out'\n") } ?: run { storageMessage = "Open a terminal first" }
+                                terminalSession?.let { it.write("gh auth logout 2>/dev/null; echo 'gh logged out'\n") } ?: run { storageMessage = getString(R.string.msg_open_terminal_first) }
                                 showSettings = false
                             },
                             customizationMessage = customizationMessage,
@@ -555,8 +556,8 @@ class MainActivity : ComponentActivity() {
                             onRedactionText = { redactionText = it },
                             onSaveRedactions = {
                                 runCatching { HistoryRedactions.save(context, redactionText) }
-                                    .onSuccess { storageMessage = "History privacy rules saved." }
-                                    .onFailure { storageMessage = "Invalid redaction regex: ${it.message}" }
+                                    .onSuccess { storageMessage = getString(R.string.msg_privacy_saved) }
+                                    .onFailure { storageMessage = getString(R.string.msg_privacy_invalid, it.message) }
                             },
                             onBack = { productivityPage = null; storageMessage = null },
                             onNavigate = { page ->
@@ -566,7 +567,7 @@ class MainActivity : ComponentActivity() {
                             onOpenStorage = { productivityPage = null; showStorageHealth = true },
                             onInsertText = { text ->
                                 if (terminalSession == null) {
-                                    storageMessage = "Start a terminal session before inserting or running a command."
+                                    storageMessage = getString(R.string.msg_start_session_first)
                                 } else {
                                     productivityPage = null
                                     backend.insertText(text)
@@ -575,14 +576,14 @@ class MainActivity : ComponentActivity() {
                             onShareFile = { file -> shareFile(file) },
                             onCreateProfile = { name ->
                                 runCatching { ProfileStore.create(context, name) }
-                                    .onFailure { storageMessage = it.message ?: "Could not create profile" }
+                                    .onFailure { storageMessage = it.message ?: getString(R.string.msg_profile_create_failed) }
                                 profileRevision++
                             },
                             onSelectProfile = { id -> ProfileStore.select(context, id); profileRevision++ },
                             onUpdateProfile = { profile ->
                                 runCatching { ProfileStore.update(context, profile) }
-                                    .onSuccess { storageMessage = "Profile saved." }
-                                    .onFailure { storageMessage = it.message ?: "Could not save profile" }
+                                    .onSuccess { storageMessage = getString(R.string.msg_profile_saved) }
+                                    .onFailure { storageMessage = it.message ?: getString(R.string.msg_profile_save_failed) }
                                 profileRevision++
                             },
                             onRemoveProfile = { id -> ProfileStore.remove(context, id); profileRevision++ },
@@ -609,13 +610,13 @@ class MainActivity : ComponentActivity() {
                                         Manifest.permission.READ_EXTERNAL_STORAGE,
                                         Manifest.permission.WRITE_EXTERNAL_STORAGE,
                                     ))
-                                    else -> storageMessage = "T1 is unavailable on Android 10. Choose a SAF workspace for shared files."
+                                    else -> storageMessage = getString(R.string.msg_t1_unavailable)
                                 }
                             },
                             onAddWorkspace = { workspaceLauncher.launch(null) },
                             onRemoveWorkspace = { workspace ->
                                 runCatching { StoragePreferences.removeWorkspace(context, workspace.uri) }
-                                    .onFailure { storageMessage = it.message ?: "Could not remove workspace" }
+                                    .onFailure { storageMessage = it.message ?: getString(R.string.msg_workspace_remove_failed) }
                                 storageRevision++
                             },
                             onImportFile = { importLauncher.launch(arrayOf("*/*")) },
@@ -775,7 +776,7 @@ class MainActivity : ComponentActivity() {
                                         getSharedPreferences("landing", MODE_PRIVATE).edit().putString("selected_distro", pkg.distroId).apply()
                                         showTerminalPanel = false
                                         runCatching { startTerminal(pkg) }
-                                            .onFailure { storageMessage = it.message ?: "Could not start ${pkg.distroName}" }
+                                            .onFailure { storageMessage = it.message ?: getString(R.string.msg_start_distro_failed, pkg.distroName) }
                                     },
                                     onSettings = {
                                         showTerminalPanel = false
@@ -821,12 +822,12 @@ class MainActivity : ComponentActivity() {
             else -> emptyList()
         }
         if (uris.isEmpty()) {
-            storageMessage = "The shared item did not contain a readable file."
+            storageMessage = getString(R.string.msg_no_readable_file)
             return
         }
         runCatching { uris.sumOf { WorkspaceTransfer.copyDocumentIntoShared(this, it, sharedDirectory()) } }
-            .onSuccess { count -> storageMessage = "Imported $count shared file${if (count == 1) "" else "s"} into TermX shared storage." }
-            .onFailure { storageMessage = StorageAccess.permissionHint(it) ?: (it.message ?: "Could not import shared file") }
+            .onSuccess { count -> storageMessage = resources.getQuantityString(R.plurals.msg_imported_files, count, count) }
+            .onFailure { storageMessage = StorageAccess.permissionHint(this, it) ?: (it.message ?: getString(R.string.msg_import_failed)) }
     }
 
     private fun shareFile(file: File) {
@@ -840,7 +841,7 @@ class MainActivity : ComponentActivity() {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             startActivity(Intent.createChooser(send, "Share ${file.name}"))
-        }.onFailure { storageMessage = it.message ?: "Could not share this file" }
+        }.onFailure { storageMessage = it.message ?: getString(R.string.msg_share_failed) }
     }
 
     private fun hideKeyboard() {
@@ -858,7 +859,7 @@ class MainActivity : ComponentActivity() {
         val profile = ProfileStore.selected(this)
         val guestWorkingDirectory = if (profile.distroId == pkg.distroId) profile.workingDirectory else "/root"
         if (activeTier != requestedTier) {
-            storageMessage = "${requestedTier} is not active. This session will use T0; open Storage Health to fix access."
+            storageMessage = getString(R.string.msg_tier_not_active, requestedTier.toString())
         }
         val launch = ProotCommand.build(
             nativeLibraryDirectory = File(applicationInfo.nativeLibraryDir),
@@ -876,7 +877,7 @@ class MainActivity : ComponentActivity() {
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
             pendingLaunch = launch
-            storageMessage = "Allow notifications to show session status and Open, New session, and Stop all controls."
+            storageMessage = getString(R.string.msg_allow_notifications)
             notificationPermissionRequester?.invoke() ?: connectSessionService(launch = launch)
         } else {
             connectSessionService(launch = launch)
@@ -949,7 +950,7 @@ class MainActivity : ComponentActivity() {
             }
             runOnUiThread {
                 historyItems = result.getOrDefault(emptyList())
-                storageMessage = result.exceptionOrNull()?.let { "History is unavailable: ${it.message ?: "database error"}" }
+                storageMessage = result.exceptionOrNull()?.let { getString(R.string.msg_history_unavailable, it.message ?: getString(R.string.msg_history_db_error)) }
             }
         }, "termx-history-query").start()
     }
@@ -972,7 +973,7 @@ class MainActivity : ComponentActivity() {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
             if (!serviceBound) serviceBound = bindService(intent, sessionConnection, Context.BIND_AUTO_CREATE)
-            if (!serviceBound) storageMessage = "Could not connect to the terminal session service. Tap Start again."
+            if (!serviceBound) storageMessage = getString(R.string.msg_service_connect_failed)
             if (!serviceBound) restoringSavedSession = false
         } catch (failure: Exception) {
             restoringSavedSession = false
@@ -1006,7 +1007,7 @@ class MainActivity : ComponentActivity() {
         runCatching { startActivity(appSettings) }.onFailure {
             runCatching {
                 startActivity(Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
-            }.onFailure { error -> storageMessage = error.message ?: "Could not open All-files settings" }
+            }.onFailure { error -> storageMessage = error.message ?: getString(R.string.msg_all_files_settings_failed) }
         }
     }
 
@@ -1016,7 +1017,7 @@ class MainActivity : ComponentActivity() {
             runOnUiThread {
                 storageMessage = result.fold(
                     onSuccess = { "$label complete: $it file(s)." },
-                    onFailure = { StorageAccess.permissionHint(it) ?: (it.message ?: "$label failed") },
+                    onFailure = { StorageAccess.permissionHint(this, it) ?: (it.message ?: "$label failed") },
                 )
                 storageRevision++
             }
