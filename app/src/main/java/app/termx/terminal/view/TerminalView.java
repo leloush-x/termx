@@ -59,9 +59,6 @@ public final class TerminalView extends View {
     private final ShadowLine mShadowLine = new ShadowLine();
     private String mComposingSent = "";
 
-    /** Bracketed paste state (DECSET 2004). */
-    private boolean mBracketedPaste = false;
-
     public TerminalRenderer mRenderer;
 
     public TerminalViewClient mClient;
@@ -440,8 +437,20 @@ public final class TerminalView extends View {
     private String writeCommitted(CharSequence text) {
         if (mEmulator == null || mTermSession == null || text.length() == 0) return "";
         String raw = text.toString();
-        String sent = raw.codePointCount(0, raw.length()) == 1 ? raw : app.termx.terminal.ime.CommitTransform.INSTANCE.transform(raw, mBracketedPaste);
+        boolean singleCodePoint = raw.codePointCount(0, raw.length()) == 1;
+        String sent = singleCodePoint ? raw : app.termx.terminal.ime.CommitTransform.INSTANCE.transform(raw);
         stopTextSelectionMode();
+        if (!singleCodePoint && app.termx.terminal.ime.CommitTransform.INSTANCE.isMultiline(sent)) {
+            // A multi-line commit (clipboard paste through the IME, dictation, a script shared
+            // into the terminal) must stay multi-line. Deliver it exactly like the clipboard
+            // paste path does: the emulator maps newlines to carriage returns and wraps the
+            // text in ESC[200~/ESC[201~ when the running program enabled bracketed paste
+            // (DECSET 2004) — the previous space-substitution mangled pasted scripts.
+            mEmulator.paste(sent);
+            resetShadowLine();
+            mClient.onModifierKeyUsed();
+            return sent;
+        }
         for (int i = 0; i < sent.length(); ) {
             int cp = sent.codePointAt(i);
             if (cp == '\n') cp = '\r';
