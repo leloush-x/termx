@@ -219,20 +219,20 @@ class SessionService : Service() {
         val count = sessions.size
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("TermX terminal")
-            .setContentText(if (count == 1) "1 Linux session running" else "$count Linux sessions running")
+            .setContentTitle(getString(R.string.notif_title))
+            .setContentText(resources.getQuantityString(R.plurals.notif_sessions_running, count, count))
             .setContentIntent(openPending)
             .setOngoing(true)
-            .addAction(0, "Open", openPending)
-            .addAction(0, "New session", newPending)
-            .addAction(0, "Stop all", stopPending)
+            .addAction(0, getString(R.string.notif_open), openPending)
+            .addAction(0, getString(R.string.notif_new_session), newPending)
+            .addAction(0, getString(R.string.notif_stop_all), stopPending)
             .build()
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notificationManager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Terminal sessions", NotificationManager.IMPORTANCE_LOW),
+                NotificationChannel(CHANNEL_ID, getString(R.string.notif_channel_name), NotificationManager.IMPORTANCE_LOW),
             )
         }
     }

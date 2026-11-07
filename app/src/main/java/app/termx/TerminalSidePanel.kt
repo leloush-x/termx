@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -135,7 +136,7 @@ internal fun BoxScope.TerminalSidePanel(
         // Sessions, one retractable block per distro.
         if (groups.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
-            Text("SESSIONS", color = Color(0xFF85847F), style = MaterialTheme.typography.labelSmall, letterSpacing = 1.1.sp)
+            Text(stringResource(R.string.panel_sessions), color = Color(0xFF85847F), style = MaterialTheme.typography.labelSmall, letterSpacing = 1.1.sp)
         }
         groups.forEach { group ->
             val collapsed = group.distroId in collapsedGroups
@@ -181,7 +182,7 @@ internal fun BoxScope.TerminalSidePanel(
                                     style = MaterialTheme.typography.labelSmall, maxLines = 1)
                             }
                             if (session.isCurrent) {
-                                Text("live", color = group.accent, style = MaterialTheme.typography.labelSmall)
+                                Text(stringResource(R.string.panel_live), color = group.accent, style = MaterialTheme.typography.labelSmall)
                             }
                             Spacer(Modifier.width(6.dp))
                             Text(
@@ -212,12 +213,13 @@ internal fun BoxScope.TerminalSidePanel(
             Text("+", color = accent, fontSize = 19.sp)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text("New terminal", color = Color(0xFFF1F0EC), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.panel_new_terminal), color = Color(0xFFF1F0EC), style = MaterialTheme.typography.labelLarge)
                 Text(
                     when (installedDistros.size) {
-                        0 -> "No installed distro yet"
+                        0 -> stringResource(R.string.panel_no_distro)
                         1 -> installedDistros.single().distroName
-                        else -> if (showingDistroChoices) "Pick a distro" else "${installedDistros.size} distros installed"
+                        else -> if (showingDistroChoices) stringResource(R.string.panel_pick_distro)
+                        else stringResource(R.string.panel_distros_installed, installedDistros.size)
                     },
                     color = Color(0xFF85847F), style = MaterialTheme.typography.labelSmall,
                 )
@@ -248,7 +250,7 @@ internal fun BoxScope.TerminalSidePanel(
                         Text(distro.distroName, Modifier.weight(1f), color = Color(0xFFE4E2DC),
                             style = MaterialTheme.typography.labelMedium)
                         Text(
-                            if (distro.distroId == distroId) "current" else distro.version,
+                            if (distro.distroId == distroId) stringResource(R.string.panel_current) else distro.version,
                             color = if (distro.distroId == distroId) distroAccent else Color(0xFF85847F),
                             style = MaterialTheme.typography.labelSmall,
                         )
@@ -264,10 +266,10 @@ internal fun BoxScope.TerminalSidePanel(
                 .padding(horizontal = 6.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Settings", color = Color(0xFFD0CEC8), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.landing_settings), color = Color(0xFFD0CEC8), style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.weight(1f))
             Text("›", color = Color.White.copy(alpha = 0.46f), fontSize = 17.sp)
         }
-        Text("Linux sessions run locally.", color = Color(0xFF85847F), style = MaterialTheme.typography.labelSmall)
+        Text(stringResource(R.string.panel_footer), color = Color(0xFF85847F), style = MaterialTheme.typography.labelSmall)
     }
 }
