@@ -130,7 +130,7 @@ object WorkspaceTransfer {
     private inline fun <T> guarded(block: () -> T): T = try {
         block()
     } catch (error: Exception) {
-        val hint = StorageAccess.permissionHint(error)
+        val hint = StorageAccess.permissionHint(null, error)
         if (hint == null) throw error
         throw IOException(hint, error)
     }

@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import app.termx.R
 import app.termx.storage.StorageWorkspace
 import java.io.File
 
@@ -66,60 +68,60 @@ fun ProductivityHub(
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("TermX", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-            TextButton(onClick = onBack) { Text("Back to terminal") }
+            TextButton(onClick = onBack) { Text(stringResource(R.string.hub_back)) }
         }
         when (page) {
             ProductivityPage.PALETTE -> {
                 var filter by remember { mutableStateOf("") }
-                Text("Command palette", style = MaterialTheme.typography.headlineSmall)
-                Text("Actions run only after you choose them.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedTextField(filter, { filter = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Find an action") }, singleLine = true)
+                Text(stringResource(R.string.hub_palette), style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.hub_palette_desc), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(filter, { filter = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.hub_find_action)) }, singleLine = true)
                 val actions = listOf(
-                    Triple("history", "Search history", "Find a command you ran before") to { onNavigate(ProductivityPage.HISTORY) },
-                    Triple("files", "Open file browser", "Browse shared files, SAF workspaces and Downloads") to { onNavigate(ProductivityPage.FILES) },
-                    Triple("snippets", "Snippets", "Insert a command template") to { onNavigate(ProductivityPage.SNIPPETS) },
-                    Triple("profiles", "Profiles", "Manage profiles and workspaces") to { onNavigate(ProductivityPage.PROFILES) },
-                    Triple("storage", "Storage Health", "Review storage tiers and access") to onOpenStorage,
+                    Triple("history", stringResource(R.string.hub_action_history), stringResource(R.string.hub_action_history_desc)) to { onNavigate(ProductivityPage.HISTORY) },
+                    Triple("files", stringResource(R.string.hub_action_files), stringResource(R.string.hub_action_files_desc)) to { onNavigate(ProductivityPage.FILES) },
+                    Triple("snippets", stringResource(R.string.hub_action_snippets), stringResource(R.string.hub_action_snippets_desc)) to { onNavigate(ProductivityPage.SNIPPETS) },
+                    Triple("profiles", stringResource(R.string.hub_action_profiles), stringResource(R.string.hub_action_profiles_desc)) to { onNavigate(ProductivityPage.PROFILES) },
+                    Triple("storage", stringResource(R.string.hub_action_storage), stringResource(R.string.hub_action_storage_desc)) to onOpenStorage,
                 )
                 actions.filter { (item, _) -> fuzzyMatches("${item.first} ${item.second} ${item.third}", filter) }
                     .forEach { (item, action) -> PaletteAction(item.first, item.second, item.third, action) }
             }
             ProductivityPage.HISTORY -> {
-                Text("Command history", style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.hub_history_title), style = MaterialTheme.typography.headlineSmall)
                 OutlinedTextField(
                     value = historyQuery,
                     onValueChange = onHistoryQuery,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Search commands") },
+                    label = { Text(stringResource(R.string.hub_search_commands)) },
                     singleLine = true,
                 )
-                Button(onClick = onSearchHistory) { Text("Search") }
+                Button(onClick = onSearchHistory) { Text(stringResource(R.string.hub_search)) }
                 OutlinedTextField(
                     value = redactionText,
                     onValueChange = onRedactionText,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Secret redaction regex, one per line") },
+                    label = { Text(stringResource(R.string.hub_redaction_label)) },
                     minLines = 2,
                     maxLines = 5,
                 )
-                TextButton(onClick = onSaveRedactions) { Text("Save privacy rules") }
+                TextButton(onClick = onSaveRedactions) { Text(stringResource(R.string.hub_save_privacy)) }
                 var confirmClear by remember { mutableStateOf(false) }
-                TextButton(onClick = { confirmClear = true }) { Text("Clear history") }
+                TextButton(onClick = { confirmClear = true }) { Text(stringResource(R.string.hub_clear_history)) }
                 if (confirmClear) AlertDialog(
                     onDismissRequest = { confirmClear = false },
-                    title = { Text("Clear command history?") },
-                    text = { Text("This deletes all locally stored command history for every profile.") },
-                    confirmButton = { TextButton(onClick = { confirmClear = false; onClearHistory() }) { Text("Clear") } },
-                    dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("Cancel") } },
+                    title = { Text(stringResource(R.string.hub_clear_history_title)) },
+                    text = { Text(stringResource(R.string.hub_clear_history_text)) },
+                    confirmButton = { TextButton(onClick = { confirmClear = false; onClearHistory() }) { Text(stringResource(R.string.hub_clear)) } },
+                    dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.hub_cancel)) } },
                 )
-                if (history.isEmpty()) Text("Search your local history. Commands marked with secret patterns are skipped.",
+                if (history.isEmpty()) Text(stringResource(R.string.hub_history_empty),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(history, key = { it.id }) { entry ->
                         Card(Modifier.fillMaxWidth().clickable { onInsertText(entry.command) }) {
                             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(entry.command, fontFamily = FontFamily.Monospace)
-                                Text("${entry.cwd} · exit ${entry.exitCode}", style = MaterialTheme.typography.bodySmall,
+                                Text(stringResource(R.string.hub_history_line, entry.cwd, entry.exitCode), style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
@@ -164,9 +166,10 @@ private fun ProfileEditor(
         mutableStateOf(selected.environment.entries.joinToString("\n") { (key, value) -> "$key=$value" })
     }
     var profileError by remember { mutableStateOf<String?>(null) }
+    val envError = stringResource(R.string.hub_env_error)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Profiles and workspaces", style = MaterialTheme.typography.headlineSmall)
-        Text("A profile keeps a distro and starting directory together. SAF workspaces remain explicit copies.",
+        Text(stringResource(R.string.hub_profiles_title), style = MaterialTheme.typography.headlineSmall)
+        Text(stringResource(R.string.hub_profiles_desc),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         profiles.forEach { profile ->
             Card(Modifier.fillMaxWidth().clickable { onSelect(profile.id) }) {
@@ -175,33 +178,33 @@ private fun ProfileEditor(
                         Text(if (profile.id == selected.id) "✓ ${profile.name}" else profile.name, style = MaterialTheme.typography.titleMedium)
                         Text("${profile.distroId} · ${profile.workingDirectory}", style = MaterialTheme.typography.bodySmall)
                     }
-                    if (profile.id != "default") TextButton(onClick = { onRemove(profile.id) }) { Text("Delete") }
+                    if (profile.id != "default") TextButton(onClick = { onRemove(profile.id) }) { Text(stringResource(R.string.hub_delete)) }
                 }
             }
         }
-        OutlinedTextField(newName, { newName = it }, label = { Text("New profile name") }, singleLine = true)
-        Button(enabled = newName.isNotBlank(), onClick = { onCreate(newName); newName = "" }) { Text("Create profile") }
-        Text("Edit selected profile", style = MaterialTheme.typography.titleMedium)
-        OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true)
-        OutlinedTextField(distro, { distro = it.lowercase() }, label = { Text("Distro ID") }, singleLine = true)
-        OutlinedTextField(cwd, { cwd = it }, label = { Text("Guest working directory") }, singleLine = true)
+        OutlinedTextField(newName, { newName = it }, label = { Text(stringResource(R.string.hub_new_profile_name)) }, singleLine = true)
+        Button(enabled = newName.isNotBlank(), onClick = { onCreate(newName); newName = "" }) { Text(stringResource(R.string.hub_create_profile)) }
+        Text(stringResource(R.string.hub_edit_profile), style = MaterialTheme.typography.titleMedium)
+        OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.hub_name)) }, singleLine = true)
+        OutlinedTextField(distro, { distro = it.lowercase() }, label = { Text(stringResource(R.string.hub_distro_id)) }, singleLine = true)
+        OutlinedTextField(cwd, { cwd = it }, label = { Text(stringResource(R.string.hub_guest_cwd)) }, singleLine = true)
         OutlinedTextField(
-            environment, { environment = it }, label = { Text("Environment (KEY=VALUE per line)") },
+            environment, { environment = it }, label = { Text(stringResource(R.string.hub_env_label)) },
             minLines = 2, maxLines = 5,
         )
         Button(onClick = {
             val rows = environment.lineSequence().filter(String::isNotBlank).toList()
-            if (rows.any { '=' !in it }) profileError = "Use KEY=VALUE on each environment line."
+            if (rows.any { '=' !in it }) profileError = envError
             else {
                 profileError = null
                 val env = rows.associate { row -> row.substringBefore('=') to row.substringAfter('=') }
                 onUpdate(selected.copy(name = name.trim(), distroId = distro.trim(), workingDirectory = cwd.trim(), environment = env))
             }
         }) {
-            Text("Save profile")
+            Text(stringResource(R.string.hub_save_profile))
         }
         profileError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        OutlinedButton(onClick = onManageWorkspaces) { Text("Manage SAF workspaces") }
+        OutlinedButton(onClick = onManageWorkspaces) { Text(stringResource(R.string.hub_manage_workspaces)) }
     }
 }
 
@@ -221,35 +224,36 @@ private fun PaletteAction(id: String, title: String, detail: String, onClick: ()
 @Composable
 private fun SnippetList(onInsertText: (String) -> Unit) {
     val snippets = listOf(
-        "Find files" to "find . -type f -iname '{{pattern}}'",
-        "Git status" to "git status --short --branch",
-        "Python server" to "python3 -m http.server {{port}}",
+        R.string.hub_snippet_find_files to "find . -type f -iname '{{pattern}}'",
+        R.string.hub_snippet_git_status to "git status --short --branch",
+        R.string.hub_snippet_python_server to "python3 -m http.server {{port}}",
     )
-    var selected by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var selected by remember { mutableStateOf<Pair<Int, String>?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Snippets", style = MaterialTheme.typography.headlineSmall)
-        Text("Choose Insert to place a template in the terminal. Run shows the final command first.",
+        Text(stringResource(R.string.hub_snippets_title), style = MaterialTheme.typography.headlineSmall)
+        Text(stringResource(R.string.hub_snippets_desc),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         snippets.forEach { (name, template) ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(name, style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(name), style = MaterialTheme.typography.titleMedium)
                     Text(template, fontFamily = FontFamily.Monospace)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { onInsertText(template) }) { Text("Insert") }
-                        Button(onClick = { selected = name to template }) { Text("Run…") }
+                        OutlinedButton(onClick = { onInsertText(template) }) { Text(stringResource(R.string.hub_insert)) }
+                        Button(onClick = { selected = name to template }) { Text(stringResource(R.string.hub_run_ellipsis)) }
                     }
                 }
             }
         }
     }
     selected?.let { (name, command) ->
+        val snippetTitle = stringResource(R.string.hub_run_named, stringResource(name))
         val variables = remember(name) { mutableStateMapOf<String, String>() }
         val keys = Regex("\\{\\{([a-zA-Z0-9_]+)}}").findAll(command).map { it.groupValues[1] }.distinct().toList()
         val resolved = Regex("\\{\\{([a-zA-Z0-9_]+)}}").replace(command) { variables[it.groupValues[1]].orEmpty() }
         AlertDialog(
             onDismissRequest = { selected = null },
-            title = { Text("Run $name?") },
+            title = { Text(snippetTitle) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     keys.forEach { key ->
@@ -263,8 +267,8 @@ private fun SnippetList(onInsertText: (String) -> Unit) {
                     Text(resolved, fontFamily = FontFamily.Monospace)
                 }
             },
-            confirmButton = { TextButton(onClick = { selected = null; onInsertText(resolved + "\n") }) { Text("Run") } },
-            dismissButton = { TextButton(onClick = { selected = null }) { Text("Cancel") } },
+            confirmButton = { TextButton(onClick = { selected = null; onInsertText(resolved + "\n") }) { Text(stringResource(R.string.hub_run)) } },
+            dismissButton = { TextButton(onClick = { selected = null }) { Text(stringResource(R.string.hub_cancel)) } },
         )
     }
 }
@@ -288,9 +292,9 @@ private fun FileBrowser(sharedDirectory: File, workspaces: List<StorageWorkspace
     }
     val downloads = remember(source) { if (source == "downloads") queryDownloads(context) else emptyList() }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Files", style = MaterialTheme.typography.headlineSmall)
+        Text(stringResource(R.string.hub_files_title), style = MaterialTheme.typography.headlineSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("shared" to "Shared", "workspaces" to "Workspaces", "downloads" to "Downloads").forEach { (key, label) ->
+            listOf("shared" to stringResource(R.string.hub_shared), "workspaces" to stringResource(R.string.hub_workspaces), "downloads" to stringResource(R.string.hub_downloads)).forEach { (key, label) ->
                 androidx.compose.material3.FilterChip(selected = source == key, onClick = {
                     source = key
                     selectedWorkspace = null
@@ -300,7 +304,7 @@ private fun FileBrowser(sharedDirectory: File, workspaces: List<StorageWorkspace
         when (source) {
             "shared" -> {
                 Text(current.absolutePath, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (current != sharedDirectory) OutlinedButton(onClick = { current = current.parentFile ?: sharedDirectory }) { Text("Up") }
+                if (current != sharedDirectory) OutlinedButton(onClick = { current = current.parentFile ?: sharedDirectory }) { Text(stringResource(R.string.hub_up)) }
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(entries, key = { it.absolutePath }) { file ->
                         Card(Modifier.fillMaxWidth().clickable {
@@ -315,7 +319,7 @@ private fun FileBrowser(sharedDirectory: File, workspaces: List<StorageWorkspace
                 }
             }
             "workspaces" -> if (selectedWorkspace == null) {
-                if (workspaces.isEmpty()) Text("Add a SAF workspace in Storage Health.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (workspaces.isEmpty()) Text(stringResource(R.string.hub_add_workspace_hint), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 workspaces.forEach { workspace ->
                     Card(Modifier.fillMaxWidth().clickable {
                         selectedWorkspace = workspace
@@ -327,7 +331,7 @@ private fun FileBrowser(sharedDirectory: File, workspaces: List<StorageWorkspace
                 OutlinedButton(onClick = {
                     if (documentStack.size <= 1) selectedWorkspace = null
                     else documentStack = documentStack.dropLast(1)
-                }) { Text("Up") }
+                }) { Text(stringResource(R.string.hub_up)) }
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(documents, key = { it.id }) { item ->
                         Card(Modifier.fillMaxWidth().clickable(enabled = item.directory) { documentStack = documentStack + item.id }) {
@@ -337,7 +341,7 @@ private fun FileBrowser(sharedDirectory: File, workspaces: List<StorageWorkspace
                 }
             }
             else -> {
-                if (Build.VERSION.SDK_INT < 29) Text("Downloads browsing requires Android 10 or newer.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (Build.VERSION.SDK_INT < 29) Text(stringResource(R.string.hub_downloads_requires), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(downloads, key = { it.id }) { item ->
                         Card(Modifier.fillMaxWidth()) { Text("📄 ${item.name}", Modifier.padding(12.dp)) }

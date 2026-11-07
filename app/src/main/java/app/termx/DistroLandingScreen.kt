@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -113,7 +114,7 @@ fun DistroLandingScreen(
                 Text("termx", color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.7).sp)
                 Spacer(Modifier.weight(1f))
                 Text(
-                    "Settings",
+                    stringResource(R.string.landing_settings),
                     Modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button, onClick = onSettings)
                         .defaultMinSize(minWidth = 64.dp, minHeight = 44.dp)
                         .padding(horizontal = 10.dp, vertical = 11.dp),
@@ -124,11 +125,11 @@ fun DistroLandingScreen(
 
             Spacer(Modifier.height(38.dp))
             Column(Modifier.widthIn(max = 460.dp).fillMaxWidth()) {
-                Text("Choose a distro", color = Color(0xFFF2F1ED),
+                Text(stringResource(R.string.landing_choose_distro), color = Color(0xFFF2F1ED),
                     style = MaterialTheme.typography.headlineLarge.copy(fontSize = 34.sp, lineHeight = 39.sp, fontWeight = FontWeight.Medium),
                     letterSpacing = (-1.2).sp)
                 Spacer(Modifier.height(9.dp))
-                Text("Open an installed system or download another one.",
+                Text(stringResource(R.string.landing_choose_distro_desc),
                     color = Color(0xFFAAA9A4), style = MaterialTheme.typography.bodyMedium, lineHeight = 21.sp)
             }
 
@@ -161,7 +162,7 @@ fun DistroLandingScreen(
                             fontWeight = FontWeight.SemiBold)
                         Text(selected.version, color = Color(0xFF9B9A95), style = MaterialTheme.typography.bodySmall)
                     }
-                    Text(if (installed) "Installed" else "Not installed", color = if (installed) accent else Color(0xFFAAA9A4),
+                    Text(if (installed) stringResource(R.string.landing_installed) else stringResource(R.string.landing_not_installed), color = if (installed) accent else Color(0xFFAAA9A4),
                         style = MaterialTheme.typography.labelSmall)
                 }
 
@@ -178,10 +179,10 @@ fun DistroLandingScreen(
                 ) {
                     Text(
                         when {
-                            downloading -> "Preparing ${selected.distroName}…"
-                            installed -> "Open terminal"
-                            anotherDownload -> "Another download is running"
-                            else -> "Install ${selected.distroName}"
+                            downloading -> stringResource(R.string.landing_preparing, selected.distroName)
+                            installed -> stringResource(R.string.landing_open_terminal)
+                            anotherDownload -> stringResource(R.string.landing_another_download)
+                            else -> stringResource(R.string.landing_install, selected.distroName)
                         },
                         Modifier.weight(1f), color = Color(0xFF151719), style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
@@ -196,7 +197,7 @@ fun DistroLandingScreen(
                     )
                 }
                 val statusLine = status ?: if (anotherDownload) {
-                    "${distros.firstOrNull { it.distroId == installingDistroId }?.distroName ?: "A distro"} is downloading."
+                    stringResource(R.string.landing_downloading_line, distros.firstOrNull { it.distroId == installingDistroId }?.distroName ?: stringResource(R.string.landing_a_distro))
                 } else null
                 if (!statusLine.isNullOrBlank()) {
                     Spacer(Modifier.height(11.dp))
@@ -207,10 +208,10 @@ fun DistroLandingScreen(
 
             Spacer(Modifier.height(25.dp))
             Row(Modifier.widthIn(max = 460.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                LandingLink("Commands", onCommands, Modifier.weight(1f))
-                LandingLink("Files", onFiles, Modifier.weight(1f))
-                LandingLink("Profiles", onProfiles, Modifier.weight(1f))
-                LandingLink("Storage", onStorage, Modifier.weight(1f))
+                LandingLink(stringResource(R.string.landing_commands), onCommands, Modifier.weight(1f))
+                LandingLink(stringResource(R.string.landing_files), onFiles, Modifier.weight(1f))
+                LandingLink(stringResource(R.string.landing_profiles), onProfiles, Modifier.weight(1f))
+                LandingLink(stringResource(R.string.landing_storage), onStorage, Modifier.weight(1f))
             }
             Spacer(Modifier.height(18.dp))
         }
@@ -254,7 +255,7 @@ private fun DistroRail(
                         style = MaterialTheme.typography.labelMedium, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                         maxLines = 1)
                     Spacer(Modifier.height(4.dp))
-                    Text(if (distro.distroId == selectedId) "SELECTED" else "${distro.version}",
+                    Text(if (distro.distroId == selectedId) stringResource(R.string.landing_selected) else "${distro.version}",
                         color = if (selected) palette.accent else Color(0xFF85847F),
                         style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, letterSpacing = 0.55.sp, maxLines = 1)
                     Spacer(Modifier.height(5.dp))

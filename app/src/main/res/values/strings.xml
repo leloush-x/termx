@@ -1,4 +1,216 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TermX</string>
+
+    <!-- Landing screen -->
+    <string name="landing_settings">Settings</string>
+    <string name="landing_choose_distro">Choose a distro</string>
+    <string name="landing_choose_distro_desc">Open an installed system or download another one.</string>
+    <string name="landing_installed">Installed</string>
+    <string name="landing_not_installed">Not installed</string>
+    <string name="landing_preparing">Preparing %1$s…</string>
+    <string name="landing_open_terminal">Open terminal</string>
+    <string name="landing_another_download">Another download is running</string>
+    <string name="landing_install">Install %1$s</string>
+    <string name="landing_downloading_line">%1$s is downloading.</string>
+    <string name="landing_a_distro">A distro</string>
+    <string name="landing_selected">SELECTED</string>
+    <string name="landing_commands">Commands</string>
+    <string name="landing_files">Files</string>
+    <string name="landing_profiles">Profiles</string>
+    <string name="landing_storage">Storage</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Make your Linux space yours</string>
+    <string name="settings_search">Search settings</string>
+    <string name="settings_section_appearance">APPEARANCE &amp; INPUT</string>
+    <string name="settings_amoled">AMOLED black</string>
+    <string name="settings_amoled_desc">Use a true black app and terminal surface</string>
+    <string name="settings_keyboard_mode">Keyboard input mode</string>
+    <string name="settings_keyboard_mode_desc">If letters glitch or duplicate in your keyboard, change this</string>
+    <string name="settings_input_default">Default (Recommended)</string>
+    <string name="settings_input_default_desc">Compatible with all keyboards, including CJK</string>
+    <string name="settings_input_strict">Strict Terminal</string>
+    <string name="settings_input_strict_desc">TYPE_NULL; may break some IMEs</string>
+    <string name="settings_input_legacy">Legacy Workaround</string>
+    <string name="settings_input_legacy_desc">Fixes Samsung/Xiaomi echo and duplicated words</string>
+    <string name="settings_text_size">Text size</string>
+    <string name="settings_terminal_font_size">Terminal font size · %1$dsp</string>
+    <string name="settings_choose_bg">Choose background image</string>
+    <string name="settings_change_bg">Change background image</string>
+    <string name="settings_remove_bg">Remove background image</string>
+    <string name="settings_show_wallpaper">Show wallpaper on this page</string>
+    <string name="settings_show_wallpaper_desc">Turn off to keep the solid black background behind settings</string>
+    <string name="settings_blur">Blur · %1$ddp</string>
+    <string name="settings_dim">Dim · %1$d%%</string>
+    <string name="settings_import_font">Import TTF font</string>
+    <string name="settings_section_github">GITHUB</string>
+    <string name="settings_github_desc">Paste a GitHub token and login in the current terminal</string>
+    <string name="settings_github_token">GitHub token (ghp_...)</string>
+    <string name="settings_github_login">Login with GitHub</string>
+    <string name="settings_github_logout">Logout from GitHub</string>
+    <string name="settings_section_default_distro">DEFAULT DISTRO</string>
+    <string name="settings_default_distro_desc">Opens when you start TermX</string>
+    <string name="settings_download_to_use">Download to use</string>
+    <string name="settings_badge_default">DEFAULT</string>
+    <string name="settings_badge_set">SET</string>
+    <string name="settings_section_worlds">LINUX WORLDS</string>
+    <string name="settings_worlds_desc">Choose what to install</string>
+    <string name="settings_download">Download</string>
+    <string name="settings_storage_health">Storage health</string>
+    <string name="settings_storage_health_desc">Manage shared folders and access</string>
+
+    <!-- Side panel -->
+    <string name="panel_sessions">SESSIONS</string>
+    <string name="panel_live">live</string>
+    <string name="panel_new_terminal">New terminal</string>
+    <string name="panel_no_distro">No installed distro yet</string>
+    <string name="panel_pick_distro">Pick a distro</string>
+    <string name="panel_distros_installed">%1$d distros installed</string>
+    <string name="panel_current">current</string>
+    <string name="panel_footer">Linux sessions run locally.</string>
+
+    <!-- Storage health -->
+    <string name="storage_title">Storage Health</string>
+    <string name="storage_back">Back</string>
+    <string name="storage_current_selection">Current selection: %1$s. Changes apply to the next terminal session.</string>
+    <string name="storage_using_tier">Using %1$s</string>
+    <string name="storage_use_tier">Use %1$s</string>
+    <string name="storage_grant_access">Grant access</string>
+    <string name="storage_add_workspace">Add workspace</string>
+    <string name="storage_saf_workspaces">SAF workspaces</string>
+    <string name="storage_no_folders">No folders selected. Add a workspace to copy files in or out.</string>
+    <string name="storage_copy_in">Copy into shared</string>
+    <string name="storage_copy_out">Copy shared files out</string>
+    <string name="storage_forget">Forget</string>
+    <string name="storage_app_folder">App shared folder: %1$s</string>
+    <string name="storage_available">available</string>
+    <string name="storage_unavailable">unavailable</string>
+    <string name="storage_import_file">Import a file</string>
+    <string name="storage_export_downloads">Export to Downloads</string>
+    <string name="storage_exact_binds">Exact binds for the current session</string>
+    <string name="storage_no_session">No session is running. The selected tier binds appear here after a session starts.</string>
+    <string name="storage_no_binds">This session has no host binds.</string>
+    <string name="storage_tier_t0_active">App-owned shared folder; no storage permission needed.</string>
+    <string name="storage_tier_t0_unavailable">The app shared folder is unavailable on this storage volume.</string>
+    <string name="storage_tier_direct_only">Available in the direct flavor only.</string>
+    <string name="storage_tier_android10">Android 10 has no All-files access for this target. Use a SAF workspace instead.</string>
+    <string name="storage_tier_legacy_granted">Legacy shared-storage access is granted.</string>
+    <string name="storage_tier_legacy_needed">Grant storage access when you choose to use shared device storage.</string>
+    <string name="storage_tier_all_files_granted">All-files access is granted to the direct build.</string>
+    <string name="storage_tier_all_files_needed">Grant All-files access to bind shared device storage into a session.</string>
+    <string name="storage_tier_unsupported">This Android version is not supported by T1.</string>
+    <string name="storage_tier_workspaces_saved">%1$d SAF workspaces are saved. Files are copied explicitly.</string>
+    <string name="storage_tier_pick_folder">Choose a folder with the system picker. No broad storage permission is needed.</string>
+    <string name="storage_blocked_hint">Storage access is blocked. Open Storage Health to grant access or choose a SAF workspace.</string>
+
+    <!-- Productivity hub -->
+    <string name="hub_back">Back to terminal</string>
+    <string name="hub_palette">Command palette</string>
+    <string name="hub_palette_desc">Actions run only after you choose them.</string>
+    <string name="hub_find_action">Find an action</string>
+    <string name="hub_action_history">Search history</string>
+    <string name="hub_action_history_desc">Find a command you ran before</string>
+    <string name="hub_action_files">Open file browser</string>
+    <string name="hub_action_files_desc">Browse shared files, SAF workspaces and Downloads</string>
+    <string name="hub_action_snippets">Snippets</string>
+    <string name="hub_action_snippets_desc">Insert a command template</string>
+    <string name="hub_action_profiles">Profiles</string>
+    <string name="hub_action_profiles_desc">Manage profiles and workspaces</string>
+    <string name="hub_action_storage">Storage Health</string>
+    <string name="hub_action_storage_desc">Review storage tiers and access</string>
+    <string name="hub_history_title">Command history</string>
+    <string name="hub_search_commands">Search commands</string>
+    <string name="hub_search">Search</string>
+    <string name="hub_redaction_label">Secret redaction regex, one per line</string>
+    <string name="hub_save_privacy">Save privacy rules</string>
+    <string name="hub_clear_history">Clear history</string>
+    <string name="hub_clear_history_title">Clear command history?</string>
+    <string name="hub_clear_history_text">This deletes all locally stored command history for every profile.</string>
+    <string name="hub_clear">Clear</string>
+    <string name="hub_cancel">Cancel</string>
+    <string name="hub_history_empty">Search your local history. Commands marked with secret patterns are skipped.</string>
+    <string name="hub_history_line">%1$s · exit %2$d</string>
+    <string name="hub_profiles_title">Profiles and workspaces</string>
+    <string name="hub_profiles_desc">A profile keeps a distro and starting directory together. SAF workspaces remain explicit copies.</string>
+    <string name="hub_delete">Delete</string>
+    <string name="hub_new_profile_name">New profile name</string>
+    <string name="hub_create_profile">Create profile</string>
+    <string name="hub_edit_profile">Edit selected profile</string>
+    <string name="hub_name">Name</string>
+    <string name="hub_distro_id">Distro ID</string>
+    <string name="hub_guest_cwd">Guest working directory</string>
+    <string name="hub_env_label">Environment (KEY=VALUE per line)</string>
+    <string name="hub_env_error">Use KEY=VALUE on each environment line.</string>
+    <string name="hub_save_profile">Save profile</string>
+    <string name="hub_manage_workspaces">Manage SAF workspaces</string>
+    <string name="hub_snippets_title">Snippets</string>
+    <string name="hub_snippets_desc">Choose Insert to place a template in the terminal. Run shows the final command first.</string>
+    <string name="hub_snippet_find_files">Find files</string>
+    <string name="hub_snippet_git_status">Git status</string>
+    <string name="hub_snippet_python_server">Python server</string>
+    <string name="hub_insert">Insert</string>
+    <string name="hub_run_ellipsis">Run…</string>
+    <string name="hub_run_named">Run %1$s?</string>
+    <string name="hub_run">Run</string>
+    <string name="hub_files_title">Files</string>
+    <string name="hub_shared">Shared</string>
+    <string name="hub_workspaces">Workspaces</string>
+    <string name="hub_downloads">Downloads</string>
+    <string name="hub_up">Up</string>
+    <string name="hub_add_workspace_hint">Add a SAF workspace in Storage Health.</string>
+    <string name="hub_downloads_requires">Downloads browsing requires Android 10 or newer.</string>
+
+    <!-- Main activity -->
+    <string name="dialog_storage_title">Storage access for TermX</string>
+    <string name="dialog_storage_text">TermX can optionally access shared device storage so Linux tools can read your files. This is not required to use the terminal; you can enable it later in Storage Health. Granting it lets distros read shared files under /root/storage/shared.</string>
+    <string name="action_allow">Allow</string>
+    <string name="action_not_now">Not now</string>
+    <string name="reconnecting">Reconnecting to your terminal…</string>
+    <string name="msg_start_distro_first">Start a distro before creating another session.</string>
+    <string name="msg_storage_not_granted">Storage access was not granted. T0 and SAF workspaces remain available.</string>
+    <string name="msg_notifications_off">Notifications are off; Android may hide the session notification and its controls.</string>
+    <string name="msg_workspace_saved">Workspace saved. Files are copied explicitly; SAF folders are not bind-mounted.</string>
+    <string name="msg_wallpaper_applied">Wallpaper applied.</string>
+    <string name="msg_open_terminal_first">Open a terminal first</string>
+    <string name="msg_history_cleared">Command history cleared.</string>
+    <string name="msg_history_clear_failed">Could not clear history: %1$s</string>
+    <string name="msg_privacy_saved">History privacy rules saved.</string>
+    <string name="msg_privacy_invalid">Invalid redaction regex: %1$s</string>
+    <string name="msg_start_session_first">Start a terminal session before inserting or running a command.</string>
+    <string name="msg_profile_saved">Profile saved.</string>
+    <string name="msg_profile_create_failed">Could not create profile</string>
+    <string name="msg_profile_save_failed">Could not save profile</string>
+    <string name="msg_t1_unavailable">T1 is unavailable on Android 10. Choose a SAF workspace for shared files.</string>
+    <string name="msg_workspace_remove_failed">Could not remove workspace</string>
+    <string name="msg_could_not_save_workspace">Could not save workspace</string>
+    <string name="msg_appearance_load_failed">Could not load appearance settings</string>
+
+    <string name="msg_font_imported">Font imported.</string>
+    <string name="msg_no_readable_file">The shared item did not contain a readable file.</string>
+    <string name="msg_import_failed">Could not import shared file</string>
+    <string name="msg_share_failed">Could not share this file</string>
+    <string name="msg_tier_not_active">%1$s is not active. This session will use T0; open Storage Health to fix access.</string>
+    <string name="msg_allow_notifications">Allow notifications to show session status and the Open, New session and Stop all controls.</string>
+    <string name="msg_history_unavailable">History is unavailable: %1$s</string>
+    <string name="msg_history_db_error">database error</string>
+    <string name="msg_service_connect_failed">Could not connect to the terminal session service. Tap Start again.</string>
+    <string name="msg_all_files_settings_failed">Could not open All-files settings</string>
+    <string name="msg_start_distro_failed">Could not start %1$s</string>
+    <plurals name="msg_imported_files">
+        <item quantity="one">Imported %1$d shared file into TermX shared storage.</item>
+        <item quantity="other">Imported %1$d shared files into TermX shared storage.</item>
+    </plurals>
+
+    <!-- Session notification -->
+    <string name="notif_title">TermX terminal</string>
+    <string name="notif_channel_name">Terminal sessions</string>
+    <string name="notif_open">Open</string>
+    <string name="notif_new_session">New session</string>
+    <string name="notif_stop_all">Stop all</string>
+    <plurals name="notif_sessions_running">
+        <item quantity="one">%1$d Linux session running</item>
+        <item quantity="other">%1$d Linux sessions running</item>
+    </plurals>
 </resources>

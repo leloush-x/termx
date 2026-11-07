@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
+import androidx.annotation.StringRes
 import app.termx.BuildConfig
+import app.termx.R
 
 enum class StorageTier { T0, T1, T2 }
 
@@ -45,42 +47,59 @@ object StorageAccess {
         )
     }
 
-    fun statuses(snapshot: StorageSnapshot): List<StorageTierStatus> = StorageTier.entries.map { status(it, snapshot) }
+    fun statuses(snapshot: StorageSnapshot, context: Context? = null): List<StorageTierStatus> =
+        StorageTier.entries.map { status(it, snapshot, context) }
 
-    fun status(tier: StorageTier, snapshot: StorageSnapshot): StorageTierStatus = when (tier) {
+    fun status(tier: StorageTier, snapshot: StorageSnapshot, context: Context? = null): StorageTierStatus = when (tier) {
         StorageTier.T0 -> StorageTierStatus(
             tier,
             if (snapshot.sharedDirectoryAvailable) TierAvailability.ACTIVE else TierAvailability.UNAVAILABLE,
-            if (snapshot.sharedDirectoryAvailable) "App-owned shared folder; no storage permission needed."
-            else "The app shared folder is unavailable on this storage volume.",
+            if (snapshot.sharedDirectoryAvailable) text(context, R.string.storage_tier_t0_active,
+                "App-owned shared folder; no storage permission needed.")
+            else text(context, R.string.storage_tier_t0_unavailable,
+                "The app shared folder is unavailable on this storage volume."),
         )
         StorageTier.T1 -> when {
             !snapshot.allowsAllFiles -> StorageTierStatus(
-                tier, TierAvailability.UNAVAILABLE, "Available in the direct flavor only.",
+                tier, TierAvailability.UNAVAILABLE,
+                text(context, R.string.storage_tier_direct_only, "Available in the direct flavor only."),
             )
             snapshot.apiLevel == 29 -> StorageTierStatus(
                 tier, TierAvailability.UNAVAILABLE,
-                "Android 10 has no All-files access for this target. Use a SAF workspace instead.",
+                text(context, R.string.storage_tier_android10,
+                    "Android 10 has no All-files access for this target. Use a SAF workspace instead."),
             )
             snapshot.apiLevel in 26..28 && snapshot.legacyReadGranted && snapshot.legacyWriteGranted -> StorageTierStatus(
-                tier, TierAvailability.ACTIVE, "Legacy shared-storage access is granted.",
+                tier, TierAvailability.ACTIVE,
+                text(context, R.string.storage_tier_legacy_granted, "Legacy shared-storage access is granted."),
             )
             snapshot.apiLevel in 26..28 -> StorageTierStatus(
-                tier, TierAvailability.NEEDS_PERMISSION, "Grant storage access when you choose to use shared device storage.",
+                tier, TierAvailability.NEEDS_PERMISSION,
+                text(context, R.string.storage_tier_legacy_needed,
+                    "Grant storage access when you choose to use shared device storage."),
             )
             snapshot.apiLevel >= 30 && snapshot.allFilesGranted -> StorageTierStatus(
-                tier, TierAvailability.ACTIVE, "All-files access is granted to the direct build.",
+                tier, TierAvailability.ACTIVE,
+                text(context, R.string.storage_tier_all_files_granted,
+                    "All-files access is granted to the direct build."),
             )
             snapshot.apiLevel >= 30 -> StorageTierStatus(
-                tier, TierAvailability.NEEDS_PERMISSION, "Grant All-files access to bind shared device storage into a session.",
+                tier, TierAvailability.NEEDS_PERMISSION,
+                text(context, R.string.storage_tier_all_files_needed,
+                    "Grant All-files access to bind shared device storage into a session."),
             )
-            else -> StorageTierStatus(tier, TierAvailability.UNAVAILABLE, "This Android version is not supported by T1.")
+            else -> StorageTierStatus(
+                tier, TierAvailability.UNAVAILABLE,
+                text(context, R.string.storage_tier_unsupported, "This Android version is not supported by T1."),
+            )
         }
         StorageTier.T2 -> StorageTierStatus(
             tier,
             if (snapshot.workspaceCount > 0) TierAvailability.ACTIVE else TierAvailability.AVAILABLE,
-            if (snapshot.workspaceCount > 0) "${snapshot.workspaceCount} SAF workspace(s) are saved. Files are copied explicitly."
-            else "Choose a folder with the system picker. No broad storage permission is needed.",
+            if (snapshot.workspaceCount > 0) context?.getString(R.string.storage_tier_workspaces_saved, snapshot.workspaceCount)
+                ?: "${snapshot.workspaceCount} SAF workspaces are saved. Files are copied explicitly."
+            else text(context, R.string.storage_tier_pick_folder,
+                "Choose a folder with the system picker. No broad storage permission is needed."),
         )
     }
 
@@ -90,13 +109,17 @@ object StorageAccess {
     fun effectiveTier(requested: StorageTier, snapshot: StorageSnapshot): StorageTier =
         if (canUse(requested, snapshot)) requested else StorageTier.T0
 
-    fun permissionHint(error: Throwable): String? {
+    fun permissionHint(context: Context?, error: Throwable): String? {
         val messages = generateSequence(error) { it.cause }
             .mapNotNull { it.message }
             .joinToString(" ")
         val denied = generateSequence(error) { it.cause }.any { it is SecurityException } ||
             messages.contains("EACCES", ignoreCase = true) ||
             messages.contains("Permission denied", ignoreCase = true)
-        return if (denied) "Storage access is blocked. Open Storage Health to grant access or choose a SAF workspace." else null
+        return if (denied) text(context, R.string.storage_blocked_hint,
+            "Storage access is blocked. Open Storage Health to grant access or choose a SAF workspace.") else null
     }
+
+    private fun text(context: Context?, @StringRes id: Int, fallback: String): String =
+        context?.getString(id) ?: fallback
 }
