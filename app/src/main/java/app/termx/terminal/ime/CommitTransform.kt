@@ -5,27 +5,24 @@ package app.termx.terminal.ime
  *
  * Single code points keep their identity (Enter, Ctrl, Alt, arrows are handled elsewhere).
  * Multi-code-point commits (dictation, paste, emoji sequences) are sanitized:
- *   - control characters below 0x20 are stripped, except tab
+ *   - control characters below 0x20 are stripped, except tab, newline and carriage return
  *   - ESC and the C1 range (0x80-0x9F) are stripped
- *   - newlines become spaces, unless bracketed paste is on (DECSET 2004), in which case
- *     they are kept and the text is wrapped in ESC[200~ ... ESC[201~
- *   - Enter is never sent
+ *   - CRLF and lone CR are normalised to LF
+ *   - newlines are KEPT: a multi-line paste is meant to be multi-line. Turning them into
+ *     spaces silently mangled pasted scripts (and broke every `for`/`if` block). The caller
+ *     decides how a kept newline is delivered (Enter) and whether to wrap the text in
+ *     bracketed-paste markers.
  *
  * No Android imports — fully unit-testable.
  */
 object CommitTransform {
 
-    private const val ESC = '\u001B'
-    private const val BRACKETED_PASTE_START = "\u001B[200~"
-    private const val BRACKETED_PASTE_END = "\u001B[201~"
-
     /**
      * Returns the string to send for a commit of [input].
      * If [input] is a single code point, returns it unchanged.
      * If [input] is empty, returns empty.
-     * [bracketedPaste] controls newline handling and wrapping.
      */
-    fun transform(input: String, bracketedPaste: Boolean = false): String {
+    fun transform(input: String): String {
         if (input.isEmpty()) return ""
         // Count code points
         val codePointCount = input.codePointCount(0, input.length)
@@ -38,23 +35,21 @@ object CommitTransform {
             i += Character.charCount(cp)
             when {
                 cp == 0x09 -> sb.append('\t') // tab kept
-                cp == '\n'.code || cp == '\r'.code -> {
-                    if (bracketedPaste) sb.append('\n') else sb.append(' ')
+                cp == '\r'.code -> {
+                    // CRLF -> single LF, lone CR -> LF
+                    if (i < input.length && input.codePointAt(i) == '\n'.code) i += 1
+                    sb.append('\n')
                 }
-                cp < 0x20 -> { /* strip control chars */ }
-                cp == 0x1B -> { /* strip ESC */ }
+                cp == '\n'.code -> sb.append('\n') // newline kept
+                cp < 0x20 -> { /* strip other control chars */ }
+                cp == 0x7F -> { /* strip DEL */ }
                 cp in 0x80..0x9F -> { /* strip C1 range */ }
-                else -> {
-                    sb.appendCodePoint(cp)
-                }
+                else -> sb.appendCodePoint(cp)
             }
         }
-        val result = sb.toString()
-        if (result.isEmpty()) return ""
-        return if (bracketedPaste && result.contains('\n')) {
-            BRACKETED_PASTE_START + result + BRACKETED_PASTE_END
-        } else {
-            result
-        }
+        return sb.toString()
     }
+
+    /** Whether a commit contains a line break, i.e. has to be delivered as a paste. */
+    fun isMultiline(input: String): Boolean = input.indexOf('\n') >= 0 || input.indexOf('\r') >= 0
 }
