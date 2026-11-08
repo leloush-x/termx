@@ -104,8 +104,8 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
-    // Termux terminal engine (Apache-2.0 modules, see NOTICE).
-    implementation(libs.termux.emulator)
+    // Locally patched Termux terminal engine (Apache-2.0 module, see NOTICE).
+    implementation(project(":terminal-emulator"))
     // API 26 lacks the platform Ed25519 Signature provider. This strict-verification fork
     // avoids the signature-malleability issue in the older net.i2p.crypto:eddsa:0.3.0.
     implementation(libs.eddsa)

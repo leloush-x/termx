@@ -23,8 +23,10 @@ import com.termux.terminal.TerminalSessionClient
 /** Connects the terminal surface to the emulator and the Android clipboard/IME. */
 class TerminalBackend(
     private val context: Context,
-    private val onOutput: () -> Unit = {},
+    private val onOutput: (TerminalSession) -> Unit = {},
     private val onFinished: (TerminalSession) -> Unit = {},
+    private val onTerminalNotification: (TerminalSession, String, String) -> Unit = { _, _, _ -> },
+    private val onCommandFinished: (TerminalSession, Int) -> Unit = { _, _ -> },
 ) : TerminalViewClient, TerminalSessionClient {
     private var terminalView: TerminalView? = null
     private var fontSize = 16
@@ -134,7 +136,7 @@ class TerminalBackend(
     }
 
     override fun onTextChanged(changedSession: TerminalSession) {
-        onOutput()
+        onOutput(changedSession)
         terminalView?.onScreenUpdated()
     }
 
@@ -154,8 +156,22 @@ class TerminalBackend(
     }
 
     override fun onBell(session: TerminalSession) {
-        val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        audio.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD)
+        runCatching {
+            val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            audio.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD)
+        }.onFailure { Log.w("TermXTerminal", "Could not play terminal bell", it) }
+        runCatching { onTerminalNotification(session, "Terminal", "Terminal bell") }
+            .onFailure { Log.w("TermXTerminal", "Could not route terminal bell", it) }
+    }
+
+    override fun onTerminalNotification(session: TerminalSession, title: String, body: String) {
+        runCatching { onTerminalNotification.invoke(session, title, body) }
+            .onFailure { Log.w("TermXTerminal", "Could not route terminal notification", it) }
+    }
+
+    override fun onCommandFinished(session: TerminalSession, exitCode: Int) {
+        runCatching { onCommandFinished.invoke(session, exitCode) }
+            .onFailure { Log.w("TermXTerminal", "Could not route command completion", it) }
     }
 
     override fun onColorsChanged(session: TerminalSession) = Unit

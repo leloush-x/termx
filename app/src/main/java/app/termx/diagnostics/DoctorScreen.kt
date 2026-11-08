@@ -1,11 +1,14 @@
 package app.termx.diagnostics
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +33,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -55,6 +60,29 @@ fun DoctorScreen(onBack: () -> Unit) {
     var batteryPrompted by remember { mutableStateOf(false) }
     var wifiLockEnabled by remember { mutableStateOf(false) }
     var watchedCommands by remember { mutableStateOf("") }
+    var terminalNotificationsEnabled by remember { mutableStateOf(false) }
+    var notificationHooksEnabled by remember { mutableStateOf(false) }
+
+    val saveTerminalNotifications: (Boolean) -> Unit = { enabled ->
+        scope.launch(Dispatchers.IO) {
+            val result = runCatching { settings.put("terminal_notifications_enabled_v1", enabled.toString()) }
+            withContext(Dispatchers.Main) {
+                result.onSuccess {
+                    terminalNotificationsEnabled = enabled
+                    requestServiceSettingsReload(context)
+                    message = if (enabled) "Terminal notifications enabled in the background only."
+                    else "Terminal notifications disabled."
+                }.onFailure {
+                    Log.w("TermXDoctor", "Could not save terminal notification setting", it)
+                    message = "Could not save terminal notification setting."
+                }
+            }
+        }
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) saveTerminalNotifications(true)
+        else message = "Notification permission was not granted; terminal notifications remain off."
+    }
 
     LaunchedEffect(Unit) {
         supervisorScope {
@@ -64,6 +92,12 @@ fun DoctorScreen(onBack: () -> Unit) {
                 batteryPrompted = withContext(Dispatchers.IO) { settings.get("keep_alive_battery_prompted_v1", "false") == "true" }
                 wifiLockEnabled = withContext(Dispatchers.IO) { settings.get("agent_wifi_lock_enabled_v1", "false") == "true" }
                 watchedCommands = withContext(Dispatchers.IO) { settings.get("watched_daemon_commands_v1", "") }
+                terminalNotificationsEnabled = withContext(Dispatchers.IO) {
+                    settings.get("terminal_notifications_enabled_v1", "false") == "true"
+                }
+                notificationHooksEnabled = withContext(Dispatchers.IO) {
+                    settings.get("terminal_notification_hooks_v1", "false") == "true"
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Throwable) {
@@ -88,6 +122,46 @@ fun DoctorScreen(onBack: () -> Unit) {
         }
         Text("Read-only checks report what this device allows for background sessions and process monitoring.",
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(Modifier.weight(1f)) {
+                Text("Shell command hooks", style = MaterialTheme.typography.titleSmall)
+                Text("Opt in to command-finished events and a notification for commands taking at least 10 seconds. Takes effect in new shells.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(checked = notificationHooksEnabled, onCheckedChange = { enabled ->
+                scope.launch(Dispatchers.IO) {
+                    val result = runCatching {
+                        TerminalNotificationHooks.setEnabled(context.applicationContext, enabled)
+                        settings.put("terminal_notification_hooks_v1", enabled.toString())
+                    }
+                    withContext(Dispatchers.Main) {
+                        result.onSuccess {
+                            notificationHooksEnabled = enabled
+                            message = if (enabled) "Shell hooks enabled for installed distros. Restart shells to apply."
+                            else "Shell hooks disabled. Restart shells to apply."
+                        }.onFailure {
+                            Log.w("TermXDoctor", "Could not update terminal notification hooks", it)
+                            message = "Could not update shell hooks."
+                        }
+                    }
+                }
+            })
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(Modifier.weight(1f)) {
+                Text("Terminal notifications", style = MaterialTheme.typography.titleSmall)
+                Text("Bell, OSC notifications, and command exit status. Only delivered while TermX is in the background.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(checked = terminalNotificationsEnabled, onCheckedChange = { enabled ->
+                if (!enabled) saveTerminalNotifications(false)
+                else if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.POST_NOTIFICATIONS,
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                else saveTerminalNotifications(true)
+            })
+        }
         Text("Watched agent commands", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(
             value = watchedNames,

@@ -16,13 +16,16 @@ JetBrains Mono font (Phase 6)
    License: Apache-2.0. The project uses the `io.github.kyant0:backdrop` API;
    no library source files are copied into TermX.
 
-1. Termux terminal-emulator (Phase 0: consumed as a dependency)
-   Source: https://github.com/termux/termux-app (pinned v0.118.3 via JitPack)
+1. Termux terminal-emulator (Phase 0 dependency, vendored and patched in Phase 6.2)
+   Source: https://github.com/termux/termux-app, tag v0.118.3, commit
+   5b657c6adf4304e5198951ce815fe0205dcac29c.
    License: Apache-2.0 for terminal-emulator and terminal-view, per the
    exception in termux-app LICENSE.md. Originally from jackpal/Android-Terminal-Emulator
    (Apache-2.0).
-   `TerminalTheme.kt` adapts the pinned terminal-emulator's public palette
-   array API to apply imported ANSI colors; no third-party source was copied.
+   Source under terminal-emulator/ is copied from its Apache-2.0 module and
+   locally patched to expose sanitized OSC 9/777/133 terminal events. The
+   Apache License 2.0 text is in licenses/Apache-2.0.txt.
+   `TerminalTheme.kt` adapts the emulator's public palette array API.
 
 2. Termux terminal-view (Phase 1: vendored into app/src/main/java/app/termx/terminal/view/)
    Source: https://github.com/termux/termux-app, commit
