@@ -197,7 +197,10 @@ case ";${'$'}{PROMPT_COMMAND:-};" in *";__termx_log;"*) ;; *) PROMPT_COMMAND="__
         val bashProfile = File(home, ".bash_profile")
         if (bashProfile.exists()) {
             val profileText = bashProfile.readText()
-            if (!profileText.contains(".bashrc") && !profileText.contains(".bashrc.d/termx-history.sh")) {
+            // Merely mentioning .bashrc in a custom login profile does not mean it sources it.
+            // Bash reads .bash_profile instead of .bashrc for login shells, so make sure the
+            // history hook is reachable from this startup path after every app/session restart.
+            if (!profileText.contains(".bashrc.d/termx-history.sh")) {
                 bashProfile.appendText("\n# TermX Bash history persistence\n[ -r ~/.bashrc.d/termx-history.sh ] && . ~/.bashrc.d/termx-history.sh\n")
             }
         }
