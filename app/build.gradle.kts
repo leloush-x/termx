@@ -79,7 +79,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-        aidl = true
     }
 
     packaging {
@@ -114,8 +113,6 @@ dependencies {
     implementation(libs.sqlite.bundled)
     implementation(libs.kyant.backdrop)
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.rikka.shizuku.api)
-    implementation(libs.rikka.shizuku.provider)
     ksp(libs.room.compiler)
 
     testImplementation(libs.junit)

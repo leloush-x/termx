@@ -16,7 +16,6 @@ sqlite = "2.6.2"
 backdrop = "2.0.1"
 datastore = "1.2.1"
 json = "20260814"
-shizuku = "13.1.5"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -40,5 +39,3 @@ room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
 kyant-backdrop = { module = "io.github.kyant0:backdrop", version.ref = "backdrop" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
-rikka-shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
-rikka-shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }

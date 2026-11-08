@@ -2,7 +2,6 @@ package app.termx.diagnostics
 
 import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
@@ -10,7 +9,6 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import rikka.shizuku.Shizuku
 
 data class DoctorEntry(val label: String, val value: String)
 
@@ -32,14 +30,6 @@ object DoctorProbe {
             add(probe("/proc/net readable") { readable("/proc/net/tcp") })
             add(probe("/proc/stat readable") { readable("/proc/stat") })
             add(probe("App UID") { parseUid(File("/proc/self/status").readText())?.toString() ?: "unavailable" })
-            add(probe("Shizuku/rish UID") {
-                when {
-                    !Shizuku.pingBinder() -> "Shizuku not running (no rish bridge detected)"
-                    Shizuku.isPreV11() -> "unsupported Shizuku version"
-                    Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED -> "permission not granted"
-                    else -> "uid ${Shizuku.getUid()}"
-                }
-            })
             add(probe("App storage free") {
                 formatBytes(app.filesDir.usableSpace)
             })
