@@ -78,7 +78,7 @@ public final class TerminalView extends View {
 
     float mScaleFactor = 1.f;
 
-    // Smooth cursor / trail state (opt-in, default off).
+    // Smooth cursor / trail state.
     boolean mSmoothCursorEnabled = true;
     boolean mCursorTrailEnabled = true;
     float mSmoothCursorSpeed = 0.30f;
@@ -1169,7 +1169,12 @@ public final class TerminalView extends View {
             }
 
             boolean animating = (mAnimCursorCol != mTargetCursorCol) || (mAnimCursorRow != mTargetCursorRow);
-            if (animating || mCursorTrailEnabled) postInvalidateOnAnimation();
+            boolean trailAnimating = mCursorTrailEnabled && mEmulator.shouldCursorBeVisible()
+                && CursorFrameScheduler.hasUnexpiredTrail(
+                    now, mTrailTimes, mTrailHead, mTrailCount, (long) (mTrailDecay * 1_000_000_000L));
+            if (CursorFrameScheduler.shouldScheduleNextFrame(animating, trailAnimating)) {
+                postInvalidateOnAnimation();
+            }
 
             // Use rounded animated cell for cursor inversion/rect.
             cursorOverrideCol = Math.round(mAnimCursorCol);

@@ -32,6 +32,7 @@ public final class TerminalRenderer {
     final int mFontLineSpacingAndAscent;
 
     private final float[] asciiMeasures = new float[127];
+    private final CodePointWidthCache codePointWidths = new CodePointWidthCache();
 
     public TerminalRenderer(int textSize, Typeface typeface) {
         mTextSize = textSize;
@@ -114,8 +115,17 @@ public final class TerminalRenderer {
                 // This could happen for some fonts which are not truly monospace, or for more exotic characters such as
                 // smileys which android font renders as wide.
                 // If this is detected, we draw this code point scaled to match what wcwidth() expects.
-                final float measuredCodePointWidth = (codePoint < asciiMeasures.length) ? asciiMeasures[codePoint] : mTextPaint.measureText(line,
-                    currentCharIndex, charsForCodePoint);
+                final float measuredCodePointWidth;
+                if (codePoint < asciiMeasures.length) {
+                    measuredCodePointWidth = asciiMeasures[codePoint];
+                } else {
+                    float cachedWidth = codePointWidths.get(codePoint);
+                    if (Float.isNaN(cachedWidth)) {
+                        cachedWidth = mTextPaint.measureText(line, currentCharIndex, charsForCodePoint);
+                        codePointWidths.put(codePoint, cachedWidth);
+                    }
+                    measuredCodePointWidth = cachedWidth;
+                }
                 final boolean fontWidthMismatch = Math.abs(measuredCodePointWidth / mFontWidth - codePointWcWidth) > 0.01;
 
                 if (style != lastRunStyle || insideCursor != lastRunInsideCursor || insideSelection != lastRunInsideSelection || fontWidthMismatch || lastRunFontWidthMismatch) {
