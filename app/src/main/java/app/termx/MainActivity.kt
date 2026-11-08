@@ -100,6 +100,7 @@ import app.termx.customization.TermXTheme
 import app.termx.customization.TerminalTheme
 import app.termx.customization.defaultAmoledTheme
 import app.termx.customization.defaultDarkTheme
+import app.termx.composer.PromptComposer
 import com.termux.terminal.TerminalSession
 import java.io.File
 
@@ -745,6 +746,12 @@ class MainActivity : ComponentActivity() {
                                         onRelease = backend::detach,
                                     )
                                 }
+                                val composerSessionId = sessionRecords.firstOrNull { it.terminal === session }?.id ?: session.mHandle
+                                PromptComposer(
+                                    sessionId = composerSessionId,
+                                    session = session,
+                                    settings = customizationStore,
+                                )
                                 ExtraKeysRow(session = session, backend = backend, keyLayoutJson = terminalKeyLayoutJson)
                             }
                             AnimatedVisibility(

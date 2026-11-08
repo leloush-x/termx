@@ -105,4 +105,22 @@ final class ByteQueue {
         }
         return true;
     }
+
+    /** Write atomically without blocking when there is not enough queue capacity. */
+    public synchronized boolean tryWrite(byte[] buffer, int offset, int lengthToWrite) {
+        if (offset < 0 || lengthToWrite <= 0 || lengthToWrite + offset > buffer.length) {
+            throw new IllegalArgumentException("Invalid write range");
+        }
+        if (!mOpen || lengthToWrite > mBuffer.length - mStoredBytes) return false;
+        boolean wasEmpty = mStoredBytes == 0;
+        int tail = (mHead + mStoredBytes) % mBuffer.length;
+        int firstPart = Math.min(lengthToWrite, mBuffer.length - tail);
+        System.arraycopy(buffer, offset, mBuffer, tail, firstPart);
+        if (firstPart < lengthToWrite) {
+            System.arraycopy(buffer, offset + firstPart, mBuffer, 0, lengthToWrite - firstPart);
+        }
+        mStoredBytes += lengthToWrite;
+        if (wasEmpty) notify();
+        return true;
+    }
 }
