@@ -61,7 +61,7 @@ object PhantomProcessSettings {
         return false
     }
 
-    private suspend fun <T> withService(context: Context, block: (IPhantomSettingsService) -> T): T {
+    private suspend fun <T> withService(context: Context, block: suspend (IPhantomSettingsService) -> T): T {
         check(Shizuku.pingBinder() && !Shizuku.isPreV11()) { "Shizuku is not running or is too old" }
         check(Shizuku.checkSelfPermission() == android.content.pm.PackageManager.PERMISSION_GRANTED) {
             "Grant TermX permission in Shizuku first"
@@ -82,7 +82,7 @@ object PhantomProcessSettings {
                 connected.completeExceptionally(IllegalStateException("Shizuku settings service disconnected"))
             }
         }
-        try {
+        return try {
             Shizuku.bindUserService(args, connection)
             val service = withTimeout(8_000L) { connected.await() }
             block(service)

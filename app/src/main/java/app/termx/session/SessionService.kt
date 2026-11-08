@@ -443,13 +443,11 @@ class SessionService : Service() {
         val lock = wifiLock ?: manager.createWifiLock(WifiManager.WIFI_MODE_FULL, "TermX:user-enabled-network").also {
             wifiLock = it
         }
-        runCatching { if (!lock.isHeld) lock.acquire(WAKE_LOCK_TIMEOUT_MILLIS) }
+        runCatching { if (!lock.isHeld) lock.acquire() }
             .onFailure {
                 Log.w(TAG, "Could not acquire bounded Wi-Fi lock", it)
                 notifyFeatureFailure("Android did not allow the requested Wi-Fi lock.")
             }
-        handler.removeCallbacks(renewWifiLock)
-        handler.postDelayed(renewWifiLock, WAKE_LOCK_RENEW_MILLIS)
     }
 
     private fun releaseWifiLockNow() {

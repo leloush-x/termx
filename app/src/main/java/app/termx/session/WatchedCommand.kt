@@ -6,7 +6,7 @@ data class WatchedCommand(val processName: String, val command: String)
 object WatchedCommandRegistry {
     fun parse(text: String): Result<List<WatchedCommand>> = runCatching {
         require(text.length <= 4096) { "list is too long" }
-        text.lineSequence().map(String::trim).filter(String::isNotEmpty).map { line ->
+        val commands = text.lineSequence().map(String::trim).filter(String::isNotEmpty).map { line ->
             val separator = line.indexOf('=')
             require(separator in 1 until line.lastIndex) { "use process-name=command" }
             val name = line.substring(0, separator).trim()
@@ -16,8 +16,9 @@ object WatchedCommandRegistry {
                 "commands must fit one safe line and be at most 512 characters"
             }
             WatchedCommand(name, command)
-        }.also { commands -> require(commands.map(WatchedCommand::processName).distinct().size == commands.count()) { "duplicate process name" } }
-            .toList()
+        }.toList()
+        require(commands.map(WatchedCommand::processName).distinct().size == commands.size) { "duplicate process name" }
+        commands
     }
 }
 
