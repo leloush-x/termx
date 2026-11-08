@@ -62,6 +62,7 @@ fun DoctorScreen(onBack: () -> Unit) {
     var watchedCommands by remember { mutableStateOf("") }
     var terminalNotificationsEnabled by remember { mutableStateOf(false) }
     var notificationHooksEnabled by remember { mutableStateOf(false) }
+    var processViewerEnabled by remember { mutableStateOf(true) }
 
     val saveTerminalNotifications: (Boolean) -> Unit = { enabled ->
         scope.launch(Dispatchers.IO) {
@@ -98,6 +99,9 @@ fun DoctorScreen(onBack: () -> Unit) {
                 notificationHooksEnabled = withContext(Dispatchers.IO) {
                     settings.get("terminal_notification_hooks_v1", "false") == "true"
                 }
+                processViewerEnabled = withContext(Dispatchers.IO) {
+                    settings.get("process_viewer_enabled_v1", "true") == "true"
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Throwable) {
@@ -122,6 +126,26 @@ fun DoctorScreen(onBack: () -> Unit) {
         }
         Text("Read-only checks report what this device allows for background sessions and process monitoring.",
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(Modifier.weight(1f)) {
+                Text("Process and port viewer", style = MaterialTheme.typography.titleSmall)
+                Text("Scans app-owned processes only while its panel is open.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(checked = processViewerEnabled, onCheckedChange = { enabled ->
+                scope.launch(Dispatchers.IO) {
+                    val result = runCatching { settings.put("process_viewer_enabled_v1", enabled.toString()) }
+                    withContext(Dispatchers.Main) {
+                        result.onSuccess {
+                            processViewerEnabled = enabled
+                            message = if (enabled) "Process viewer enabled." else "Process viewer disabled."
+                        }.onFailure {
+                            Log.w("TermXDoctor", "Could not save process viewer setting", it)
+                            message = "Could not save process viewer setting."
+                        }
+                    }
+                }
+            })
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f)) {
                 Text("Shell command hooks", style = MaterialTheme.typography.titleSmall)
