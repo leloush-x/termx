@@ -27,6 +27,7 @@ Every source below was checked during planning (2026-10-26). Pin these commits w
 - Phase 4's service type, declaration, subtype property, launch restrictions, and exception handling were checked against [Android foreground service types](https://developer.android.com/develop/background-work/services/fgs/service-types), [service launch](https://developer.android.com/develop/background-work/services/fgs/launch), and [background start restrictions](https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start).
 - wolfi-terminal v1.3.1 shrank with R8 and crashed on launch. Keep R8 off until a release smoke test exists.
 - JetBrains Mono's regular TTF is distributed under OFL-1.1; DataStore Preferences 1.2.1 is the stable AndroidX release selected for this phase: [JetBrains Mono license](https://github.com/JetBrains/JetBrainsMono) and [AndroidX DataStore releases](https://developer.android.com/jetpack/androidx/releases/datastore).
+- The direct battery-optimization request and fallback guidance were checked against [Android's Doze and App Standby guidance](https://developer.android.com/training/monitoring-device-state/doze-standby); HyperOS autostart remains OEM-version dependent and is surfaced as a user-guided settings link with an app-settings fallback.
 
 ## Not verified yet
 

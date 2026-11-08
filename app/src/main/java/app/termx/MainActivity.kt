@@ -15,6 +15,7 @@ import android.provider.Settings
 import android.os.Build
 import android.os.Environment
 import android.os.IBinder
+import android.os.StrictMode
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -203,6 +204,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (BuildConfig.DEBUG) {
+            StrictMode.setThreadPolicy(
+                StrictMode.ThreadPolicy.Builder().detectAll().penaltyLog().build(),
+            )
+        }
         enableEdgeToEdge()
         installer = RootfsInstaller(this)
         customizationStore = TermXSettingsStore(this)
@@ -677,7 +683,13 @@ class MainActivity : ComponentActivity() {
                                     distroName = distroPackages.firstOrNull { it.distroId == id }?.distroName ?: id,
                                     accent = distroAccentColor(id),
                                     sessions = records.map { record ->
-                                        PanelSession(record.id, guestDirOf(record.launch), record.id == currentId)
+                                        PanelSession(
+                                            record.id,
+                                            guestDirOf(record.launch),
+                                            record.id == currentId,
+                                            record.keepAlive,
+                                            record.superviseCommands,
+                                        )
                                     },
                                 )
                             }
@@ -759,6 +771,20 @@ class MainActivity : ComponentActivity() {
                                             sessionBinds = record.launch.binds
                                         }
                                         showTerminalPanel = false
+                                    },
+                                    onToggleKeepAlive = { id, enabled ->
+                                        sessionBinder?.setKeepAlive(id, enabled)
+                                        sessionRecords = sessionBinder?.allSessions() ?: sessionRecords
+                                        storageMessage = if (enabled) "Keep alive enabled for this session." else "Keep alive disabled for this session."
+                                    },
+                                    onToggleSupervision = { id, enabled ->
+                                        val saved = sessionBinder?.setSupervision(id, enabled) == true
+                                        sessionRecords = sessionBinder?.allSessions() ?: sessionRecords
+                                        storageMessage = when {
+                                            !saved && enabled -> "Register a daemon command in Device Doctor first."
+                                            enabled -> "Watched commands started for this session."
+                                            else -> "Supervision stopped; running commands were left untouched."
+                                        }
                                     },
                                     onDeleteSession = { id ->
                                         val wasCurrent = sessionRecords.firstOrNull { it.id == id }?.terminal === terminalSession

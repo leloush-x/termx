@@ -10,7 +10,7 @@ Status: implemented incrementally through **v0.7.15**. This document remains the
 
 ## 0. Summary
 
-Build a new terminal app from scratch that keeps the distro runtime (Wolfi, Alpine, Debian, Void on proot) and drops root, Shizuku and Shevery. It adds a storage model that doesn't produce permission errors, productivity features (history, command palette, profiles, snippets, session recording), a real customization engine, and an optional Termux mode.
+Build a new terminal app from scratch that keeps the distro runtime (Wolfi, Alpine, Debian, Void on proot) and drops root and Shevery. The app also has a storage model that doesn't produce permission errors, productivity features (history, command palette, profiles, snippets, session recording), a real customization engine, and an optional Termux mode.
 
 Core targets:
 
@@ -36,7 +36,7 @@ Core targets:
 
 ### 1.2 Non-goals (explicitly out)
 
-- Root, chroot, Shizuku, Shevery, rish, or any privileged bridge.
+- Root, chroot, Shevery, rish, or privileged access for terminal commands and filesystem operations.
 - SMS, contacts, call log, or phone-state access.
 - An HTTP remote-control server or any exported control API by default.
 - Auto-running remote scripts. Remote content is shown first and never run without a tap and a visible command.
@@ -56,7 +56,7 @@ Core targets:
 
 | Drop | Reason |
 |---|---|
-| chroot modes, `su` detection, Shevery/Shizuku, `rish`, auto-login via rish | Out of scope per your request |
+| chroot modes, `su` detection, Shevery, `rish`, auto-login via rish | Out of scope per your request |
 | `MANAGE_EXTERNAL_STORAGE` by default | Causes the errors (2.1). Moves to the `direct` flavor only |
 | Unconditional `-b /sdcard` and `-b /storage` in init scripts | Root cause of storage errors (2.1) |
 | `allowBackup` with no exclusions | Secrets in backup (section 12) |

@@ -50,7 +50,13 @@ import app.termx.runtime.RootfsPackage
 import com.kyant.backdrop.Backdrop
 
 /** A single running session, listed inside its distro group. */
-internal data class PanelSession(val id: String, val subtitle: String, val isCurrent: Boolean)
+internal data class PanelSession(
+    val id: String,
+    val subtitle: String,
+    val isCurrent: Boolean,
+    val keepAlive: Boolean,
+    val superviseCommands: Boolean,
+)
 
 /** All running sessions of one distro, grouped together in the side panel. */
 internal data class PanelGroup(
@@ -75,6 +81,8 @@ internal fun BoxScope.TerminalSidePanel(
     installedDistros: List<RootfsPackage>,
     onTerminal: () -> Unit,
     onSelectSession: (String) -> Unit,
+    onToggleKeepAlive: (String, Boolean) -> Unit,
+    onToggleSupervision: (String, Boolean) -> Unit,
     onDeleteSession: (String) -> Unit,
     onNewTerminal: (RootfsPackage) -> Unit,
     onSettings: () -> Unit,
@@ -180,10 +188,24 @@ internal fun BoxScope.TerminalSidePanel(
                                     style = MaterialTheme.typography.labelMedium)
                                 Text(session.subtitle, color = Color(0xFF85847F),
                                     style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text(
+                                        if (session.keepAlive) "Keep alive: on" else "Keep alive: off",
+                                        Modifier.clickable(role = Role.Button) { onToggleKeepAlive(session.id, !session.keepAlive) },
+                                        color = if (session.keepAlive) group.accent else Color(0xFF85847F),
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                    Text(
+                                        if (session.superviseCommands) "Watch: on" else "Watch: off",
+                                        Modifier.clickable(role = Role.Button) {
+                                            onToggleSupervision(session.id, !session.superviseCommands)
+                                        },
+                                        color = if (session.superviseCommands) group.accent else Color(0xFF85847F),
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
                             }
-                            if (session.isCurrent) {
-                                Text(stringResource(R.string.panel_live), color = group.accent, style = MaterialTheme.typography.labelSmall)
-                            }
+                            if (session.isCurrent) Text(stringResource(R.string.panel_live), color = group.accent, style = MaterialTheme.typography.labelSmall)
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 "×",
