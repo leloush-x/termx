@@ -101,6 +101,8 @@ import app.termx.customization.TerminalTheme
 import app.termx.customization.defaultAmoledTheme
 import app.termx.customization.defaultDarkTheme
 import app.termx.composer.PromptComposer
+import app.termx.process.ProcessPortPanel
+import app.termx.process.ProcessRoot
 import com.termux.terminal.TerminalSession
 import java.io.File
 
@@ -747,6 +749,9 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                                 val composerSessionId = sessionRecords.firstOrNull { it.terminal === session }?.id ?: session.mHandle
+                                val processRoots = sessionRecords.map { ProcessRoot(it.id, it.terminal.pid) }
+                                    .ifEmpty { listOf(ProcessRoot(composerSessionId, session.pid)) }
+                                ProcessPortPanel(roots = processRoots)
                                 PromptComposer(
                                     sessionId = composerSessionId,
                                     session = session,
