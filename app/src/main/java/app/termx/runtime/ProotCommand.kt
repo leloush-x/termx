@@ -153,11 +153,12 @@ PS1='\[\e[38;5;213m\]🐙 \[\e[38;5;81m\]\u@\h\[\e[38;5;244m\]:\[\e[38;5;114m\]\
         val home = File(rootfs, "root").apply { mkdirs() }
         val bashHook = File(home, ".bashrc.d/termx-history.sh").apply {
             parentFile?.mkdirs()
-            if (!exists()) writeText(
-                """# TermX private command history. Leading-space and TermX commands are skipped.
+            val hook = """# TermX private command history. Leading-space and TermX commands are skipped.
+shopt -s histappend
 __termx_b64() { printf '%s' "${'$'}1" | base64 | tr -d '\n'; }
 __termx_log() {
     local ec=${'$'}? cmd
+    history -a
     cmd=${'$'}(HISTTIMEFORMAT= history 1 | sed -e 's/^[ ]*[0-9]*[ ]*//')
     [ -z "${'$'}cmd" ] && return ${'$'}ec
     case "${'$'}cmd" in " "*|__termx_*) return ${'$'}ec ;; esac
@@ -168,11 +169,37 @@ __termx_log() {
     return ${'$'}ec
 }
 case ";${'$'}{PROMPT_COMMAND:-};" in *";__termx_log;"*) ;; *) PROMPT_COMMAND="__termx_log${'$'}{PROMPT_COMMAND:+;${'$'}PROMPT_COMMAND}" ;; esac
-""".trimIndent() + "\n")
+""".trimIndent() + "\n"
+            if (!exists()) {
+                writeText(hook)
+            } else {
+                // Upgrade the hook created by older TermX versions without replacing any user
+                // additions in the file. Flushing each prompt makes Up-arrow history survive a
+                // force-stopped shell or an app restart.
+                val old = readText()
+                if (!old.contains("history -a")) {
+                    val anchor = "    local ec=${'$'}? cmd\n"
+                    val upgraded = old.replaceFirst(anchor, anchor + "    history -a\n")
+                    if (upgraded != old) writeText(upgraded)
+                }
+                val current = readText()
+                if (!current.contains("shopt -s histappend")) {
+                    writeText("shopt -s histappend\n$current")
+                }
+            }
         }
         val bashrc = File(home, ".bashrc")
         if (bashrc.exists() && !bashrc.readText().contains(".bashrc.d/termx-history.sh")) {
             bashrc.appendText("\n# TermX command history hook\n[ -r ~/.bashrc.d/termx-history.sh ] && . ~/.bashrc.d/termx-history.sh\n")
+        }
+        // Bash login shells read .bash_profile instead of .bashrc directly. Keep the hook loaded
+        // for existing custom profiles too, so every command is flushed before a session restart.
+        val bashProfile = File(home, ".bash_profile")
+        if (bashProfile.exists()) {
+            val profileText = bashProfile.readText()
+            if (!profileText.contains(".bashrc") && !profileText.contains(".bashrc.d/termx-history.sh")) {
+                bashProfile.appendText("\n# TermX Bash history persistence\n[ -r ~/.bashrc.d/termx-history.sh ] && . ~/.bashrc.d/termx-history.sh\n")
+            }
         }
         val zshHook = File(home, ".zshrc.d/termx-history.zsh").apply {
             parentFile?.mkdirs()

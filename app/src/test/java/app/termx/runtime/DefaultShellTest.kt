@@ -49,11 +49,50 @@ class DefaultShellTest {
         ProotCommand.installHistoryHooks(rootfs)
 
         assertTrue(File(home, ".bashrc.d/termx-history.sh").readText().contains("history.tsv"))
+        assertTrue(File(home, ".bashrc.d/termx-history.sh").readText().contains("history -a"))
+        assertTrue(File(home, ".bashrc.d/termx-history.sh").readText().contains("shopt -s histappend"))
         assertTrue(File(home, ".zshrc.d/termx-history.zsh").readText().contains("precmd_functions"))
         assertTrue(bashrc.readText().startsWith("# existing user setup"))
         assertTrue(zshrc.readText().startsWith("# existing zsh setup"))
         assertEquals(bashOnce, bashrc.readText())
         assertEquals(zshOnce, zshrc.readText())
+    }
+
+    @Test
+    fun persistsBashHistoryForExistingLoginProfilesThatDoNotLoadBashrc() {
+        val rootfs = temporaryFolder.newFolder("bash-profile-rootfs")
+        val home = File(rootfs, "root").apply { mkdirs() }
+        val profile = File(home, ".bash_profile").apply { writeText("# custom login setup\n") }
+
+        ProotCommand.installHistoryHooks(rootfs)
+        val installed = profile.readText()
+        assertTrue(installed.contains(".bashrc.d/termx-history.sh"))
+
+        ProotCommand.installHistoryHooks(rootfs)
+        assertEquals(installed, profile.readText())
+    }
+
+    @Test
+    fun upgradesAnExistingTermxHistoryHookWithoutRemovingUserLines() {
+        val rootfs = temporaryFolder.newFolder("history-upgrade-rootfs")
+        val home = File(rootfs, "root").apply { mkdirs() }
+        val hook = File(home, ".bashrc.d/termx-history.sh").apply {
+            parentFile?.mkdirs()
+            writeText("""# TermX hook plus user line
+__termx_log() {
+    local ec=${'$'}? cmd
+    cmd=old
+}
+# user addition
+""")
+        }
+
+        ProotCommand.installHistoryHooks(rootfs)
+
+        val updated = hook.readText()
+        assertTrue(updated.contains("local ec=${'$'}? cmd\n    history -a"))
+        assertTrue(updated.contains("shopt -s histappend"))
+        assertTrue(updated.contains("# user addition"))
     }
 
     @Test
