@@ -50,6 +50,11 @@ final class TerminalOscEvent {
         StringBuilder clean = new StringBuilder(Math.min(text.length(), 160));
         for (int i = 0; i < text.length() && clean.length() < 160; i++) {
             char c = text.charAt(i);
+            if (c == '\u001b' && i + 1 < text.length() && text.charAt(i + 1) == '[') {
+                i += 2;
+                while (i < text.length() && !(text.charAt(i) >= 0x40 && text.charAt(i) <= 0x7e)) i++;
+                continue;
+            }
             if (Character.isISOControl(c) || c == '\u202A' || c == '\u202B' || c == '\u202D' || c == '\u202E' || c == '\u2066' || c == '\u2067' || c == '\u2068' || c == '\u2069') {
                 if (Character.isWhitespace(c) && clean.length() > 0 && clean.charAt(clean.length() - 1) != ' ') clean.append(' ');
                 continue;

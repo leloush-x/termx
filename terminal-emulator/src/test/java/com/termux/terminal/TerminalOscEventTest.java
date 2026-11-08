@@ -10,7 +10,7 @@ public class TerminalOscEventTest {
         TerminalOscEvent event = TerminalOscEvent.parse(9, "Build\u001b[31m finished\nnow");
         assertEquals(TerminalOscEvent.Type.NOTIFICATION, event.type);
         assertEquals("Terminal", event.title);
-        assertEquals("Build[31m finished now", event.body);
+        assertEquals("Build finished now", event.body);
     }
 
     @Test public void parsesOsc777NotificationAndBoundsFields() {
