@@ -176,10 +176,17 @@ public final class TerminalView extends View {
             public boolean onUp(MotionEvent event) {
                 mScrollRemainder = 0.0f;
                 if (mEmulator != null && mEmulator.isMouseTrackingActive() && !event.isFromSource(InputDevice.SOURCE_MOUSE) && !isSelectingText() && !scrolledWithFinger) {
+                    // ACTION_UP is handled before GestureDetector confirms a single tap. Don't
+                    // send that early synthetic mouse click to a TUI when the tap is on a URL;
+                    // onSingleTapConfirmed will show TermX's Android link menu shortly after.
+                    boolean tappedLink = getLinkAt(event) != null;
                     // Quick event processing when mouse tracking is active - do not wait for check of double tapping
                     // for zooming.
-                    sendMouseEventCode(event, TerminalEmulator.MOUSE_LEFT_BUTTON, true);
-                    sendMouseEventCode(event, TerminalEmulator.MOUSE_LEFT_BUTTON, false);
+                    if (!tappedLink) {
+                        sendMouseEventCode(event, TerminalEmulator.MOUSE_LEFT_BUTTON, true);
+                        sendMouseEventCode(event, TerminalEmulator.MOUSE_LEFT_BUTTON, false);
+                    }
+                    scrolledWithFinger = false;
                     return true;
                 }
                 scrolledWithFinger = false;
@@ -194,7 +201,10 @@ public final class TerminalView extends View {
                     stopTextSelectionMode();
                     return true;
                 }
-                if (!mEmulator.isMouseTrackingActive() && !event.isFromSource(InputDevice.SOURCE_MOUSE)) {
+                // Terminals such as full-screen CLIs often enable mouse reporting and then try to
+                // open clicked URLs through a Linux BROWSER command. Handle URL taps here first so
+                // Android's browser is used; ordinary taps still reach the terminal application.
+                if (!event.isFromSource(InputDevice.SOURCE_MOUSE)) {
                     String link = getLinkAt(event);
                     if (link != null) {
                         showLinkActions(link, event);
@@ -1245,6 +1255,7 @@ public final class TerminalView extends View {
     private void openLink(String link) {
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(link));
+            intent.addCategory(Intent.CATEGORY_BROWSABLE);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getContext().startActivity(intent);
         } catch (android.content.ActivityNotFoundException | SecurityException e) {
