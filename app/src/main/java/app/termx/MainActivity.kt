@@ -157,6 +157,7 @@ class MainActivity : ComponentActivity() {
     private var pendingLaunch: ProotLaunch? = null
     private var pendingNewSession = false
     private var serviceBound = false
+    private var appInForeground = false
     private var notificationPermissionRequester: (() -> Unit)? = null
     private var storagePermissionRequested = false
     private var storagePermissionPromptVisible by mutableStateOf(false)
@@ -166,6 +167,7 @@ class MainActivity : ComponentActivity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as? SessionService.LocalBinder ?: return
             sessionBinder = binder
+            binder.setAppForeground(appInForeground)
             binder.setFinishedListener { finished ->
                 runOnUiThread {
                     refreshSessions()
@@ -1013,12 +1015,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        appInForeground = true
+        sessionBinder?.setAppForeground(true)
         if (intent.getBooleanExtra(EXTRA_NEW_SESSION, false)) {
             intent.removeExtra(EXTRA_NEW_SESSION)
             connectSessionService(newSession = true)
         } else if (SessionService.hasSavedSessions(this) && sessionBinder == null) {
             connectSessionService()
         }
+    }
+
+    override fun onStop() {
+        appInForeground = false
+        sessionBinder?.setAppForeground(false)
+        super.onStop()
     }
 
     private fun sharedDirectory(): File = File(getExternalFilesDir(null) ?: File(filesDir, "external"), "shared")

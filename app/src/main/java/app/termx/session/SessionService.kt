@@ -39,6 +39,14 @@ import java.util.UUID
 /** Owns PTYs beyond the Activity lifetime and reconnects them after process recreation. */
 class SessionService : Service() {
     private data class RunningSession(val id: String, val launch: ProotLaunch, val terminal: TerminalSession)
+    private data class PendingTerminalAlert(
+        val sessionId: String,
+        var title: String,
+        var body: String,
+        var error: Boolean,
+        var occurrences: Int,
+        val delivery: Runnable,
+    )
 
     /** A live session exposed to the UI so it can list and switch between them. */
     data class SessionRecord(
@@ -65,6 +73,10 @@ class SessionService : Service() {
     private var scanningAgents = false
     private var wifiLockEnabled = false
     private var lastFeatureFailureAt = 0L
+    private var appForeground = true
+    private var terminalNotificationsEnabled = false
+    private val pendingTerminalAlerts = mutableMapOf<String, PendingTerminalAlert>()
+    private val lastTerminalAlertAt = mutableMapOf<String, Long>()
     private var wifiLock: WifiManager.WifiLock? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private val renewWakeLock = Runnable { refreshWakeLock() }
@@ -85,10 +97,12 @@ class SessionService : Service() {
             }
         fun setKeepAlive(sessionId: String, enabled: Boolean) = setManualKeepAlive(sessionId, enabled)
         fun setSupervision(sessionId: String, enabled: Boolean): Boolean = setCommandSupervision(sessionId, enabled)
+        fun setAppForeground(foreground: Boolean) { appForeground = foreground }
         /** Closes one session and returns the session that is now active (or null). */
         fun closeSession(id: String): TerminalSession? {
             val running = sessions.remove(id) ?: return activeSession()
             running.terminal.finishIfRunning()
+            pendingTerminalAlerts.remove(id)?.let { handler.removeCallbacks(it.delivery) }
             manualKeepAlive.remove(id)
             agentProcesses.remove(id)
             disableSupervision(id)
@@ -112,7 +126,13 @@ class SessionService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        terminalBackend = TerminalBackend(applicationContext, ::onTerminalOutput, ::onSessionFinished)
+        terminalBackend = TerminalBackend(
+            applicationContext,
+            ::onTerminalOutput,
+            ::onSessionFinished,
+            ::onTerminalNotification,
+            ::onCommandFinished,
+        )
         createNotificationChannel()
         startForegroundCompat(createNotification())
         loadKeepAliveSettings()
@@ -151,6 +171,8 @@ class SessionService : Service() {
         handler.removeCallbacks(renewWakeLock)
         handler.removeCallbacks(renewWifiLock)
         handler.removeCallbacks(scanAgentsRunnable)
+        pendingTerminalAlerts.values.forEach { handler.removeCallbacks(it.delivery) }
+        pendingTerminalAlerts.clear()
         scope.cancel()
         releaseWakeLockNow()
         releaseWifiLockNow()
@@ -179,9 +201,93 @@ class SessionService : Service() {
         return terminal
     }
 
-    private fun onTerminalOutput() {
-        // Output by itself does not keep the device awake. A watched agent or explicit
-        // per-session keep-alive request owns the bounded wake lock.
+    private fun onTerminalOutput(terminal: TerminalSession) {
+        val sessionId = sessions.entries.firstOrNull { it.value.terminal === terminal }?.key ?: return
+        pendingTerminalAlerts[sessionId]?.let { pending ->
+            handler.removeCallbacks(pending.delivery)
+            handler.postDelayed(pending.delivery, TERMINAL_QUIET_MILLIS)
+        }
+    }
+
+    private fun onTerminalNotification(terminal: TerminalSession, title: String, body: String) {
+        enqueueTerminalAlert(terminal, title, body, error = false)
+    }
+
+    private fun onCommandFinished(terminal: TerminalSession, exitCode: Int) {
+        enqueueTerminalAlert(
+            terminal,
+            if (exitCode == 0) "Command finished" else "Command failed",
+            if (exitCode == 0) "A terminal command finished." else "A terminal command exited with status $exitCode.",
+            error = exitCode != 0,
+        )
+    }
+
+    private fun enqueueTerminalAlert(terminal: TerminalSession, title: String, body: String, error: Boolean) {
+        if (!terminalNotificationsEnabled || appForeground) return
+        val sessionId = sessions.entries.firstOrNull { it.value.terminal === terminal }?.key ?: return
+        val sanitizedBody = sanitizeAlertText(body)
+        if (sanitizedBody.isBlank()) return
+        val sanitizedTitle = sanitizeAlertText(title).take(64).ifBlank { "Terminal" }
+        val existing = pendingTerminalAlerts[sessionId]
+        if (existing != null) {
+            existing.occurrences++
+            existing.title = sanitizedTitle
+            existing.body = sanitizedBody
+            existing.error = existing.error || error
+            handler.removeCallbacks(existing.delivery)
+            handler.postDelayed(existing.delivery, TERMINAL_QUIET_MILLIS)
+            return
+        }
+        lateinit var pending: PendingTerminalAlert
+        val delivery = Runnable {
+            if (pendingTerminalAlerts[sessionId] !== pending) return@Runnable
+            pendingTerminalAlerts.remove(sessionId)
+            if (!terminalNotificationsEnabled || appForeground || sessionId !in sessions) return@Runnable
+            val now = System.currentTimeMillis()
+            val last = lastTerminalAlertAt[sessionId] ?: 0L
+            val rateDelay = (TERMINAL_RATE_LIMIT_MILLIS - (now - last)).coerceAtLeast(0L)
+            if (rateDelay > 0L) {
+                pendingTerminalAlerts[sessionId] = pending
+                handler.postDelayed(pending.delivery, rateDelay)
+                return@Runnable
+            }
+            val notificationText = if (pending.occurrences > 1) {
+                "${pending.occurrences} terminal events occurred in this session."
+            } else pending.body
+            postTerminalNotification(sessionId, pending.title, notificationText, pending.error)
+            lastTerminalAlertAt[sessionId] = now
+        }
+        pending = PendingTerminalAlert(sessionId, sanitizedTitle, sanitizedBody, error, 1, delivery)
+        pendingTerminalAlerts[sessionId] = pending
+        handler.postDelayed(delivery, TERMINAL_QUIET_MILLIS)
+    }
+
+    private fun postTerminalNotification(sessionId: String, title: String, body: String, error: Boolean) {
+        runCatching {
+            val contentIntent = PendingIntent.getActivity(
+                this, REQUEST_OPEN, Intent(this, MainActivity::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            val channel = if (error) TERMINAL_ERROR_CHANNEL else TERMINAL_FINISHED_CHANNEL
+            notificationManager.notify(
+                TERMINAL_NOTIFICATION_ID_BASE + (sessionId.hashCode() and 0x3fff),
+                NotificationCompat.Builder(this, channel)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setContentTitle(title.take(64))
+                    .setContentText(body.take(160))
+                    .setContentIntent(contentIntent)
+                    .setAutoCancel(true)
+                    .setOnlyAlertOnce(true)
+                    .build(),
+            )
+        }.onFailure { Log.w(TAG, "Could not post terminal notification", it) }
+    }
+
+    private fun sanitizeAlertText(text: String): String {
+        val clean = text.filter { !it.isISOControl() && it !in '\u202A'..'\u202E' && it !in '\u2066'..'\u2069' }
+            .trim().take(160)
+        val sensitive = Regex("(?i)(password|token|secret|api[_-]?key|authorization)\\s*[:=]")
+        return if (sensitive.containsMatchIn(clean)) "Terminal requested a notification." else clean
     }
 
     private fun releaseWakeLockNow() {
@@ -197,6 +303,7 @@ class SessionService : Service() {
                 val names = settings.get(KEY_WATCHED_AGENTS, DEFAULT_WATCHED_AGENTS)
                     .split(',').map(String::trim).filter(String::isNotEmpty)
                 val wifiEnabled = settings.get(KEY_WIFI_LOCK, "false") == "true"
+                val terminalNotifsEnabled = settings.get(KEY_TERMINAL_NOTIFICATIONS, "false") == "true"
                 val commands = WatchedCommandRegistry.parse(settings.get(KEY_WATCHED_COMMANDS, "")).getOrThrow()
                 val enabledSessions = JSONArray(settings.get(KEY_SUPERVISED_SESSIONS, "[]"))
                     .let { array -> (0 until array.length()).mapNotNull { array.optString(it).takeIf(String::isNotBlank) } }
@@ -210,6 +317,7 @@ class SessionService : Service() {
                     supervisedSessions.clear()
                     if (commands.isNotEmpty()) supervisedSessions.addAll(enabledSessions)
                     wifiLockEnabled = wifiEnabled
+                    terminalNotificationsEnabled = terminalNotifsEnabled
                     refreshWakeLock()
                     refreshWifiLock()
                     scheduleAgentScan()
@@ -457,6 +565,8 @@ class SessionService : Service() {
 
     private fun finishAllSessions(clearSaved: Boolean) {
         val active = sessions.values.toList()
+        pendingTerminalAlerts.values.forEach { handler.removeCallbacks(it.delivery) }
+        pendingTerminalAlerts.clear()
         sessions.clear()
         manualKeepAlive.clear()
         agentProcesses.clear()
@@ -480,6 +590,7 @@ class SessionService : Service() {
         handler.post {
             val id = sessions.entries.firstOrNull { it.value.terminal === terminal }?.key ?: return@post
             sessions.remove(id)
+            pendingTerminalAlerts.remove(id)?.let { handler.removeCallbacks(it.delivery) }
             manualKeepAlive.remove(id)
             agentProcesses.remove(id)
             disableSupervision(id)
@@ -589,6 +700,15 @@ class SessionService : Service() {
                     NotificationManager.IMPORTANCE_DEFAULT,
                 ),
             )
+            notificationManager.createNotificationChannel(
+                NotificationChannel(TERMINAL_FINISHED_CHANNEL, "Terminal events", NotificationManager.IMPORTANCE_DEFAULT),
+            )
+            notificationManager.createNotificationChannel(
+                NotificationChannel(TERMINAL_ERROR_CHANNEL, "Terminal errors", NotificationManager.IMPORTANCE_HIGH),
+            )
+            notificationManager.createNotificationChannel(
+                NotificationChannel(TERMINAL_INPUT_CHANNEL, "Terminal input needed", NotificationManager.IMPORTANCE_DEFAULT),
+            )
         }
     }
 
@@ -613,9 +733,13 @@ class SessionService : Service() {
         const val ACTION_RELOAD_KEEP_ALIVE_SETTINGS = "app.termx.session.RELOAD_KEEP_ALIVE_SETTINGS"
         private const val CHANNEL_ID = "termx_sessions"
         private const val SUPERVISOR_ERROR_CHANNEL = "termx_supervisor_errors"
+        private const val TERMINAL_FINISHED_CHANNEL = "termx_terminal_finished"
+        private const val TERMINAL_ERROR_CHANNEL = "termx_terminal_errors"
+        private const val TERMINAL_INPUT_CHANNEL = "termx_terminal_input"
         private const val NOTIFICATION_ID = 41
         private const val SUPERVISOR_ERROR_NOTIFICATION_ID = 42
         private const val FEATURE_FAILURE_NOTIFICATION_ID = 43
+        private const val TERMINAL_NOTIFICATION_ID_BASE = 20_000
         private const val FEATURE_FAILURE_RATE_LIMIT_MILLIS = 60_000L
         private const val REQUEST_OPEN = 4101
         private const val REQUEST_NEW = 4102
@@ -627,9 +751,12 @@ class SessionService : Service() {
         private const val KEY_WIFI_LOCK = "agent_wifi_lock_enabled_v1"
         private const val KEY_WATCHED_COMMANDS = "watched_daemon_commands_v1"
         private const val KEY_SUPERVISED_SESSIONS = "watched_daemon_supervised_sessions_v1"
+        private const val KEY_TERMINAL_NOTIFICATIONS = "terminal_notifications_enabled_v1"
         private const val DEFAULT_WATCHED_AGENTS = "codex,opencode,claude"
         private const val WAKE_LOCK_TIMEOUT_MILLIS = 10 * 60_000L
         private const val WAKE_LOCK_RENEW_MILLIS = 8 * 60_000L
+        private const val TERMINAL_QUIET_MILLIS = 1_500L
+        private const val TERMINAL_RATE_LIMIT_MILLIS = 15_000L
         private const val TAG = "TermXSessionService"
 
         fun hasSavedSessions(context: Context): Boolean = runCatching {

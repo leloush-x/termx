@@ -7,7 +7,6 @@ activity = "1.12.0"
 lifecycle = "2.10.0"
 annotation = "1.9.0"
 composeBom = "2025.11.01"
-termuxEmulator = "v0.118.3"
 junit = "4.13.2"
 eddsa = "0.3.1"
 room = "2.8.5"
@@ -19,6 +18,7 @@ json = "20260814"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
@@ -30,7 +30,6 @@ androidx-annotation = { module = "androidx.annotation:annotation", version.ref =
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
-termux-emulator = { module = "com.github.termux.termux-app:terminal-emulator", version.ref = "termuxEmulator" }
 junit = { module = "junit:junit", version.ref = "junit" }
 json-test = { module = "org.json:json", version.ref = "json" }
 eddsa = { module = "com.bloxbean.cardano:net-i2p-crypto-eddsa", version.ref = "eddsa" }
