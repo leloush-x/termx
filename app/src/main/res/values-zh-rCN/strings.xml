@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="terminal_link_open">在浏览器中打开</string>
+    <string name="terminal_link_copy">复制链接</string>
+    <string name="terminal_link_copied">链接已复制</string>
+    <string name="terminal_link_open_failed">没有可用于打开此链接的浏览器。</string>
     <string name="app_name">TermX</string>
 
     <!-- 选择系统 -->

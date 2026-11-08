@@ -6,8 +6,10 @@ import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -34,9 +36,13 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Scroller;
+import android.widget.Toast;
+import android.widget.PopupWindow;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+
+import app.termx.R;
 
 import com.termux.terminal.KeyHandler;
 import com.termux.terminal.TerminalEmulator;
@@ -187,6 +193,13 @@ public final class TerminalView extends View {
                 if (isSelectingText()) {
                     stopTextSelectionMode();
                     return true;
+                }
+                if (!mEmulator.isMouseTrackingActive() && !event.isFromSource(InputDevice.SOURCE_MOUSE)) {
+                    String link = getLinkAt(event);
+                    if (link != null) {
+                        showLinkActions(link, event);
+                        return true;
+                    }
                 }
                 requestFocus();
                 mClient.onSingleTapUp(event);
@@ -1214,6 +1227,40 @@ public final class TerminalView extends View {
         return mEmulator.getScreen().getSelectedText(0, mTopRow, mEmulator.mColumns, mTopRow + mEmulator.mRows);
     }
 
+    @Nullable
+    private String getLinkAt(MotionEvent event) {
+        int[] cell = getColumnAndRow(event, true);
+        if (cell[0] < 0 || cell[0] >= mEmulator.mColumns
+            || cell[1] < mTopRow || cell[1] >= mTopRow + mEmulator.mRows) return null;
+        String rowText = mEmulator.getScreen().getSelectedText(0, cell[1], mEmulator.mColumns - 1, cell[1]);
+        return TerminalLinkDetector.findLinkAtColumn(rowText, cell[0]);
+    }
+
+    private void showLinkActions(String link, MotionEvent event) {
+        if (mLinkPopup != null && mLinkPopup.isShowing()) mLinkPopup.dismiss();
+        mLinkPopup = TerminalLinkPopup.show(this, (int) event.getX(), (int) event.getY(),
+            () -> openLink(link), () -> copyLink(link));
+    }
+
+    private void openLink(String link) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(link));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+        } catch (android.content.ActivityNotFoundException | SecurityException e) {
+            Toast.makeText(getContext(), R.string.terminal_link_open_failed, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void copyLink(String link) {
+        ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        if (clipboard == null) return;
+        clipboard.setPrimaryClip(ClipData.newPlainText("TermX link", link));
+        Toast.makeText(getContext(), R.string.terminal_link_copied, Toast.LENGTH_SHORT).show();
+    }
+
+    private PopupWindow mLinkPopup;
+
     public int getCursorX(float x) {
         return (int) (x / mRenderer.mFontWidth);
     }
@@ -1636,6 +1683,8 @@ public final class TerminalView extends View {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+
+        if (mLinkPopup != null && mLinkPopup.isShowing()) mLinkPopup.dismiss();
 
         if (mTextSelectionCursorController != null) {
             // Might solve the following exception
