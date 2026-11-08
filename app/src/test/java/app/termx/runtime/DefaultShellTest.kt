@@ -73,6 +73,21 @@ class DefaultShellTest {
     }
 
     @Test
+    fun sourcesHistoryHookWhenCustomLoginProfileMentionsButDoesNotLoadBashrc() {
+        val rootfs = temporaryFolder.newFolder("bash-profile-custom-rootfs")
+        val home = File(rootfs, "root").apply { mkdirs() }
+        val bashrc = File(home, ".bashrc").apply { writeText("# user rc without history hook\n") }
+        val profile = File(home, ".bash_profile").apply {
+            writeText("# custom startup; .bashrc is mentioned in a comment only\n")
+        }
+
+        ProotCommand.installHistoryHooks(rootfs)
+
+        assertTrue(bashrc.readText().contains(".bashrc.d/termx-history.sh"))
+        assertTrue(profile.readText().contains(".bashrc.d/termx-history.sh"))
+    }
+
+    @Test
     fun upgradesAnExistingTermxHistoryHookWithoutRemovingUserLines() {
         val rootfs = temporaryFolder.newFolder("history-upgrade-rootfs")
         val home = File(rootfs, "root").apply { mkdirs() }
