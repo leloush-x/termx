@@ -20,11 +20,9 @@ TermX runs Wolfi, Alpine, Debian, and Void through **PRoot**—without root, Shi
 - **Storage that explains itself** — private storage works by default; optional All-files access and SAF workspaces are shown through Storage Health instead of hidden failing binds.
 - **A polished settings hub** — themes, AMOLED mode, fonts, keymaps, wallpapers, profiles, storage health, GitHub CLI login, and process controls.
 
-## Current release: 0.7.15
+## Latest release
 
-The `v0.7.15` release is published with a signed direct APK and SHA-256 checksum. Release CI completed successfully, including unit tests, APK assembly, 16 KB ZIP/ELF alignment checks, signature checks, and artifact publishing.
-
-**Download:** [GitHub Releases](https://github.com/leloush-x/termx/releases/tag/v0.7.15)
+The version badge above follows the latest GitHub release automatically. Download the current signed direct APK, its SHA-256 checksum, and release notes from [GitHub Releases](https://github.com/leloush-x/termx/releases/latest). Each tagged release runs unit tests, builds the APK, checks 16 KB ZIP/ELF alignment, and verifies its signature before publishing.
 
 > Device-specific behavior still needs testing on physical Gboard, Samsung, Xiaomi/HyperOS, SwiftKey, and hardware-keyboard devices. CI proves the source build and tests; it cannot prove OEM keyboard or battery-management behavior.
 
@@ -72,7 +70,7 @@ TermX also generates a restricted fake `/proc` sysdata view for tools such as `h
 
 ## Install
 
-1. Download `TermX-0.7.15-direct.apk` from the [release page](https://github.com/leloush-x/termx/releases/tag/v0.7.15).
+1. Download the latest `TermX-<version>-direct.apk` from [GitHub Releases](https://github.com/leloush-x/termx/releases/latest).
 2. Verify the accompanying `.sha256` file if desired.
 3. Install the APK. Android may require allowing installs from the download source.
 4. Open TermX, choose a distro, and start a session.
@@ -115,7 +113,7 @@ Keep an independent backup of the keystore. Without it, existing installations c
 
 ## Status and limitations
 
-TermX is actively developed. CI is green for the `v0.7.15` release, but this environment has no physical Android device or reliable emulator. OEM keyboard behavior, process death/reconnect, long background runs, battery policies, and Android 8/37 device compatibility remain manual checks rather than claims of completion.
+TermX is actively developed. CI validates builds and tests, but this environment has no physical Android device or reliable emulator. OEM keyboard behavior, process death/reconnect, long background runs, battery policies, and Android 8/37 device compatibility remain manual checks rather than claims of completion.
 
 ## License
 
