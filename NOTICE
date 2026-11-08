@@ -23,7 +23,8 @@ JetBrains Mono font (Phase 6)
    exception in termux-app LICENSE.md. Originally from jackpal/Android-Terminal-Emulator
    (Apache-2.0).
    Source under terminal-emulator/ is copied from its Apache-2.0 module and
-   locally patched to expose sanitized OSC 9/777/133 terminal events. The
+   locally patched to expose sanitized OSC 9/777/133 events, bracketed-paste
+   state, and bounded non-blocking composer writes. The
    Apache License 2.0 text is in licenses/Apache-2.0.txt.
    `TerminalTheme.kt` adapts the emulator's public palette array API.
 

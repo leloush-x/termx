@@ -51,4 +51,24 @@ public class ByteQueueTest extends TestCase {
 		assertEquals(0, q.read(new byte[128], false));
 	}
 
+	public void testTryWriteIsAtomicWhenQueueIsFull() {
+		ByteQueue q = new ByteQueue(4);
+		assertTrue(q.tryWrite(new byte[]{1, 2, 3}, 0, 3));
+		assertFalse(q.tryWrite(new byte[]{4, 5}, 0, 2));
+		byte[] read = new byte[4];
+		assertEquals(3, q.read(read, false));
+		assertArrayEquals(new byte[]{1, 2, 3}, new byte[]{read[0], read[1], read[2]});
+	}
+
+	public void testTryWriteWrapsAroundQueue() {
+		ByteQueue q = new ByteQueue(5);
+		assertTrue(q.tryWrite(new byte[]{1, 2, 3, 4}, 0, 4));
+		byte[] first = new byte[3];
+		assertEquals(3, q.read(first, false));
+		assertTrue(q.tryWrite(new byte[]{5, 6, 7}, 0, 3));
+		byte[] rest = new byte[4];
+		assertEquals(4, q.read(rest, false));
+		assertArrayEquals(new byte[]{4, 5, 6, 7}, rest);
+	}
+
 }
