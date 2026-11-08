@@ -12,6 +12,7 @@ Every source below was checked during planning (2026-10-26). Pin these commits w
 | bloxbean/ed25519-java | `v0.3.1` | CC0-1.0 | Ed25519 verification on API 26–32 for the signed distro manifest | The older `net.i2p.crypto:eddsa:0.3.0` artifact, which has a signature-malleability flaw |
 | Kyant0/AndroidLiquidGlass | `65ab177e90e5c1d8c62e70cf7755841982da65f6` (`io.github.kyant0:backdrop:2.0.1`) | Apache-2.0 | Native Compose backdrop blur, vibrancy, and lens effect for distro landing and terminal side-panel glass | Demo app and unrelated catalog components; consume the library API instead of copying its implementation |
 | JetBrains/JetBrainsMono | `19371302b95d218af43299bce79ddbddd0bc364d` | SIL Open Font License 1.1 | `fonts/archives/ttf/JetBrainsMono-Regular.ttf` and `OFL.txt` | Build scripts and unneeded font variants |
+| RikkaApps/Shizuku-API | `13.1.5` | MIT | User-granted Shizuku UserService for the reversible Device Doctor phantom-process settings action (Phase 6.1) | General shell access, terminal commands, filesystem access, or process signaling |
 
 ## Verified facts used in the plan
 
@@ -27,6 +28,8 @@ Every source below was checked during planning (2026-10-26). Pin these commits w
 - Phase 4's service type, declaration, subtype property, launch restrictions, and exception handling were checked against [Android foreground service types](https://developer.android.com/develop/background-work/services/fgs/service-types), [service launch](https://developer.android.com/develop/background-work/services/fgs/launch), and [background start restrictions](https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start).
 - wolfi-terminal v1.3.1 shrank with R8 and crashed on launch. Keep R8 off until a release smoke test exists.
 - JetBrains Mono's regular TTF is distributed under OFL-1.1; DataStore Preferences 1.2.1 is the stable AndroidX release selected for this phase: [JetBrains Mono license](https://github.com/JetBrains/JetBrainsMono) and [AndroidX DataStore releases](https://developer.android.com/jetpack/androidx/releases/datastore).
+- Shizuku API/provider 13.1.5 and its UserService/permission behavior were checked against the [official Shizuku-API developer guide](https://github.com/RikkaApps/Shizuku-API). The UID is reported only after explicit permission; the UserService allowlists the two settings in D63.
+- The direct battery-optimization request and fallback guidance were checked against [Android's Doze and App Standby guidance](https://developer.android.com/training/monitoring-device-state/doze-standby); HyperOS autostart remains OEM-version dependent and is surfaced as a user-guided settings link with an app-settings fallback.
 
 ## Not verified yet
 

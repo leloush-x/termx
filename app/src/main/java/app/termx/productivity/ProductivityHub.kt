@@ -33,11 +33,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import app.termx.diagnostics.DoctorScreen
 import app.termx.R
 import app.termx.storage.StorageWorkspace
 import java.io.File
 
-enum class ProductivityPage { PALETTE, HISTORY, FILES, SNIPPETS, PROFILES }
+enum class ProductivityPage { PALETTE, HISTORY, FILES, SNIPPETS, PROFILES, DOCTOR }
 
 @Composable
 fun ProductivityHub(
@@ -81,6 +82,7 @@ fun ProductivityHub(
                     Triple("files", stringResource(R.string.hub_action_files), stringResource(R.string.hub_action_files_desc)) to { onNavigate(ProductivityPage.FILES) },
                     Triple("snippets", stringResource(R.string.hub_action_snippets), stringResource(R.string.hub_action_snippets_desc)) to { onNavigate(ProductivityPage.SNIPPETS) },
                     Triple("profiles", stringResource(R.string.hub_action_profiles), stringResource(R.string.hub_action_profiles_desc)) to { onNavigate(ProductivityPage.PROFILES) },
+                    Triple("doctor", stringResource(R.string.hub_action_doctor), stringResource(R.string.hub_action_doctor_desc)) to { onNavigate(ProductivityPage.DOCTOR) },
                     Triple("storage", stringResource(R.string.hub_action_storage), stringResource(R.string.hub_action_storage_desc)) to onOpenStorage,
                 )
                 actions.filter { (item, _) -> fuzzyMatches("${item.first} ${item.second} ${item.third}", filter) }
@@ -133,6 +135,7 @@ fun ProductivityHub(
             ProductivityPage.PROFILES -> ProfileEditor(
                 profiles, selectedProfile, onCreateProfile, onSelectProfile, onUpdateProfile, onRemoveProfile, onOpenStorage,
             )
+            ProductivityPage.DOCTOR -> DoctorScreen(onBack)
         }
         if (message != null) Text(message, color = MaterialTheme.colorScheme.error)
     }

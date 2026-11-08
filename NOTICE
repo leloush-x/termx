@@ -250,4 +250,11 @@ JetBrains Mono font (Phase 6)
    Source: `core/main/src/main/java/com/rk/terminal/service/SessionService.kt` in wolfi-terminal commit d4cc3912d08edbf8557aac446e76fca0bee08ce3.
    License: MIT, Copyright (c) 2024 Rohit Kushvaha. The service lifecycle and notification structure were adapted; TermX uses its own PRoot launch records, actions, and output-based wake policy.
 
+9. Shizuku-API (Phase 6.1: consumed as a dependency)
+   Source: https://github.com/RikkaApps/Shizuku-API (pinned artifact version 13.1.5).
+   License: MIT, Copyright (c) 2021 RikkaW; full license text in
+   app/src/main/assets/licenses/MIT-Shizuku.txt. TermX uses the provider and UserService
+   API only for the user's reversible phantom-process settings action described in
+   docs/DECISIONS.md D63.
+
 Code is never copied from termux-shared/ (GPLv3) or from ZeroTermux (GPL) into this repository.

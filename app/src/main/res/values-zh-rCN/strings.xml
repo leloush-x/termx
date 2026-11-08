@@ -5,6 +5,8 @@
     <string name="terminal_link_copied">链接已复制</string>
     <string name="terminal_link_open_failed">没有可用于打开此链接的浏览器。</string>
     <string name="app_name">TermX</string>
+    <string name="hub_action_doctor">设备诊断</string>
+    <string name="hub_action_doctor_desc">检查后台、进程和存储能力</string>
 
     <!-- 选择系统 -->
     <string name="landing_settings">设置</string>
