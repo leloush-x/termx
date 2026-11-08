@@ -9,7 +9,7 @@ public class TerminalLinkDetectorTest {
     @Test public void detectsHttpLinkOnlyWhenColumnIsOnLinkAndDropsPunctuation() {
         String row = "go https://example.com/path, now";
         assertEquals("https://example.com/path", TerminalLinkDetector.findLinkAtColumn(row, 7));
-        assertNull(TerminalLinkDetector.findLinkAtColumn(row, 4));
+        assertNull(TerminalLinkDetector.findLinkAtColumn(row, 2));
         assertNull(TerminalLinkDetector.findLinkAtColumn(row, 30));
     }
 
